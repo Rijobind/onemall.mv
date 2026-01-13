@@ -12,10 +12,14 @@ import { Footer } from "../../../../shared/components/footer/footer";
   styleUrl: './product-details.css',
 })
 export class ProductDetails implements OnInit {
+
+  
   productId: string | null = null;
   selectedImageIndex: number = 0;
   quantity: number = 1;
   selectedColor: string = 'Graphite Black';
+  
+
 
   product = {
     id: 1,
@@ -118,6 +122,10 @@ export class ProductDetails implements OnInit {
 
   ngOnInit() {
     this.productId = this.route.snapshot.paramMap.get('id');
+  }
+
+  onShop(){
+    this.router.navigate(['shop-details'])
   }
 
   selectImage(index: number) {
