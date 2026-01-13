@@ -1,0 +1,140 @@
+<app-header></app-header>
+
+<!-- Breadcrumb -->
+<div class="border-b border-gray-200 bg-gray-50">
+  <div class="container px-6 py-4 mx-auto">
+    <nav class="flex items-center gap-2 text-sm">
+      <a routerLink="/" class="text-gray-600 transition hover:text-green-600">Home</a>
+      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+      <span class="font-medium text-gray-900">Notifications</span>
+    </nav>
+  </div>
+</div>
+
+<!-- Notifications Page -->
+<section class="min-h-screen py-12 bg-gray-50">
+  <div class="container px-6 mx-auto">
+    <div class="max-w-4xl mx-auto">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Notifications</h1>
+          <p class="mt-2 text-sm text-gray-600">
+            You have <span class="font-semibold text-green-600">{{ unreadCount }}</span> unread notifications
+          </p>
+        </div>
+        <button
+          *ngIf="unreadCount > 0"
+          (click)="markAllAsRead()"
+          class="px-4 py-2 text-sm font-medium text-gray-700 transition bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+        >
+          Mark all as read
+        </button>
+      </div>
+
+      <!-- Notifications List -->
+      <div class="space-y-3">
+        <div
+          *ngFor="let notification of notifications"
+          [class.bg-white]="!notification.read"
+          [class.bg-gray-50]="notification.read"
+          class="p-4 transition border border-gray-200 rounded-lg hover:shadow-md"
+        >
+          <div class="flex items-start gap-4">
+            <!-- Icon -->
+            <div
+              [class.bg-green-100]="notification.type === 'order'"
+              [class.bg-blue-100]="notification.type === 'product'"
+              [class.bg-yellow-100]="notification.type === 'offer'"
+              [class.bg-purple-100]="notification.type === 'review'"
+              class="flex-shrink-0 p-3 rounded-full"
+            >
+              <svg
+                *ngIf="notification.type === 'order'"
+                class="w-6 h-6 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              <svg
+                *ngIf="notification.type === 'product'"
+                class="w-6 h-6 text-blue-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+              <svg
+                *ngIf="notification.type === 'offer'"
+                class="w-6 h-6 text-yellow-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <svg
+                *ngIf="notification.type === 'review'"
+                class="w-6 h-6 text-purple-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <h3 class="font-semibold text-gray-900">{{ notification.title }}</h3>
+                  <p class="mt-1 text-sm text-gray-600">{{ notification.message }}</p>
+                  <p class="mt-2 text-xs text-gray-500">{{ notification.time }}</p>
+                </div>
+                <div class="flex items-center gap-2 ml-4">
+                  <div *ngIf="!notification.read" class="w-2 h-2 bg-green-600 rounded-full"></div>
+                  <button
+                    (click)="markAsRead(notification.id)"
+                    *ngIf="!notification.read"
+                    class="p-1 text-gray-400 transition rounded hover:bg-gray-100 hover:text-gray-600"
+                    title="Mark as read"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </button>
+                  <button
+                    (click)="deleteNotification(notification.id)"
+                    class="p-1 text-gray-400 transition rounded hover:bg-gray-100 hover:text-red-600"
+                    title="Delete"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="notifications.length === 0" class="py-12 text-center">
+        <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+        <p class="text-lg font-semibold text-gray-900">No notifications</p>
+        <p class="text-sm text-gray-600">You're all caught up!</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<app-footer></app-footer>

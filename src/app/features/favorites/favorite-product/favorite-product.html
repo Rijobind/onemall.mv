@@ -1,0 +1,124 @@
+<app-header></app-header>
+<!-- Breadcrumb -->
+<div class="border-b border-gray-200 bg-gray-50">
+  <div class="container px-6 py-4 mx-auto">
+    <nav class="flex items-center gap-2 text-sm">
+      <a routerLink="/" class="text-gray-600 transition hover:text-green-600">Home</a>
+      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+      </svg>
+      <span class="font-medium text-gray-900">My Favorites</span>
+    </nav>
+  </div>
+</div>
+
+<!-- Favorites Page -->
+<section class="min-h-screen py-12 bg-gray-50">
+  <div class="container px-6 mx-auto">
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">My Favorites</h1>
+        <p class="mt-2 text-sm text-gray-600">
+          {{ favoriteProducts.length }} item{{ favoriteProducts.length !== 1 ? 's' : '' }} saved
+        </p>
+      </div>
+    </div>
+
+    <!-- Favorites Grid -->
+    <div *ngIf="favoriteProducts.length > 0" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div
+        *ngFor="let product of favoriteProducts"
+        class="relative overflow-hidden transition bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md"
+      >
+        <!-- Remove Button -->
+        <button
+          (click)="removeFromFavorites(product.id)"
+          class="absolute z-10 p-2 text-gray-400 transition bg-white rounded-full shadow-md top-2 right-2 hover:bg-red-50 hover:text-red-600"
+        >
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+
+        <!-- Product Image -->
+        <div
+          [routerLink]="['/product-details', product.id]"
+          class="relative overflow-hidden bg-gray-100 cursor-pointer aspect-square"
+        >
+          <img
+            [src]="product.image"
+            [alt]="product.name"
+            class="object-cover w-full h-full transition hover:scale-105"
+          />
+          <div *ngIf="product.originalPrice" class="absolute px-2 py-1 text-xs font-semibold text-white bg-red-600 rounded top-2 left-2">
+            {{ ((1 - product.price / product.originalPrice) * 100).toFixed(0) }}% OFF
+          </div>
+          <div *ngIf="!product.inStock" class="absolute inset-0 flex items-center justify-center bg-black/50">
+            <span class="px-3 py-1 text-sm font-semibold text-white bg-red-600 rounded">Out of Stock</span>
+          </div>
+        </div>
+
+        <!-- Product Details -->
+        <div class="p-4">
+          <h3
+            [routerLink]="['/product-details', product.id]"
+            class="mb-2 text-sm font-semibold text-gray-900 cursor-pointer line-clamp-2 hover:text-green-600"
+          >
+            {{ product.name }}
+          </h3>
+          <div class="flex items-center gap-1 mb-2">
+            <svg
+              *ngFor="let i of [1, 2, 3, 4, 5]"
+              class="w-4 h-4"
+              [class.text-yellow-400]="i <= product.rating"
+              [class.text-gray-300]="i > product.rating"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <span class="ml-1 text-xs text-gray-600">({{ product.reviews }})</span>
+          </div>
+          <div class="flex items-center gap-2 mb-3">
+            <span class="text-lg font-bold text-gray-900">${{ product.price.toFixed(2) }}</span>
+            <span *ngIf="product.originalPrice" class="text-sm text-gray-400 line-through"
+              >${{ product.originalPrice.toFixed(2) }}</span
+            >
+          </div>
+          <button
+            (click)="addToCart(product)"
+            [disabled]="!product.inStock"
+            class="w-full px-4 py-2 text-sm font-semibold text-white transition bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+          >
+            Add to Cart
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="favoriteProducts.length === 0" class="py-12 text-center bg-white border border-gray-200 rounded-lg">
+      <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+        <path
+          fill-rule="evenodd"
+          d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+          clip-rule="evenodd"
+        />
+      </svg>
+      <p class="text-lg font-semibold text-gray-900">No favorites yet</p>
+      <p class="mt-2 text-sm text-gray-600">Start adding products to your favorites list</p>
+      <a
+        routerLink="/"
+        class="inline-block px-6 py-2 mt-4 font-semibold text-white transition bg-green-600 rounded-lg hover:bg-green-700"
+      >
+        Browse Products
+      </a>
+    </div>
+  </div>
+</section>
+
+<app-footer></app-footer>

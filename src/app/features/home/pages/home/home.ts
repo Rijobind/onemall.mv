@@ -16,7 +16,7 @@ export class Home {
   activeTab: string = 'feature';
   activeProductTab: string = 'top20';
 
-  constructor(private router : Router){}
+  constructor(private router: Router) {}
 
 
   categories = [
@@ -168,6 +168,27 @@ export class Home {
       price: 14.999, 
       image: '/keyboard.jpg' 
     },
+    { 
+      id: 5, 
+      name: 'JBL LIVE200BT - Wireless Neckband Earphones with Premium Sound &...', 
+      category: 'Wireless Earphones',
+      price: 14.999, 
+      image: '/shirt2.jpg' 
+    },
+    { 
+      id: 5, 
+      name: 'JBL LIVE200BT - Wireless Neckband Earphones with Premium Sound &...', 
+      category: 'Wireless Earphones',
+      price: 14.999, 
+      image: '/mobile4.jpg' 
+    },
+    { 
+      id: 5, 
+      name: 'JBL LIVE200BT - Wireless Neckband Earphones with Premium Sound &...', 
+      category: 'Wireless Earphones',
+      price: 14.999, 
+      image: '/shoe4.jpg' 
+    },
   ];
 
   products = [
@@ -203,7 +224,7 @@ export class Home {
 
   scrollRecentlyViewed(direction: 'left' | 'right') {
     if (this.recentlyViewedCarousel?.nativeElement) {
-      const scrollAmount = 280; // Width of card (256px) + gap (24px)
+      const scrollAmount = 280;
       const currentScroll = this.recentlyViewedCarousel.nativeElement.scrollLeft;
       const newScroll = direction === 'left' 
         ? currentScroll - scrollAmount 

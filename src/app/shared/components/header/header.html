@@ -1,41 +1,42 @@
+<!-- Advertisement Banner -->
 <div
-  class="container relative py-4 mx-auto overflow-hidden bg-center bg-no-repeat bg-cover"
-  style="background-image: url('/mobile3.jpg')"
+  class="container relative py-3 mx-auto overflow-hidden transition-all duration-1000 bg-center bg-no-repeat bg-cover md:py-4"
+  [style.background-image]="'url(' + currentAd.backgroundImage + ')'"
 >
   <div class="absolute inset-0 bg-black/70"></div>
-  <div class="container relative px-6 mx-auto">
-    <div class="flex items-center justify-between gap-6">
-      <div class="flex-shrink-0 hidden md:block">
+  <div class="container relative px-4 mx-auto md:px-6">
+    <div class="flex items-center justify-between gap-2 md:gap-6">
+      <div class="flex-shrink-0 hidden transition-opacity duration-1000 md:block">
         <img
-          src="/mobile2.jpg"
-          alt="Keyboard"
+          [src]="currentAd.leftImage"
+          alt="Product"
           class="object-cover h-24 rounded-lg shadow-lg w-36"
         />
       </div>
-      <div class="flex items-center justify-center flex-1 gap-4 text-white">
-        <div class="flex-shrink-0">
+      <div class="flex items-center justify-center flex-1 gap-2 text-white md:gap-4">
+        <div class="flex-shrink-0 transition-opacity duration-1000">
           <div
-            class="flex flex-col items-center justify-center w-20 h-20 font-bold text-white bg-green-600 rounded-full shadow-lg"
+            class="flex flex-col items-center justify-center w-12 h-12 font-bold text-white bg-green-600 rounded-full shadow-lg md:w-20 md:h-20"
           >
-            <span class="text-xs leading-tight text-center">up to</span>
-            <span class="text-xl leading-tight">75%</span>
-            <span class="text-xs leading-tight">off</span>
+            <span class="text-[8px] md:text-xs leading-tight text-center">up to</span>
+            <span class="text-sm leading-tight md:text-xl">{{ currentAd.discount }}</span>
+            <span class="text-[8px] md:text-xs leading-tight">off</span>
           </div>
         </div>
-        <div class="text-center">
-          <h3 class="mb-1 text-xl font-bold md:text-2xl">CYBER MONDAY SALE</h3>
-          <p class="text-sm opacity-90">Don't miss out on amazing deals!</p>
+        <div class="flex-1 min-w-0 text-center transition-opacity duration-1000">
+          <h3 class="mb-0.5 md:mb-1 text-sm md:text-xl lg:text-2xl font-bold truncate">{{ currentAd.title }}</h3>
+          <p class="text-[10px] md:text-sm opacity-90 line-clamp-1">{{ currentAd.description }}</p>
         </div>
         <button
-          class="flex-shrink-0 px-6 py-2 text-sm font-semibold text-green-600 transition bg-white rounded-md shadow-md hover:bg-gray-100 whitespace-nowrap"
+          class="flex-shrink-0 px-3 md:px-6 py-1.5 md:py-2 text-[10px] md:text-sm font-semibold text-green-600 transition bg-white rounded-md shadow-md hover:bg-gray-100 whitespace-nowrap"
         >
-          SHOP NOW
+          {{ currentAd.buttonText }}
         </button>
       </div>
-      <div class="flex-shrink-0 hidden md:block">
+      <div class="flex-shrink-0 hidden transition-opacity duration-1000 md:block">
         <img
-          src="/mobile.jpg"
-          alt="Controller"
+          [src]="currentAd.rightImage"
+          alt="Product"
           class="object-cover h-24 rounded-lg shadow-lg w-36"
         />
       </div>
@@ -43,42 +44,78 @@
   </div>
 </div>
 
+<!-- Top Info Bar -->
 <div class="bg-gray-100 border-b border-gray-200">
-  <div class="container px-6 py-2 mx-auto">
-    <div class="flex items-center justify-between text-sm">
-      <div class="flex items-center gap-6 py-2">
+  <div class="container px-4 py-2 mx-auto md:px-6">
+    <div class="flex flex-col items-start justify-between gap-2 text-xs sm:flex-row sm:items-center sm:gap-0 sm:text-sm">
+      <div class="flex flex-col items-start gap-2 py-1 sm:flex-row sm:items-center sm:gap-6 sm:py-2">
         <span class="text-gray-700">
-          Call us for free: <span class="font-semibold text-green-600">+1(800) 123 4567</span>
+          Call us: <span class="font-semibold text-green-600">+1(800) 123 4567</span>
         </span>
-        <span class="text-gray-700">
+        <span class="hidden text-gray-700 sm:inline">
           Free Shipping on Orders <span class="font-bold text-green-600">$50+</span>
         </span>
       </div>
       <div class="flex items-center gap-4">
-        <span class="text-sm text-gray-700">My account</span>
+        <button
+          (click)="openSigninModal()"
+          class="text-xs text-gray-700 transition cursor-pointer sm:text-sm hover:text-green-600"
+        >
+          My account
+        </button>
       </div>
     </div>
   </div>
 </div>
 <header class="sticky top-0 z-50 bg-white border-b border-gray-200">
-  <div class="container px-6 py-4 mx-auto">
-    <div class="flex items-center justify-between gap-6">
-      <div class="flex-shrink-0">
-        <h1 (click)="onHome()" class="text-3xl font-bold cursor-pointer">
+  <div class="container px-4 py-3 mx-auto md:px-6 md:py-4">
+    <div class="flex items-center justify-between gap-3 md:gap-6">
+      <!-- Logo and Mobile Menu Button -->
+      <div class="flex items-center gap-3 md:gap-0">
+        <button
+          (click)="toggleMobileMenu()"
+          class="p-2 text-gray-700 transition rounded-md mobile-menu-button hover:bg-gray-100 md:hidden"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              *ngIf="!isMobileMenuOpen"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+            <path
+              *ngIf="isMobileMenuOpen"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+        <h1 (click)="onHome()" class="text-xl font-bold cursor-pointer md:text-3xl">
           <span class="text-green-600">OneMall</span><span class="text-gray-700">.mv</span>
         </h1>
+        <!-- <img
+        src="/logo2.png"
+          alt="Product"
+          class="object-cover w-full h-8 rounded-lg "
+        /> -->
       </div>
-      <div class="flex-1 max-w-3xl">
+
+      <!-- Search Bar - Hidden on mobile, visible on tablet+ -->
+      <div class="flex-1 hidden max-w-3xl md:flex">
         <div
-          class="relative flex items-center transition bg-gray-100 rounded-full shadow-sm hover:shadow-green-500/50 hover:shadow-md focus-within:ring-2 focus-within:ring-green-500"
+          class="relative flex items-center w-full transition bg-gray-100 rounded-full shadow-sm hover:shadow-green-500/50 hover:shadow-md focus-within:ring-2 focus-within:ring-green-500"
         >
           <!-- Category Dropdown -->
           <div class="relative category-dropdown">
             <button
               (click)="toggleCategoryDropdown()"
-              class="flex items-center gap-2 h-full px-4 py-3 text-sm font-medium text-gray-700 bg-transparent border-r border-gray-300 rounded-l-full cursor-pointer transition hover:text-green-600 hover:bg-gray-50 focus:outline-none whitespace-nowrap"
+              class="flex items-center h-full gap-2 px-4 py-3 text-sm font-medium text-gray-700 transition bg-transparent border-r border-gray-300 rounded-l-full cursor-pointer hover:text-green-600 hover:bg-gray-50 focus:outline-none whitespace-nowrap"
             >
-              <span>{{ selectedCategory }}</span>
+              <span class="hidden lg:inline">{{ selectedCategory }}</span>
+              <span class="lg:hidden">All</span>
               <svg
                 class="w-4 h-4 transition-transform"
                 [class.rotate-180]="isCategoryOpen"
@@ -130,7 +167,7 @@
           <input
             type="text"
             placeholder="Search for products, brands & more"
-            class="flex-1 px-5 py-3 text-sm bg-transparent focus:outline-none"
+            class="flex-1 px-4 py-2 text-sm bg-transparent md:px-5 md:py-3 focus:outline-none"
           />
           <button
             class="absolute flex items-center justify-center w-8 h-8 text-white transition bg-green-600 rounded-full right-2 hover:bg-green-700"
@@ -147,7 +184,20 @@
         </div>
       </div>
 
-      <div class="items-center flex-shrink-0 hidden gap-3 lg:flex">
+      <!-- Mobile Search Icon -->
+      <button class="p-2 text-gray-700 transition rounded-md hover:bg-gray-100 md:hidden">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          />
+        </svg>
+      </button>
+
+      <!-- Contact Info - Hidden on mobile/tablet -->
+      <div class="items-center flex-shrink-0 hidden gap-3 xl:flex">
         <div class="flex items-center justify-center w-10 h-10 bg-gray-100 rounded-full">
           <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -164,209 +214,276 @@
           <div class="text-gray-600">Email: Onsus@support.com</div>
         </div>
       </div>
+
+      <!-- Action Icons -->
+      <div class="flex items-center flex-shrink-0 gap-2 md:gap-4">
+        <button
+          (click)="onNotifications()"
+          class="relative p-2 text-gray-700 transition cursor-pointer hover:text-green-600"
+        >
+          <svg class="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+            />
+          </svg>
+          <span
+            class="absolute top-0 right-0 flex items-center justify-center w-4 h-4 md:w-5 md:h-5 text-[10px] md:text-xs font-bold text-white bg-green-600 rounded-full"
+            >{{ notificationCount }}</span
+          >
+        </button>
+        <button
+          (click)="onFavorites()"
+          class="relative p-2 text-gray-700 transition cursor-pointer hover:text-green-600"
+        >
+          <svg class="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+          <span
+            class="absolute top-0 right-0 flex items-center justify-center w-4 h-4 md:w-5 md:h-5 text-[10px] md:text-xs font-bold text-white bg-green-600 rounded-full"
+            >{{ wishlistCount }}</span
+          >
+        </button>
+        <button
+          (click)="onCart()"
+          class="relative p-2 text-gray-700 transition cursor-pointer hover:text-green-600"
+        >
+          <svg class="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+            />
+          </svg>
+          <span
+            class="absolute top-0 right-0 flex items-center justify-center w-4 h-4 md:w-5 md:h-5 text-[10px] md:text-xs font-bold text-white bg-green-600 rounded-full"
+            >{{ cartCount }}</span
+          >
+        </button>
+      </div>
     </div>
   </div>
 </header>
 
+<!-- Navigation Menu -->
 <nav class="bg-gray-100 border-b border-gray-200">
-  <div class="container flex items-center justify-between px-6 mx-auto">
-    <div class="flex items-center gap-8">
-      <!-- Home Dropdown -->
-      <div class="relative group">
+  <!-- Desktop Navigation -->
+  <div class="hidden md:block">
+    <div class="container flex items-center justify-between px-6 mx-auto">
+      <div class="flex items-center gap-6 lg:gap-8">
+        <!-- Home -->
+        <div class="relative group">
+          <a
+            href="#"
+            class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition hover:text-green-600"
+          >
+            Home
+          </a>
+        </div>
+
+        <!-- Shop Dropdown -->
+        <div class="relative group">
+          <a
+            href="#"
+            class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition hover:text-green-600"
+          >
+            Shop
+            <svg
+              class="w-4 h-4 transition-transform group-hover:rotate-180"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </a>
+          <div
+            class="absolute left-0 z-50 invisible w-56 transition-all duration-300 transform translate-y-2 bg-white border border-gray-100 rounded-lg shadow-xl opacity-0 top-full group-hover:opacity-100 group-hover:visible group-hover:translate-y-0"
+          >
+            <div class="py-2">
+              <a
+                *ngFor="let item of shopMenu"
+                [href]="item.link"
+                class="block px-4 py-2 text-sm text-gray-700 transition hover:bg-green-50 hover:text-green-600"
+              >
+                {{ item.label }}
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product Dropdown -->
+        <div class="relative group">
+          <a
+            href="#"
+            class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition hover:text-green-600"
+          >
+            Product
+            <svg
+              class="w-4 h-4 transition-transform group-hover:rotate-180"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </a>
+          <div
+            class="absolute left-0 z-50 invisible w-56 transition-all duration-300 transform translate-y-2 bg-white border border-gray-100 rounded-lg shadow-xl opacity-0 top-full group-hover:opacity-100 group-hover:visible group-hover:translate-y-0"
+          >
+            <div class="py-2">
+              <a
+                *ngFor="let item of productMenu"
+                [href]="item.link"
+                class="block px-4 py-2 text-sm text-gray-700 transition hover:bg-green-50 hover:text-green-600"
+              >
+                {{ item.label }}
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Page Dropdown -->
+        <div class="relative group">
+          <a
+            href="#"
+            class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition hover:text-green-600"
+          >
+            Page
+            <svg
+              class="w-4 h-4 transition-transform group-hover:rotate-180"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </a>
+          <div
+            class="absolute left-0 z-50 invisible w-56 transition-all duration-300 transform translate-y-2 bg-white border border-gray-100 rounded-lg shadow-xl opacity-0 top-full group-hover:opacity-100 group-hover:visible group-hover:translate-y-0"
+          >
+            <div class="py-2">
+              <a
+                *ngFor="let item of pageMenu"
+                [href]="item.link"
+                class="block px-4 py-2 text-sm text-gray-700 transition hover:bg-green-50 hover:text-green-600"
+              >
+                {{ item.label }}
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- About Us -->
+        <div class="relative group">
+          <a (click)="onAboutUs()"
+            
+            class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition cursor-pointer hover:text-green-600"
+          >
+            About Us
+          </a>
+        </div>
+
+        <!-- Contact -->
+        <div class="relative group">
+          <a (click)="onContact()"
+            
+            class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition cursor-pointer hover:text-green-600"
+          >
+            Contact
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Navigation Menu -->
+  <div
+    *ngIf="isMobileMenuOpen"
+    class="bg-white border-t border-gray-200 mobile-menu md:hidden"
+  >
+    <div class="container px-4 py-4 mx-auto">
+      <div class="space-y-1">
         <a
           href="#"
-          class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition hover:text-green-600"
+          (click)="closeMobileMenu()"
+          class="block px-4 py-2 text-sm font-medium text-gray-700 transition rounded-md hover:bg-gray-100 hover:text-green-600"
         >
           Home
         </a>
-      </div>
-
-      <!-- Shop Dropdown -->
-      <div class="relative group">
         <a
           href="#"
-          class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition hover:text-green-600"
+          (click)="closeMobileMenu()"
+          class="block px-4 py-2 text-sm font-medium text-gray-700 transition rounded-md hover:bg-gray-100 hover:text-green-600"
         >
           Shop
-          <svg
-            class="w-4 h-4 transition-transform group-hover:rotate-180"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
         </a>
-        <div
-          class="absolute left-0 z-50 invisible w-56 transition-all duration-300 transform translate-y-2 bg-white border border-gray-100 rounded-lg shadow-xl opacity-0 top-full group-hover:opacity-100 group-hover:visible group-hover:translate-y-0"
-        >
-          <div class="py-2">
-            <a
-              *ngFor="let item of shopMenu"
-              [href]="item.link"
-              class="block px-4 py-2 text-sm text-gray-700 transition hover:bg-green-50 hover:text-green-600"
-            >
-              {{ item.label }}
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <div class="relative group">
         <a
           href="#"
-          class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition hover:text-green-600"
+          (click)="closeMobileMenu()"
+          class="block px-4 py-2 text-sm font-medium text-gray-700 transition rounded-md hover:bg-gray-100 hover:text-green-600"
         >
           Product
-          <svg
-            class="w-4 h-4 transition-transform group-hover:rotate-180"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
         </a>
-        <div
-          class="absolute left-0 z-50 invisible w-56 transition-all duration-300 transform translate-y-2 bg-white border border-gray-100 rounded-lg shadow-xl opacity-0 top-full group-hover:opacity-100 group-hover:visible group-hover:translate-y-0"
-        >
-          <div class="py-2">
-            <a
-              *ngFor="let item of productMenu"
-              [href]="item.link"
-              class="block px-4 py-2 text-sm text-gray-700 transition hover:bg-green-50 hover:text-green-600"
-            >
-              {{ item.label }}
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <!-- Blog Dropdown -->
-      <div class="relative group">
         <a
           href="#"
-          class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition hover:text-green-600"
-        >
-          Blog
-          <svg
-            class="w-4 h-4 transition-transform group-hover:rotate-180"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        </a>
-        <div
-          class="absolute left-0 z-50 invisible w-56 transition-all duration-300 transform translate-y-2 bg-white border border-gray-100 rounded-lg shadow-xl opacity-0 top-full group-hover:opacity-100 group-hover:visible group-hover:translate-y-0"
-        >
-          <div class="py-2">
-            <a
-              *ngFor="let item of blogMenu"
-              [href]="item.link"
-              class="block px-4 py-2 text-sm text-gray-700 transition hover:bg-green-50 hover:text-green-600"
-            >
-              {{ item.label }}
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <!-- Page Dropdown -->
-      <div class="relative group">
-        <a
-          href="#"
-          class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition hover:text-green-600"
+          (click)="closeMobileMenu()"
+          class="block px-4 py-2 text-sm font-medium text-gray-700 transition rounded-md hover:bg-gray-100 hover:text-green-600"
         >
           Page
-          <svg
-            class="w-4 h-4 transition-transform group-hover:rotate-180"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
         </a>
-        <div
-          class="absolute left-0 z-50 invisible w-56 transition-all duration-300 transform translate-y-2 bg-white border border-gray-100 rounded-lg shadow-xl opacity-0 top-full group-hover:opacity-100 group-hover:visible group-hover:translate-y-0"
+        <a
+          href="#"
+          (click)="closeMobileMenu()"
+          class="block px-4 py-2 text-sm font-medium text-gray-700 transition rounded-md hover:bg-gray-100 hover:text-green-600"
         >
-          <div class="py-2">
-            <a
-              *ngFor="let item of pageMenu"
-              [href]="item.link"
-              class="block px-4 py-2 text-sm text-gray-700 transition hover:bg-green-50 hover:text-green-600"
-            >
-              {{ item.label }}
-            </a>
-          </div>
-        </div>
+          About Us
+        </a>
+        <a
+          href="#"
+          (click)="closeMobileMenu()"
+          class="block px-4 py-2 text-sm font-medium text-gray-700 transition rounded-md hover:bg-gray-100 hover:text-green-600"
+        >
+          Contact
+        </a>
       </div>
-    </div>
-    <div class="flex items-center flex-shrink-0 gap-4">
-      <button class="relative p-2 text-gray-700 transition hover:text-green-600">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-          />
-        </svg>
-        <span
-          class="absolute top-0 right-0 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-green-600 rounded-full"
-          >{{ notificationCount }}</span
-        >
-      </button>
-      <button class="relative p-2 text-gray-700 transition hover:text-green-600">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-          />
-        </svg>
-        <span
-          class="absolute top-0 right-0 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-green-600 rounded-full"
-          >{{ wishlistCount }}</span
-        >
-      </button>
-      <button class="relative p-2 text-gray-700 transition hover:text-green-600">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-          />
-        </svg>
-        <span
-          class="absolute top-0 right-0 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-green-600 rounded-full"
-          >{{ cartCount }}</span
-        >
-      </button>
     </div>
   </div>
 </nav>
+
+<!-- Signin Modal -->
+<app-signin
+  [isOpen]="isSigninModalOpen"
+  (closeModal)="closeSigninModal()"
+  (openSignup)="onSigninToSignup()"
+></app-signin>
+
+<!-- Signup Modal -->
+<app-signup
+  [isOpen]="isSignupModalOpen"
+  (closeModal)="closeSignupModal()"
+  (openSignin)="onSignupToSignin()"
+></app-signup>

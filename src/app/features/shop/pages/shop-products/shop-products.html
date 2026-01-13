@@ -5,16 +5,61 @@
     </div>
     <div class="flex items-center gap-3">
       <label class="text-sm text-gray-600">Sort by:</label>
-      <select
-        (change)="onSortChange($any($event.target).value)"
-        [value]="internalSortBy"
-        class="px-4 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-      >
-        <option value="newest">Newest</option>
-        <option value="price-low">Price: Low to High</option>
-        <option value="price-high">Price: High to Low</option>
-        <option value="rating">Highest Rated</option>
-      </select>
+      <!-- Custom Sort Dropdown -->
+      <div class="relative sort-dropdown">
+        <button
+          (click)="toggleSortDropdown()"
+          class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 transition bg-white border border-gray-300 rounded-lg cursor-pointer hover:text-green-600 hover:bg-gray-50 focus:outline-none whitespace-nowrap"
+        >
+          <span>{{ selectedSortLabel }}</span>
+          <svg
+            class="w-4 h-4 transition-transform"
+            [class.rotate-180]="isSortOpen"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
+        <!-- Dropdown Menu -->
+        <div
+          *ngIf="isSortOpen"
+          class="absolute right-0 z-50 w-56 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl top-full"
+        >
+          <div class="py-2">
+            <a
+              *ngFor="let option of sortOptions"
+              (click)="selectSort(option.value)"
+              class="block px-4 py-2.5 text-sm text-gray-700 transition hover:bg-green-50 hover:text-green-600 cursor-pointer"
+              [class.bg-green-50]="internalSortBy === option.value"
+              [class.text-green-600]="internalSortBy === option.value"
+              [class.font-semibold]="internalSortBy === option.value"
+            >
+              <div class="flex items-center justify-between">
+                <span>{{ option.label }}</span>
+                <svg
+                  *ngIf="internalSortBy === option.value"
+                  class="w-4 h-4 text-green-600"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </div>
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
