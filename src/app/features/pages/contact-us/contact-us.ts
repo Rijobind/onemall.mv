@@ -38,12 +38,6 @@ export class ContactUs {
       title: 'Address',
       value: '123 Shopping Street, City, State 12345',
       link: '#'
-    },
-    {
-      icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
-      title: 'Business Hours',
-      value: 'Mon - Fri: 9:00 AM - 6:00 PM',
-      link: '#'
     }
   ];
 

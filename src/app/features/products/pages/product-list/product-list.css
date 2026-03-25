@@ -1,0 +1,49 @@
+/* Custom Scrollbar for Categories Sidebar */
+nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+nav::-webkit-scrollbar-track {
+  background: rgb(243 244 246);
+  border-radius: 10px;
+}
+
+nav::-webkit-scrollbar-thumb {
+  background-color: rgb(187 247 208);
+  border-radius: 10px;
+  border: 1px solid rgb(243 244 246);
+}
+
+nav::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(134 239 172);
+}
+
+/* Product card hover effect */
+.product-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.product-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Skeleton loader */
+.skeleton-pulse {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e8e8e8 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

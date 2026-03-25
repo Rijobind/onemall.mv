@@ -1,0 +1,353 @@
+<app-header></app-header>
+
+<section class="min-h-screen py-4 bg-gray-50">
+  <div class="container px-4 mx-auto">
+    <div class="flex gap-4">
+      <aside class="flex-shrink-0 hidden w-64 lg:block">
+        <div class="sticky bg-white border border-gray-200 rounded-lg shadow-sm top-4">
+          <!-- Sidebar Skeleton -->
+          <div *ngIf="isLoading" class="p-4 space-y-3">
+            <div class="h-6 w-24 skeleton-pulse rounded"></div>
+            <div class="h-4 w-full skeleton-pulse rounded"></div>
+            <div class="h-4 w-5/6 skeleton-pulse rounded"></div>
+            <div class="h-4 w-full skeleton-pulse rounded"></div>
+            <div class="h-4 w-3/4 skeleton-pulse rounded"></div>
+            <div class="h-4 w-full skeleton-pulse rounded"></div>
+            <div class="h-4 w-5/6 skeleton-pulse rounded"></div>
+          </div>
+
+          <div *ngIf="!isLoading" class="p-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-gray-900">Categories</h2>
+              <button
+                *ngIf="selectedCategory"
+                (click)="onViewAllCategories()"
+                class="text-xs font-medium text-green-600 hover:text-green-700"
+              >
+                View All
+              </button>
+            </div>
+          </div>
+
+          <!-- Category Navigation -->
+          <nav *ngIf="!isLoading" class="max-h-[calc(100vh-200px)] overflow-y-auto">
+            <ng-container *ngFor="let category of displayedCategoryTree">
+              <!-- Parent Category -->
+              <div class="relative group">
+                <a
+                  (click)="onCategoryClick(category)"
+                  class="flex items-center justify-between px-4 py-2.5 text-sm text-gray-700 transition border-l-4 border-transparent hover:bg-green-50 hover:text-green-600 hover:border-green-600 cursor-pointer"
+                  [class.bg-green-50]="isCategorySelected(category)"
+                  [class.text-green-600]="isCategorySelected(category)"
+                  [class.border-green-600]="isCategorySelected(category)"
+                >
+                  <span>{{ category.category_name }}</span>
+                  <svg
+                    *ngIf="category.children.length > 0"
+                    class="w-4 h-4 text-gray-400 transition-colors group-hover:text-green-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </a>
+
+                <!-- Children (First Level) -->
+                <div
+                  *ngIf="category.children.length > 0"
+                  class="pl-4 border-l-2 border-gray-100 ml-4"
+                >
+                  <ng-container *ngFor="let child of category.children">
+                    <a
+                      (click)="onCategoryClick(child)"
+                      class="flex items-center justify-between px-4 py-2 text-sm text-gray-700 transition border-l-4 border-transparent hover:bg-green-50 hover:text-green-600 hover:border-green-600 cursor-pointer"
+                      [class.bg-green-50]="isCategorySelected(child)"
+                      [class.text-green-600]="isCategorySelected(child)"
+                      [class.border-green-600]="isCategorySelected(child)"
+                    >
+                      <span>{{ child.category_name }}</span>
+                      <svg
+                        *ngIf="child.children.length > 0"
+                        class="w-3 h-3 text-gray-400 transition-colors group-hover:text-green-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </a>
+
+                    <!-- Grandchildren (Second Level) -->
+                    <div
+                      *ngIf="child.children.length > 0"
+                      class="pl-4 border-l-2 border-gray-100 ml-4"
+                    >
+                      <a
+                        *ngFor="let grandchild of child.children"
+                        (click)="onCategoryClick(grandchild)"
+                        class="block px-4 py-1.5 text-xs text-gray-600 transition border-l-4 border-transparent hover:bg-green-50 hover:text-green-600 hover:border-green-600 cursor-pointer"
+                        [class.bg-green-50]="isCategorySelected(grandchild)"
+                        [class.text-green-600]="isCategorySelected(grandchild)"
+                        [class.border-green-600]="isCategorySelected(grandchild)"
+                      >
+                        {{ grandchild.category_name }}
+                      </a>
+                    </div>
+                  </ng-container>
+                </div>
+              </div>
+            </ng-container>
+
+            <!-- View All Categories Button -->
+            <div *ngIf="selectedCategory" class="p-4 border-t border-gray-200">
+              <button
+                (click)="onViewAllCategories()"
+                class="flex items-center justify-center w-full gap-2 px-4 py-2.5 text-sm font-semibold text-green-600 transition bg-green-50 rounded-lg hover:bg-green-100 hover:text-green-700"
+              >
+                <span>View All Categories</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+            </div>
+          </nav>
+        </div>
+      </aside>
+
+      <div class="flex-1 min-w-0">
+        <!-- Main content skeleton -->
+        <div *ngIf="isLoading" class="space-y-4">
+          <div class="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="h-5 w-32 skeleton-pulse rounded"></div>
+            <div class="h-10 w-40 skeleton-pulse rounded-lg"></div>
+          </div>
+          <div class="space-y-4">
+            <div
+              *ngFor="let i of [1,2,3,4,5]"
+              class="flex flex-col gap-4 p-4 bg-white border border-gray-200 rounded-lg sm:flex-row"
+            >
+              <div class="flex-shrink-0 w-full h-48 mx-auto sm:w-48 sm:mx-0">
+                <div class="w-full h-full skeleton-pulse rounded-lg"></div>
+              </div>
+              <div class="flex-1 min-w-0 space-y-3">
+                <div class="h-5 w-5/6 skeleton-pulse rounded"></div>
+                <div class="h-5 w-3/4 skeleton-pulse rounded"></div>
+                <div class="h-4 w-20 skeleton-pulse rounded"></div>
+                <div class="h-8 w-24 skeleton-pulse rounded"></div>
+                <div class="h-4 w-32 skeleton-pulse rounded"></div>
+                <div class="h-4 w-full skeleton-pulse rounded"></div>
+                <div class="h-10 w-28 skeleton-pulse rounded-lg"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!isLoading">
+          <div *ngIf="categoryBreadcrumb.length > 0" class="mb-4">
+            <div class="flex items-center gap-2 text-sm text-gray-600">
+              <span
+                *ngFor="let crumb of categoryBreadcrumb; let last = last"
+                class="flex items-center"
+              >
+                <button
+                  (click)="onCategoryClick(crumb)"
+                  class="hover:text-green-600 hover:underline"
+                  [class.font-semibold]="last"
+                  [class.text-gray-900]="last"
+                >
+                  {{ crumb.category_name }}
+                </button>
+                <span *ngIf="!last" class="mx-2 text-gray-400">›</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Results Header -->
+          <div class="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="text-sm text-gray-600">
+              <span class="font-semibold text-gray-900">{{ filteredProducts.length }}</span> results
+              <span *ngIf="selectedCategory" class="text-gray-500">
+                for "<span class="font-semibold text-gray-900">{{
+                  selectedCategory.category_name
+                }}</span
+                >"
+              </span>
+            </div>
+            <!-- Sort Dropdown -->
+            <div class="relative sort-dropdown">
+              <button
+                (click)="toggleSortDropdown()"
+                class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 transition bg-white border border-gray-300 rounded-lg cursor-pointer hover:text-green-600 hover:bg-gray-50 focus:outline-none"
+              >
+                <span>Sort by: {{ selectedSortLabel }}</span>
+                <svg
+                  class="w-4 h-4 transition-transform"
+                  [class.rotate-180]="isSortOpen"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              <div
+                *ngIf="isSortOpen"
+                class="absolute right-0 z-50 w-56 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl top-full"
+              >
+                <div class="py-2">
+                  <a
+                    *ngFor="let option of sortOptions"
+                    (click)="selectSort(option.value)"
+                    class="block px-4 py-2.5 text-sm text-gray-700 transition hover:bg-green-50 hover:text-green-600 cursor-pointer"
+                    [class.bg-green-50]="sortBy === option.value"
+                    [class.text-green-600]="sortBy === option.value"
+                    [class.font-semibold]="sortBy === option.value"
+                  >
+                    <div class="flex items-center justify-between">
+                      <span>{{ option.label }}</span>
+                      <svg
+                        *ngIf="sortBy === option.value"
+                        class="w-4 h-4 text-green-600"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clip-rule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product List -->
+          <div class="space-y-4">
+            <div
+              *ngFor="let product of filteredProducts"
+              (click)="onProductClick(product)"
+              class="flex flex-col gap-4 p-4 transition bg-white border border-gray-200 rounded-lg cursor-pointer sm:flex-row hover:shadow-md"
+            >
+            <!-- Product Image -->
+            <div class="flex-shrink-0 w-full h-48 mx-auto sm:w-48 sm:mx-0">
+              <div class="relative w-full h-full overflow-hidden bg-gray-100 rounded-lg">
+                <img
+                  [src]="product.image"
+                  [alt]="product.name"
+                  class="object-cover w-full h-full"
+                />
+              </div>
+            </div>
+
+            <!-- Product Details -->
+            <div class="flex-1 min-w-0">
+              <div *ngIf="product.sponsored" class="mb-1 text-xs text-gray-500">Sponsored</div>
+              <h3 class="mb-2 text-lg font-medium text-gray-900 line-clamp-2 hover:text-green-600">
+                {{ product.name }}
+              </h3>
+
+              <!-- Rating -->
+              <div class="flex items-center gap-1 mb-2">
+                <div class="flex items-center">
+                  <span class="text-sm font-semibold text-gray-900">{{ product.rating }}</span>
+                  <svg class="w-4 h-4 ml-1 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                    />
+                  </svg>
+                </div>
+                <span class="text-sm text-blue-600 hover:underline"
+                  >({{ product.reviews.toLocaleString() }})</span
+                >
+              </div>
+
+              <!-- Price -->
+              <div class="mb-2">
+                <div class="flex items-baseline gap-2">
+                  <span class="text-2xl font-bold text-gray-900"
+                    >${{ product.price.toFixed(2) }}</span
+                  >
+                  <span
+                    *ngIf="product.originalPrice && product.originalPrice > product.price"
+                    class="text-sm text-gray-500 line-through"
+                  >
+                    M.R.P: ${{ product.originalPrice.toFixed(2) }}
+                  </span>
+                  <span
+                    *ngIf="product.originalPrice && product.originalPrice > product.price"
+                    class="text-sm font-medium text-green-600"
+                  >
+                    ({{ getDiscountPercentage(product) }}% off)
+                  </span>
+                </div>
+              </div>
+
+              <!-- Additional Info -->
+              <div class="mb-3 space-y-1">
+                <p *ngIf="product.offer" class="text-sm text-gray-600">{{ product.offer }}</p>
+                <p *ngIf="product.delivery" class="text-sm text-gray-600">{{ product.delivery }}</p>
+                <p *ngIf="product.stock" class="text-sm font-medium text-orange-600">
+                  {{ product.stock }}
+                </p>
+              </div>
+
+              <!-- Add to Cart Button -->
+              <button
+                (click)="onProductClick(product); $event.stopPropagation()"
+                class="px-6 py-2 text-sm font-medium text-white transition bg-green-600 rounded-lg hover:bg-green-700"
+              >
+                Add to Cart
+              </button>
+            </div>
+          </div>
+          </div>
+
+          <!-- Empty State -->
+          <div *ngIf="filteredProducts.length === 0" class="py-12 text-center">
+          <svg
+            class="w-16 h-16 mx-auto mb-4 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+            />
+          </svg>
+          <p class="text-lg font-semibold text-gray-900">No products found</p>
+          <p class="text-sm text-gray-600">Try selecting a different category</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<app-footer></app-footer>

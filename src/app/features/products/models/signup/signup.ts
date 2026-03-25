@@ -15,7 +15,9 @@ export class Signup {
 
   registerForm = {
     name: '',
+    username: '',
     email: '',
+    PhoneNumber:'',
     password: '',
     confirmPassword: ''
   };

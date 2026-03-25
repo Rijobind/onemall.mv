@@ -12,7 +12,7 @@
     <!-- Close Button -->
     <button
       (click)="close()"
-      class="absolute top-4 right-4 p-2 text-gray-400 transition rounded-full hover:bg-gray-100 hover:text-gray-600"
+      class="absolute p-2 text-gray-400 transition rounded-full top-4 right-4 hover:bg-gray-100 hover:text-gray-600"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -43,6 +43,20 @@
           />
         </div>
         <div>
+          <label for="User-name" class="block mb-2 text-sm font-medium text-gray-700"
+            >User Name</label
+          >
+          <input
+            id="User-name"
+            type="text"
+            [(ngModel)]="registerForm.username"
+            name="UserName"
+            required
+            placeholder="Enter your full User-name"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
+        </div>
+        <div>
           <label for="register-email" class="block mb-2 text-sm font-medium text-gray-700"
             >Email Address</label
           >
@@ -53,6 +67,20 @@
             name="registerEmail"
             required
             placeholder="Enter your email"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
+        </div>
+        <div>
+          <label for="register-email" class="block mb-2 text-sm font-medium text-gray-700"
+            >Phone Number</label
+          >
+          <input
+            id="register-PhoneNumber"
+            type="PhoneNumber"
+            [(ngModel)]="registerForm.PhoneNumber"
+            name="registerPhoneNumber"
+            required
+            placeholder="Enter your PhoneNumber"
             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         </div>
@@ -88,7 +116,7 @@
           <input
             type="checkbox"
             required
-            class="mt-1 w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+            class="w-4 h-4 mt-1 text-green-600 border-gray-300 rounded focus:ring-green-500"
           />
           <label class="ml-2 text-sm text-gray-600">
             I agree to the

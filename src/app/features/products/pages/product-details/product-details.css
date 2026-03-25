@@ -1,0 +1,39 @@
+/* Variant selector hover effects */
+.variant-selector:hover {
+  transform: translateY(-2px);
+}
+
+/* Smooth transition for variant changes */
+.product-variant-image {
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Variant selector button styling */
+.variant-color-button {
+  transition: all 0.2s ease-in-out;
+}
+
+.variant-size-button {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Skeleton loader */
+.skeleton-pulse {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e8e8e8 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

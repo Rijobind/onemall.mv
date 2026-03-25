@@ -24,7 +24,9 @@
           </div>
         </div>
         <div class="flex-1 min-w-0 text-center transition-opacity duration-1000">
-          <h3 class="mb-0.5 md:mb-1 text-sm md:text-xl lg:text-2xl font-bold truncate">{{ currentAd.title }}</h3>
+          <h3 class="mb-0.5 md:mb-1 text-sm md:text-xl lg:text-2xl font-bold truncate">
+            {{ currentAd.title }}
+          </h3>
           <p class="text-[10px] md:text-sm opacity-90 line-clamp-1">{{ currentAd.description }}</p>
         </div>
         <button
@@ -47,8 +49,12 @@
 <!-- Top Info Bar -->
 <div class="bg-gray-100 border-b border-gray-200">
   <div class="container px-4 py-2 mx-auto md:px-6">
-    <div class="flex flex-col items-start justify-between gap-2 text-xs sm:flex-row sm:items-center sm:gap-0 sm:text-sm">
-      <div class="flex flex-col items-start gap-2 py-1 sm:flex-row sm:items-center sm:gap-6 sm:py-2">
+    <div
+      class="flex flex-col items-start justify-between gap-2 text-xs sm:flex-row sm:items-center sm:gap-0 sm:text-sm"
+    >
+      <div
+        class="flex flex-col items-start gap-2 py-1 sm:flex-row sm:items-center sm:gap-6 sm:py-2"
+      >
         <span class="text-gray-700">
           Call us: <span class="font-semibold text-green-600">+1(800) 123 4567</span>
         </span>
@@ -70,7 +76,6 @@
 <header class="sticky top-0 z-50 bg-white border-b border-gray-200">
   <div class="container px-4 py-3 mx-auto md:px-6 md:py-4">
     <div class="flex items-center justify-between gap-3 md:gap-6">
-      <!-- Logo and Mobile Menu Button -->
       <div class="flex items-center gap-3 md:gap-0">
         <button
           (click)="toggleMobileMenu()"
@@ -131,24 +136,23 @@
                 />
               </svg>
             </button>
-            <!-- Dropdown Menu -->
-            <div
+            <!-- <div
               *ngIf="isCategoryOpen"
               class="absolute left-0 z-50 w-56 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl top-full"
-            >
+             >
               <div class="py-2">
                 <a
-                  *ngFor="let category of categories"
+                  *ngFor="let category of CategoryList"
                   (click)="selectCategory(category)"
                   class="block px-4 py-2.5 text-sm text-gray-700 transition hover:bg-green-50 hover:text-green-600 cursor-pointer"
-                  [class.bg-green-50]="selectedCategory === category.label"
-                  [class.text-green-600]="selectedCategory === category.label"
-                  [class.font-semibold]="selectedCategory === category.label"
+                  [class.bg-green-50]="selectedCategory === category.category_name"
+                  [class.text-green-600]="selectedCategory === category.category_name"
+                  [class.font-semibold]="selectedCategory === category.category_name"
                 >
                   <div class="flex items-center justify-between">
-                    <span>{{ category.label }}</span>
+                    <span>{{ category.category_name }}</span>
                     <svg
-                      *ngIf="selectedCategory === category.label"
+                      *ngIf="selectedCategory === category.category_name"
                       class="w-4 h-4 text-green-600"
                       fill="currentColor"
                       viewBox="0 0 20 20"
@@ -161,6 +165,151 @@
                     </svg>
                   </div>
                 </a>
+              </div>
+            </div> -->
+            <div
+              *ngIf="isCategoryOpen"
+              class="absolute left-0 z-50 flex mt-2 overflow-hidden bg-white border border-gray-200 rounded-lg shadow-2xl top-full category-dropdown-menu"
+            >
+              <!-- LEFT: Parent Categories -->
+              <div class="w-64 bg-white border-r border-gray-200">
+                <div class="px-3 py-2.5 bg-green-600 border-b border-green-700">
+                  <h3 class="text-sm font-semibold text-white">Categories</h3>
+                </div>
+                <div class="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-green-200 scrollbar-track-gray-100">
+                  <div
+                    *ngFor="let parent of categoryTree"
+                    (mouseenter)="setActiveParent(parent)"
+                    (click)="parent.children.length === 0 && selectCategory(parent)"
+                    class="flex items-center justify-between px-4 py-3 text-sm transition-all duration-200 border-b border-gray-100 cursor-pointer last:border-b-0 hover:bg-green-50 hover:text-green-600"
+                    [class.bg-green-50]="activeParent?.category_id === parent.category_id"
+                    [class.text-green-600]="activeParent?.category_id === parent.category_id"
+                    [class.font-semibold]="activeParent?.category_id === parent.category_id"
+                  >
+                    <span class="flex items-center gap-2">
+                      <svg
+                        *ngIf="parent.children.length > 0"
+                        class="w-4 h-4 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                        />
+                      </svg>
+                      <span>{{ parent.category_name }}</span>
+                    </span>
+
+                    <!-- Arrow only if children exist -->
+                    <svg
+                      *ngIf="parent.children.length > 0"
+                      class="w-4 h-4 text-gray-400 transition-transform"
+                      [class.text-green-600]="activeParent?.category_id === parent.category_id"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- MIDDLE: First Level Children -->
+              <div *ngIf="activeParent && activeParent.children.length > 0" class="w-64 border-r border-gray-200 bg-gray-50">
+                <div class="px-3 py-2.5 bg-green-50 border-b border-gray-200">
+                  <h3 class="text-sm font-semibold text-green-700">{{ activeParent.category_name }}</h3>
+                </div>
+                <div class="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-green-200 scrollbar-track-gray-100">
+                  <div
+                    *ngFor="let child of activeParent.children"
+                    (mouseenter)="setActiveChild(child)"
+                    (click)="child.children.length === 0 && selectCategory(child)"
+                    class="flex items-center justify-between px-4 py-3 text-sm transition-all duration-200 border-b border-gray-100 cursor-pointer last:border-b-0 hover:bg-green-100"
+                    [class.bg-green-100]="activeChild?.category_id === child.category_id"
+                    [class.text-green-700]="activeChild?.category_id === child.category_id"
+                    [class.font-semibold]="activeChild?.category_id === child.category_id"
+                  >
+                    <span class="flex items-center gap-2">
+                      <svg
+                        *ngIf="child.children.length > 0"
+                        class="w-4 h-4 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                        />
+                      </svg>
+                      <span>{{ child.category_name }}</span>
+                    </span>
+                    <!-- Arrow only if children exist -->
+                    <svg
+                      *ngIf="child.children.length > 0"
+                      class="w-4 h-4 text-gray-400 transition-transform"
+                      [class.text-green-700]="activeChild?.category_id === child.category_id"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- RIGHT: Second Level Children (Grandchildren) -->
+              <div *ngIf="activeChild && activeChild.children.length > 0" class="w-64 bg-gray-100">
+                <div class="px-3 py-2.5 bg-green-100 border-b border-gray-200">
+                  <h3 class="text-sm font-semibold text-green-700">{{ activeChild.category_name }}</h3>
+                </div>
+                <div class="max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-green-200 scrollbar-track-gray-100">
+                  <div
+                    *ngFor="let grandchild of activeChild.children"
+                    class="px-4 py-3 text-sm transition-all duration-200 border-b border-gray-200 cursor-pointer last:border-b-0 hover:bg-green-200 hover:text-green-800 hover:pl-5"
+                    (click)="selectCategory(grandchild)"
+                  >
+                    <span class="flex items-center gap-2">
+                      <svg
+                        class="w-3 h-3 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                      {{ grandchild.category_name }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Empty state when no subcategories -->
+              <div *ngIf="activeParent && activeParent.children.length === 0" class="flex items-center justify-center w-64 py-12 bg-gray-50">
+                <p class="text-sm text-gray-500">No subcategories available</p>
               </div>
             </div>
           </div>
@@ -282,7 +431,6 @@
         <!-- Home -->
         <div class="relative group">
           <a
-            href="#"
             class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition hover:text-green-600"
           >
             Home
@@ -292,7 +440,6 @@
         <!-- Shop Dropdown -->
         <div class="relative group">
           <a
-            href="#"
             class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition hover:text-green-600"
           >
             Shop
@@ -328,7 +475,6 @@
         <!-- Product Dropdown -->
         <div class="relative group">
           <a
-            href="#"
             class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition hover:text-green-600"
           >
             Product
@@ -364,7 +510,6 @@
         <!-- Page Dropdown -->
         <div class="relative group">
           <a
-            href="#"
             class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition hover:text-green-600"
           >
             Page
@@ -399,8 +544,8 @@
 
         <!-- About Us -->
         <div class="relative group">
-          <a (click)="onAboutUs()"
-            
+          <a
+            (click)="onAboutUs()"
             class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition cursor-pointer hover:text-green-600"
           >
             About Us
@@ -409,8 +554,8 @@
 
         <!-- Contact -->
         <div class="relative group">
-          <a (click)="onContact()"
-            
+          <a
+            (click)="onContact()"
             class="flex items-center gap-1 py-4 text-sm font-medium text-gray-700 transition cursor-pointer hover:text-green-600"
           >
             Contact
@@ -421,50 +566,41 @@
   </div>
 
   <!-- Mobile Navigation Menu -->
-  <div
-    *ngIf="isMobileMenuOpen"
-    class="bg-white border-t border-gray-200 mobile-menu md:hidden"
-  >
+  <div *ngIf="isMobileMenuOpen" class="bg-white border-t border-gray-200 mobile-menu md:hidden">
     <div class="container px-4 py-4 mx-auto">
       <div class="space-y-1">
         <a
-          href="#"
           (click)="closeMobileMenu()"
           class="block px-4 py-2 text-sm font-medium text-gray-700 transition rounded-md hover:bg-gray-100 hover:text-green-600"
         >
           Home
         </a>
         <a
-          href="#"
           (click)="closeMobileMenu()"
           class="block px-4 py-2 text-sm font-medium text-gray-700 transition rounded-md hover:bg-gray-100 hover:text-green-600"
         >
           Shop
         </a>
         <a
-          href="#"
           (click)="closeMobileMenu()"
           class="block px-4 py-2 text-sm font-medium text-gray-700 transition rounded-md hover:bg-gray-100 hover:text-green-600"
         >
           Product
         </a>
         <a
-          href="#"
           (click)="closeMobileMenu()"
           class="block px-4 py-2 text-sm font-medium text-gray-700 transition rounded-md hover:bg-gray-100 hover:text-green-600"
         >
           Page
         </a>
         <a
-          href="#"
-          (click)="closeMobileMenu()"
+          (click)="onAboutUs()"
           class="block px-4 py-2 text-sm font-medium text-gray-700 transition rounded-md hover:bg-gray-100 hover:text-green-600"
         >
           About Us
         </a>
         <a
-          href="#"
-          (click)="closeMobileMenu()"
+          (click)="onContact()"
           class="block px-4 py-2 text-sm font-medium text-gray-700 transition rounded-md hover:bg-gray-100 hover:text-green-600"
         >
           Contact

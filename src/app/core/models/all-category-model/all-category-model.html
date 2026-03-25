@@ -1,0 +1,175 @@
+<div
+  *ngIf="isOpen"
+  (click)="onClose()"
+  class="fixed inset-0 z-50 flex items-center justify-center transition-opacity bg-black/50 backdrop-blur-sm"
+>
+  <div
+    (click)="onModalClick($event)"
+    class="relative w-full max-w-5xl max-h-[90vh] mx-4 bg-white rounded-lg shadow-2xl overflow-hidden flex flex-col"
+  >
+    <!-- Close Button -->
+    <button
+      (click)="onClose()"
+      class="absolute z-10 flex items-center justify-center w-8 h-8 text-gray-600 transition bg-white rounded-full shadow-md top-3 left-3 hover:bg-gray-100 hover:text-gray-900"
+      aria-label="Close modal"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M6 18L18 6M6 6l12 12"
+        />
+      </svg>
+    </button>
+
+    <!-- Header -->
+    <div class="px-3 py-4 border-b border-gray-200 pt-14 bg-gradient-to-r from-green-50 to-emerald-50">
+      <div class="flex items-center gap-3">
+        <!-- Back Button (only show when viewing subcategories) -->
+        <button
+          *ngIf="showingSubcategories"
+          (click)="onBackClick()"
+          class="flex items-center justify-center w-8 h-8 text-gray-600 transition bg-white rounded-full hover:shadow-md hover:bg-green-100 hover:text-green-700"
+          aria-label="Go back"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+        </button>
+        <div class="flex-1">
+          <h2 class="text-lg font-semibold text-gray-900">
+            {{ showingSubcategories ? selectedCategory?.category_name : 'All Categories' }}
+          </h2>
+          <p class="mt-0.5 text-xs text-gray-600">
+            {{
+              showingSubcategories
+                ? 'Select a subcategory'
+                : 'Browse through all available categories'
+            }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Categories View -->
+    <div *ngIf="!showingSubcategories" class="flex-1 px-5 py-5 overflow-y-auto">
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+        <button
+          *ngFor="let category of allCategoriesFlat"
+          (click)="onCategoryClick(category, $event)"
+          class="relative px-4 py-4 text-left transition-all duration-200 transform bg-white border border-gray-200 rounded-lg group hover:border-green-500 hover:bg-green-50 hover:shadow-md"
+        >
+          <div class="flex flex-col pr-6">
+            <span
+              class="text-sm font-medium leading-tight text-gray-900 transition-colors group-hover:text-green-600"
+            >
+              {{ category.category_name }}
+            </span>
+            <span
+              *ngIf="category.children && category.children.length > 0"
+              class="mt-1.5 text-xs text-gray-500 group-hover:text-green-600"
+            >
+              {{ category.children.length }} subcategor{{
+                category.children.length === 1 ? 'y' : 'ies'
+              }}
+            </span>
+          </div>
+          <svg
+            *ngIf="category.children && category.children.length > 0"
+            class="absolute w-4 h-4 text-gray-400 transition-all duration-200 top-4 right-4 group-hover:text-green-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </button>
+      </div>
+      <div *ngIf="allCategoriesFlat.length === 0" class="py-12 text-center">
+        <svg
+          class="w-12 h-12 mx-auto mb-3 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+          />
+        </svg>
+        <p class="text-sm font-medium text-gray-900">No categories available</p>
+        <p class="text-xs text-gray-600">Please check back later</p>
+      </div>
+    </div>
+
+    <!-- Subcategories View -->
+    <div *ngIf="showingSubcategories && selectedCategory" class="flex-1 px-5 py-5 overflow-y-auto">
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+        <button
+          *ngFor="let subcategory of selectedCategory.children"
+          (click)="onSubcategoryClick(subcategory, $event)"
+          class="relative px-4 py-4 text-left transition-all duration-200 transform bg-white border border-gray-200 rounded-lg group hover:border-green-500 hover:bg-green-50 hover:shadow-md"
+        >
+          <div class="flex flex-col pr-6">
+            <span
+              class="text-sm font-medium leading-tight text-gray-900 transition-colors group-hover:text-green-600"
+            >
+              {{ subcategory.category_name }}
+            </span>
+            <span
+              *ngIf="subcategory.children && subcategory.children.length > 0"
+              class="mt-1.5 text-xs text-gray-500 group-hover:text-green-600"
+            >
+              {{ subcategory.children.length }} subcategor{{
+                subcategory.children.length === 1 ? 'y' : 'ies'
+              }}
+            </span>
+          </div>
+          <svg
+            *ngIf="subcategory.children && subcategory.children.length > 0"
+            class="absolute w-4 h-4 text-gray-400 transition-all duration-200 top-4 right-4 group-hover:text-green-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+        </button>
+      </div>
+      <div *ngIf="selectedCategory.children.length === 0" class="py-12 text-center">
+        <svg
+          class="w-12 h-12 mx-auto mb-3 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+          />
+        </svg>
+        <p class="text-sm font-medium text-gray-900">No subcategories available</p>
+      </div>
+    </div>
+  </div>
+</div>
