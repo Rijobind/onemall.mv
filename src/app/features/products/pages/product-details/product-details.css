@@ -37,3 +37,240 @@
     background-position: -200% 0;
   }
 }
+
+.product-gallery-layout {
+  display: grid;
+  grid-template-columns: 64px 520px;
+  gap: 14px;
+  width: 598px;
+  min-width: 598px;
+  max-width: 598px;
+  position: relative;
+}
+
+.product-thumb-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 542px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.product-thumb-item {
+  width: 58px;
+  height: 58px;
+  border: 1px solid #d4d4d8;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-thumb-item:hover {
+  border-color: #374151;
+}
+
+.product-thumb-active {
+  border-color: #111827;
+  box-shadow: 0 0 0 1px #111827 inset;
+}
+
+.product-main-stage {
+  position: relative;
+  width: 520px;
+  min-width: 520px;
+  max-width: 520px;
+}
+
+.product-main-media {
+  width: 520px;
+  height: 520px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f1f2f4;
+}
+
+.product-left-stack {
+  width: 598px;
+  min-width: 598px;
+  max-width: 598px;
+}
+
+.product-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border: 1px solid #d1d5db;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  z-index: 10;
+}
+
+.product-nav-btn:hover {
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
+}
+
+.product-nav-prev {
+  left: 10px;
+}
+
+.product-nav-next {
+  right: 10px;
+}
+
+.product-tabs-panel {
+  border: 1px solid #dcfce7;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.product-tabs-header {
+  border-bottom: 1px solid #bbf7d0;
+  background: #f0fdf4;
+}
+
+.product-tab-btn {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-right: 1px solid #bbf7d0;
+  color: #4b5563;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.product-tab-btn:last-child {
+  border-right: none;
+}
+
+.product-tab-btn:hover {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+.product-tab-btn-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.product-tabs-content {
+  padding: 14px 16px;
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.product-tabs-content :where(p, span, li, div, h1, h2, h3, h4, h5, h6) {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.product-tabs-content :where(img, video, iframe, table, pre) {
+  max-width: 100%;
+}
+
+.product-tabs-content table,
+.product-tabs-content pre {
+  display: block;
+  overflow-x: auto;
+}
+
+@media (min-width: 640px) {
+  .product-gallery-layout {
+    grid-template-columns: 64px 420px;
+    width: 498px;
+    min-width: 498px;
+    max-width: 498px;
+  }
+
+  .product-main-stage {
+    width: 420px;
+    min-width: 420px;
+    max-width: 420px;
+  }
+
+  .product-main-media {
+    width: 420px;
+    height: 420px;
+  }
+
+  .product-left-stack {
+    width: 498px;
+    min-width: 498px;
+    max-width: 498px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .product-gallery-layout {
+    grid-template-columns: 64px 520px;
+    width: 598px;
+    min-width: 598px;
+    max-width: 598px;
+  }
+
+  .product-main-stage {
+    width: 520px;
+    min-width: 520px;
+    max-width: 520px;
+  }
+
+  .product-main-media {
+    width: 520px;
+    height: 542px;
+  }
+
+  .product-left-stack {
+    width: 598px;
+    min-width: 598px;
+    max-width: 598px;
+  }
+}
+
+@media (max-width: 639px) {
+  .product-gallery-layout {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .product-thumb-rail {
+    order: 2;
+    flex-direction: row;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 2px;
+  }
+
+  .product-main-stage {
+    order: 1;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .product-main-media {
+    width: 100%;
+    height: min(82vw, 420px);
+  }
+
+  .product-left-stack {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+}

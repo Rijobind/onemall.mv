@@ -69,7 +69,7 @@ export class FavoriteProduct {
       originalPrice: 49.99,
       rating: 4.2,
       reviews: 780,
-      image: '/camera.jpg',
+      image: '/Categories1.jpg',
       inStock: false
     }
   ];

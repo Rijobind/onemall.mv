@@ -6,6 +6,8 @@ import { Header } from "../../../../shared/components/header/header";
 import { Footer } from "../../../../shared/components/footer/footer";
 import { BackendapiServices } from "../../../../core/services/backendapi.services/backendapi.services";
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-product-details',
@@ -14,6 +16,8 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
   styleUrl: './product-details.css',
 })
 export class ProductDetails implements OnInit {
+  private readonly cartStorageKey = 'cart_items';
+  qtyOptions: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
   
   productId: string | null = null;
@@ -30,6 +34,20 @@ export class ProductDetails implements OnInit {
   isShareOpen: boolean = false;
   attributeLabels: Map<string, string> = new Map();
   valueLabels: Map<string, string> = new Map();
+  colorCodes: Map<string, string> = new Map();
+  currentStoreId: string = '';
+  shopProfile = {
+    id: '',
+    name: 'Unknown Shop',
+    logo: '/shirt.jpg',
+    rating: 0,
+    reviewsLabel: '0',
+    responseRate: '',
+    responseTime: '',
+    itemsSoldLabel: '',
+    followersLabel: '',
+    isApiData: false,
+  };
 
   get colorGroup() {
     return this.variantGroups.find((g: any) => g.type === 'color');
@@ -130,6 +148,24 @@ export class ProductDetails implements OnInit {
     }
   ];
 
+  reviewBreakdown = [
+    { label: 'Small', percent: 0 },
+    { label: 'True to size', percent: 0 },
+    { label: 'Large', percent: 100 },
+  ];
+
+  productReviews = [
+    {
+      user: 'N*** ut',
+      country: 'FR',
+      date: 'May 14, 2026',
+      rating: 5,
+      text: "They're lightweight and comfortable, with good cushioning, but they run a bit large.",
+      purchasedCount: 0,
+      relatedText: '',
+    },
+  ];
+
   activeTab: string = 'description';
   isLoading: boolean = true;
 
@@ -143,6 +179,7 @@ export class ProductDetails implements OnInit {
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
       this.productId = params['productId'];
+      this.currentStoreId = this.resolveStoreIdFromRoute(params);
       if (this.productId) {
         this.isLoading = true;
         this.loadProduct(this.productId);
@@ -153,16 +190,59 @@ export class ProductDetails implements OnInit {
   }
 
   loadProduct(productId: string) {
-    this.api.getAllProductList().subscribe({
+    // Prefer multilevel endpoint; fallback to single endpoint for compatibility.
+    this.loadProductFromSource(this.api.getMultilevelProductDetails(productId), productId, true);
+  }
+
+  private loadProductFromSource(
+    request$: Observable<any>,
+    productId: string,
+    allowSingleFallback: boolean
+  ) {
+    request$.subscribe({
       next: (res: any) => {
-        const products = res.data || [];
-        const productData = products.find((p: any) => p.product_id === productId);
+        // Accept common backend response shapes:
+        // 1) { data: { ...product } }
+        // 2) { data: [ { ...product } ] }
+        // 3) raw product object
+        // 4) stringified JSON
+        const rawPayload = res?.data ?? res;
+        let productData: any = rawPayload;
+
+        if (typeof rawPayload === 'string') {
+          try {
+            productData = JSON.parse(rawPayload);
+          } catch {
+            productData = null;
+          }
+        }
+
+        if (Array.isArray(productData)) {
+          productData = productData[0] || null;
+        }
+
         if (productData) {
           this.transformProductData(productData);
+          this.loadShopProfileForProduct(productData);
+        } else if (allowSingleFallback) {
+          this.loadProductFromSource(this.api.getProductDetails(productId), productId, false);
+          return;
+        } else {
+          console.warn('[ProductDetails] No product found for productId:', productId, res);
         }
         this.isLoading = false;
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
+        if (allowSingleFallback && err?.status === 404) {
+          this.loadProductFromSource(this.api.getProductDetails(productId), productId, false);
+          return;
+        }
+
+        if (err?.status === 401 || err?.status === 403) {
+          console.error('[ProductDetails] Authorization failed for product details API. Check access token/session.', err);
+        } else {
+          console.error('[ProductDetails] getProductDetails error:', err);
+        }
         this.isLoading = false;
       }
     });
@@ -173,12 +253,16 @@ export class ProductDetails implements OnInit {
     this.initializeVariants(apiProduct);
     const variant = this.getSelectedVariant();
     this.updateProductFromVariant(variant, apiProduct);
+    if (!this.currentStoreId) {
+      this.currentStoreId = this.resolveStoreIdFromProduct(apiProduct, variant);
+    }
   }
 
   initializeVariants(apiProduct: any) {
     const variants = apiProduct.im_ProductVariants || [];
     this.attributeLabels.clear();
     this.valueLabels.clear();
+    this.colorCodes.clear();
     this.variantGroups = [];
 
     if (variants.length === 0) return;
@@ -193,15 +277,21 @@ export class ProductDetails implements OnInit {
             }
             attributeMap.get(attr.attribute_id)!.add(attr.value_id);
             if (!this.valueLabels.has(attr.value_id)) {
-              const desc2 = v.description_2;
-              if (desc2 && desc2.trim()) {
-                if (v.im_VariantAttributes.length === 1 && desc2.length <= 40) {
-                  this.valueLabels.set(attr.value_id, desc2.trim());
-                } else {
-                  this.valueLabels.set(attr.value_id, desc2.length > 20 ? desc2.slice(0, 18) + '…' : desc2);
-                }
+              const readableValue = this.getReadableVariantValue(attr);
+              if (readableValue) {
+                this.valueLabels.set(attr.value_id, readableValue);
               } else {
                 this.valueLabels.set(attr.value_id, attr.value_id?.length > 12 ? attr.value_id.slice(0, 8) + '…' : (attr.value_id || ''));
+              }
+            }
+
+            if (!this.colorCodes.has(attr.value_id)) {
+              const rawValue = String(attr?.value || '').trim();
+              const rawColorName = String(attr?.color_name || '').trim();
+              if (this.isHexColor(rawValue)) {
+                this.colorCodes.set(attr.value_id, rawValue);
+              } else if (this.isHexColor(rawColorName)) {
+                this.colorCodes.set(attr.value_id, rawColorName);
               }
             }
           }
@@ -249,6 +339,86 @@ export class ProductDetails implements OnInit {
 
   getValueDisplayLabel(valueId: string): string {
     return this.valueLabels.get(valueId) || (valueId?.length > 12 ? valueId.slice(0, 8) + '…' : valueId) || '';
+  }
+
+  getSelectedValueLabelByType(type: string): string {
+    const group = this.variantGroups.find((g: any) => g.type === type);
+    if (!group) return '';
+    const valueId = this.selectedAttributes.get(group.attributeId) || '';
+    return this.getValueDisplayLabel(valueId);
+  }
+
+  getColorCodeByValue(valueId: string): string {
+    const explicitColorCode = this.colorCodes.get(valueId);
+    if (explicitColorCode) return explicitColorCode;
+
+    const label = String(this.getValueDisplayLabel(valueId) || '').trim();
+    if (!label) return '#d1d5db';
+
+    // Use named CSS colors when backend does not provide hex color code.
+    if (typeof document !== 'undefined') {
+      const tester = document.createElement('span');
+      tester.style.color = '';
+      tester.style.color = label.toLowerCase();
+      if (tester.style.color) {
+        return label.toLowerCase();
+      }
+    }
+
+    return '#d1d5db';
+  }
+
+  getSelectedColorCode(): string {
+    if (!this.colorGroup) return '#d1d5db';
+    const selectedValueId = this.selectedAttributes.get(this.colorGroup.attributeId) || '';
+    return this.getColorCodeByValue(selectedValueId);
+  }
+
+  getColorOptionImage(valueId: string): string {
+    if (!this.apiProductData || !this.colorGroup) {
+      return this.product?.images?.[0] || '/mobile.jpg';
+    }
+
+    const colorAttrId = this.colorGroup.attributeId;
+    const sizeAttrId = this.sizeGroup?.attributeId;
+    const selectedSizeValue = sizeAttrId ? this.selectedAttributes.get(sizeAttrId) : '';
+    const variants = this.apiProductData.im_ProductVariants || [];
+
+    const colorMatched = variants.filter((v: any) =>
+      v.im_VariantAttributes?.some((attr: any) => attr.attribute_id === colorAttrId && attr.value_id === valueId)
+    );
+
+    if (colorMatched.length === 0) {
+      return this.product?.images?.[0] || '/mobile.jpg';
+    }
+
+    const exactVariant = selectedSizeValue
+      ? colorMatched.find((v: any) =>
+          v.im_VariantAttributes?.some((attr: any) => attr.attribute_id === sizeAttrId && attr.value_id === selectedSizeValue)
+        )
+      : null;
+
+    const preferredVariant = exactVariant || colorMatched[0];
+    return this.getVariantImage(preferredVariant, this.apiProductData);
+  }
+
+  private getReadableVariantValue(attr: any): string {
+    const value = String(attr?.value || '').trim();
+    const colorName = String(attr?.color_name || '').trim();
+
+    const valueLooksLikeHex = this.isHexColor(value);
+    const colorNameLooksLikeHex = this.isHexColor(colorName);
+
+    // Prefer non-hex, human-readable labels.
+    if (value && !valueLooksLikeHex) return value;
+    if (colorName && !colorNameLooksLikeHex) return colorName;
+    if (value) return value;
+    if (colorName) return colorName;
+    return '';
+  }
+
+  private isHexColor(text: string): boolean {
+    return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test((text || '').trim());
   }
 
   onAttributeSelect(attributeId: string, valueId: string) {
@@ -300,9 +470,7 @@ export class ProductDetails implements OnInit {
     const onHandQty = inventory?.on_hand_quantity != null ? inventory.on_hand_quantity : (variant ? null : 0);
     const descriptionText = this.parseHtmlDescription(apiProduct.description || '');
 
-    let productName = apiProduct.title || 'Untitled Product';
-    if (this.selectedSize) productName += ` ${this.selectedSize}`;
-    if (this.selectedColor && this.selectedColor !== 'Default') productName += ` (${this.selectedColor})`;
+    const productName = apiProduct.title || 'Untitled Product';
 
     this.product = {
       id: apiProduct.product_id,
@@ -419,11 +587,156 @@ export class ProductDetails implements OnInit {
   }
 
   onShop(){
-    this.router.navigate(['shop-details'])
+    const storeIdForNavigation = this.currentStoreId || this.getStoredStoreId();
+    this.router.navigate(['shop-details'], {
+      queryParams: {
+        store_id: storeIdForNavigation || undefined,
+      },
+    });
+  }
+
+  private resolveStoreIdFromRoute(params: any): string {
+    const routeStoreId = String(params?.['store_id'] || params?.['storeId'] || '').trim();
+    if (routeStoreId) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('store_id', routeStoreId);
+      }
+      return routeStoreId;
+    }
+    return this.getStoredStoreId();
+  }
+
+  private getStoredStoreId(): string {
+    if (typeof window === 'undefined') return '';
+    return (
+      localStorage.getItem('store_id') ||
+      sessionStorage.getItem('store_id') ||
+      localStorage.getItem('storeId') ||
+      sessionStorage.getItem('storeId') ||
+      ''
+    ).trim();
+  }
+
+  private resolveStoreIdFromProduct(product: any, variant: any): string {
+    const candidate =
+      product?.store_id ??
+      product?.storeId ??
+      variant?.store_id ??
+      variant?.storeId ??
+      variant?.im_StoreVariantInventory?.[0]?.store_id ??
+      variant?.im_StoreVariantInventory?.[0]?.storeId ??
+      '';
+    return String(candidate || '').trim();
+  }
+
+  private loadShopProfileForProduct(productData: any): void {
+    const variant = this.getSelectedVariant();
+    const productStoreId = this.resolveStoreIdFromProduct(productData, variant);
+    const storeIdToLoad = this.currentStoreId || productStoreId || this.getStoredStoreId();
+
+    if (!storeIdToLoad) {
+      this.setFallbackShopProfile();
+      return;
+    }
+
+    this.currentStoreId = storeIdToLoad;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('store_id', storeIdToLoad);
+    }
+
+    this.api.Store_details(storeIdToLoad).subscribe({
+      next: (res: any) => {
+        const payload = res?.data ?? res ?? {};
+        this.shopProfile = {
+          id: String(
+            payload?.store_id ??
+            payload?.storeId ??
+            storeIdToLoad
+          ),
+          name: payload?.store_name || payload?.name || 'Unknown Shop',
+          logo: payload?.logo || payload?.logo_url || payload?.image || '/shirt.jpg',
+          rating: Number(payload?.rating || payload?.average_rating || 0),
+          reviewsLabel: this.formatCompactCount(
+            payload?.reviews ??
+            payload?.review_count ??
+            payload?.total_reviews ??
+            0
+          ),
+          responseRate: payload?.response_rate ? `${payload.response_rate}%` : '',
+          responseTime: payload?.response_time || '',
+          itemsSoldLabel: this.formatCompactCount(
+            payload?.items_sold ??
+            payload?.total_sold ??
+            payload?.sold_count ??
+            0
+          ),
+          followersLabel: this.formatCompactCount(
+            payload?.followers ??
+            payload?.follower_count ??
+            0
+          ),
+          isApiData: true,
+        };
+      },
+      error: () => {
+        this.setFallbackShopProfile(storeIdToLoad);
+      },
+    });
+  }
+
+  private setFallbackShopProfile(storeId: string = ''): void {
+    this.shopProfile = {
+      id: storeId,
+      name: 'Shop information unavailable',
+      logo: '/shirt.jpg',
+      rating: 0,
+      reviewsLabel: '0',
+      responseRate: '',
+      responseTime: '',
+      itemsSoldLabel: '',
+      followersLabel: '',
+      isApiData: false,
+    };
+  }
+
+  private formatCompactCount(value: any): string {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric <= 0) return '0';
+    if (numeric >= 1_000_000) return `${(numeric / 1_000_000).toFixed(1).replace('.0', '')}M+`;
+    if (numeric >= 1_000) return `${(numeric / 1_000).toFixed(1).replace('.0', '')}k+`;
+    return `${Math.floor(numeric)}`;
   }
 
   selectImage(index: number) {
-    this.selectedImageIndex = index;
+    if (!this.product?.images?.length) return;
+    const total = this.product.images.length;
+    this.selectedImageIndex = ((index % total) + total) % total;
+  }
+
+  goToPreviousMedia(event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.selectImage(this.selectedImageIndex - 1);
+  }
+
+  goToNextMedia(event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.selectImage(this.selectedImageIndex + 1);
+  }
+
+  isVideoMedia(url: string | null | undefined): boolean {
+    if (!url) return false;
+    return /\.(mp4|webm|ogg)(\?|#|$)/i.test(url);
+  }
+
+  private getPreferredCartImage(): string {
+    const media = this.product?.images || [];
+    const firstImage = media.find((item: string) => !this.isVideoMedia(item));
+    if (firstImage) return firstImage;
+    return media[this.selectedImageIndex] || media[0] || '/mobile.jpg';
   }
 
   increaseQuantity() {
@@ -442,13 +755,58 @@ export class ProductDetails implements OnInit {
 
 
   addToCart() {
-    // Add to cart logic
-    console.log('Added to cart:', this.product);
+    if (!this.product) return;
+
+    const productId = String(this.product.id ?? '');
+    if (!productId) return;
+
+    const cartItem = {
+      id: productId,
+      name: this.product.name || 'Untitled Product',
+      price: Number(this.product.price) || 0,
+      originalPrice: Number(this.product.originalPrice) || 0,
+      image:
+        this.getPreferredCartImage(),
+      quantity: this.quantity > 0 ? this.quantity : 1,
+      inStock: this.product.inStock !== false,
+    };
+
+    const existingItems = this.getStoredCartItems();
+    const existingIndex = existingItems.findIndex(
+      (item: any) => String(item.id) === productId
+    );
+
+    if (existingIndex >= 0) {
+      existingItems[existingIndex].quantity =
+        (Number(existingItems[existingIndex].quantity) || 0) + cartItem.quantity;
+      existingItems[existingIndex].price = cartItem.price;
+      existingItems[existingIndex].originalPrice = cartItem.originalPrice;
+      existingItems[existingIndex].image = cartItem.image;
+      existingItems[existingIndex].inStock = cartItem.inStock;
+      existingItems[existingIndex].name = cartItem.name;
+    } else {
+      existingItems.push(cartItem);
+    }
+
+    localStorage.setItem(this.cartStorageKey, JSON.stringify(existingItems));
+    window.dispatchEvent(new Event('cart-updated'));
   }
 
   buyNow() {
-    // Buy now logic
-    console.log('Buy now:', this.product);
+    this.addToCart();
+    this.router.navigate(['/cart']);
+  }
+
+  private getStoredCartItems(): any[] {
+    const raw = localStorage.getItem(this.cartStorageKey);
+    if (!raw) return [];
+
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   }
 
   toggleShareMenu() {

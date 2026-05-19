@@ -60,24 +60,38 @@
               <!-- Quantity Controls -->
               <div class="flex items-center gap-3 mt-4">
                 <span class="text-sm text-gray-600">Quantity:</span>
-                <div class="flex items-center gap-2">
+                <div class="relative">
                   <button
-                    (click)="decreaseQuantity(item)"
-                    class="flex items-center justify-center w-8 h-8 border border-gray-300 rounded transition hover:bg-gray-100"
+                    (click)="toggleQuantityDropdown(item.id, $event)"
+                    class="flex items-center gap-3 px-3 py-1.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-md hover:border-gray-400"
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                    <span>Qty {{ item.quantity }}</span>
+                    <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
-                  <span class="w-12 text-center font-semibold text-gray-900">{{ item.quantity }}</span>
-                  <button
-                    (click)="increaseQuantity(item)"
-                    class="flex items-center justify-center w-8 h-8 border border-gray-300 rounded transition hover:bg-gray-100"
+
+                  <div
+                    *ngIf="isQuantityDropdownOpen(item.id)"
+                    class="absolute left-0 z-20 w-28 mt-1 overflow-hidden bg-white border border-gray-200 rounded-md shadow-lg"
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                  </button>
+                    <button
+                      *ngFor="let qty of quantityOptions"
+                      (click)="setQuantity(item, qty, $event)"
+                      class="flex items-center justify-between w-full px-3 py-2 text-sm text-left transition hover:bg-gray-50"
+                    >
+                      <span>{{ qty }}</span>
+                      <svg
+                        *ngIf="item.quantity === qty"
+                        class="w-4 h-4 text-gray-900"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 <div class="ml-auto">
                   <span class="text-lg font-bold text-gray-900"
@@ -137,6 +151,14 @@
           >
             Proceed to Checkout
           </button>
+          <a
+            *ngIf="cartItems.length > 0"
+            routerLink="/quotation"
+            (click)="prepareQuotation()"
+            class="block w-full px-6 py-3 mt-3 text-center font-semibold text-gray-700 transition bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Submit as Quote
+          </a>
           <a
             *ngIf="cartItems.length === 0"
             routerLink="/"

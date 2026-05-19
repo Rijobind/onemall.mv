@@ -183,16 +183,25 @@
 
             <div class="absolute top-0 bottom-0 right-0 flex items-center justify-center w-1/2">
               <div
-                class="absolute inset-0 overflow-hidden transition-transform duration-500 ease-out border-4 border-green-700 bg-gradient-to-br from-green-600/20 to-emerald-600/20 rounded-3xl backdrop-blur-sm group-hover:scale-105"
+                class="absolute inset-0 overflow-hidden transition-transform duration-500 ease-out border-4 border-green-700 bg-gradient-to-br from-green-600/20 to-emerald-600/20 rounded-3xl backdrop-blur-sm"
                 style="
                   transform: perspective(1000px) rotateY(-15deg) rotateX(5deg);
                   border-radius: 50px 20px 50px 20px;
                 "
               >
                 <img
-                  src="/camera.jpg"
+                  [src]="heroCategoryImages[activeHeroImageIndex]"
                   alt="Camera"
-                  class="object-cover w-full h-full transition-transform duration-[1800ms] ease-out rounded-3xl group-hover:scale-110"
+                  class="absolute inset-0 object-cover w-full h-full transition-opacity duration-500 ease-linear rounded-3xl"
+                  [class.opacity-0]="isHeroImageTransitioning"
+                  style="border-radius: 50px 20px 50px 20px"
+                />
+                <img
+                  [src]="heroCategoryImages[nextHeroImageIndex]"
+                  alt="Camera"
+                  class="absolute inset-0 object-cover w-full h-full transition-opacity duration-500 ease-linear rounded-3xl"
+                  [class.opacity-0]="!isHeroImageTransitioning"
+                  [class.opacity-100]="isHeroImageTransitioning"
                   style="border-radius: 50px 20px 50px 20px"
                 />
               </div>
@@ -265,103 +274,56 @@
     </div>
   </div>
 
-  <!-- Service Highlights Skeleton -->
-  <div *ngIf="isLoading" class="container px-6 mx-auto">
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-5">
-      <div *ngFor="let i of [1,2,3,4,5]" class="flex items-start gap-4 p-6 border border-gray-200 rounded-xl">
-        <div class="flex-shrink-0 w-6 h-6 rounded skeleton-pulse"></div>
-        <div class="flex-1 space-y-2">
-          <div class="w-24 h-4 rounded skeleton-pulse"></div>
-          <div class="w-full h-3 rounded skeleton-pulse"></div>
-        </div>
-      </div>
+  <!-- Explore Your Interests -->
+  <div class="container px-6 mx-auto">
+    <div class="mb-4 text-center">
+      <h2 class="text-2xl font-bold tracking-wide text-black uppercase">Explore Your Interests</h2>
     </div>
-  </div>
-
-  <div *ngIf="!isLoading" class="container px-6 mx-auto">
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-5">
-      <div
-        *ngFor="let service of serviceHighlights"
-        class="flex items-start gap-4 p-6 transition border border-gray-200 rounded-xl group hover:border-green-600"
+    <div class="relative">
+      <button
+        type="button"
+        (click)="scrollInterestCategories('left')"
+        class="absolute left-0 z-20 flex items-center justify-center w-10 h-10 -translate-y-1/2 bg-white border border-gray-300 rounded-full shadow-sm top-1/2 hover:bg-gray-100"
+        aria-label="Scroll interests left"
       >
-        <div class="flex-shrink-0 text-gray-600 transition-colors group-hover:text-green-600">
-          <svg
-            *ngIf="service.iconType === 'delivery'"
-            class="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-            />
-          </svg>
-          <svg
-            *ngIf="service.iconType === 'support'"
-            class="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-            />
-          </svg>
-          <svg
-            *ngIf="service.iconType === 'payment'"
-            class="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-            />
-          </svg>
-          <svg
-            *ngIf="service.iconType === 'reliable'"
-            class="w-6 h-6"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
-            />
-          </svg>
-          <svg
-            *ngIf="service.iconType === 'guarantee'"
-            class="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-        </div>
-        <div>
-          <h3
-            class="text-sm font-semibold text-gray-900 transition-colors group-hover:text-green-600"
-          >
-            {{ service.title }}
-          </h3>
-          <p class="mt-1 text-sm leading-relaxed text-gray-500">
-            {{ service.description }}
-          </p>
-        </div>
+        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        (click)="scrollInterestCategories('right')"
+        class="absolute right-0 z-20 flex items-center justify-center w-10 h-10 -translate-y-1/2 bg-white border border-gray-300 rounded-full shadow-sm top-1/2 hover:bg-gray-100"
+        aria-label="Scroll interests right"
+      >
+        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+      <div class="absolute top-0 bottom-0 left-0 z-10 w-8 pointer-events-none bg-gradient-to-r from-gray-50 to-transparent"></div>
+      <div class="absolute top-0 bottom-0 right-0 z-10 w-8 pointer-events-none bg-gradient-to-l from-gray-50 to-transparent"></div>
+      <div
+        #interestCarousel
+        *ngIf="isLoading"
+        class="flex items-center gap-3 px-12 py-2 overflow-x-auto scrollbar-hide"
+      >
+        <div
+          *ngFor="let i of [1,2,3,4,5,6]"
+          class="flex-shrink-0 rounded-full w-36 h-11 skeleton-pulse"
+        ></div>
+      </div>
+      <div
+        #interestCarousel
+        *ngIf="!isLoading"
+        class="flex items-center gap-3 px-12 py-2 overflow-x-auto scrollbar-hide"
+      >
+        <button
+          *ngFor="let category of allCategoryTree"
+          (click)="onInterestCategoryClick(category)"
+          class="px-6 py-3 text-sm font-medium text-gray-900 transition-all bg-white border border-gray-300 rounded-full whitespace-nowrap hover:border-black hover:text-black"
+        >
+          {{ category.category_name }}
+        </button>
       </div>
     </div>
   </div>
@@ -433,7 +395,7 @@
       <div class="flex-shrink-0 hidden lg:block w-80">
         <div class="relative h-full min-h-[600px] rounded-2xl overflow-hidden group">
           <img
-            src="/camera.jpg"
+            src="/Categories2.jpg"
             alt="Advertisement"
             class="absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-in-out group-hover:scale-105"
           />

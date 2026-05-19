@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Header } from '../../../../shared/components/header/header';
@@ -10,49 +10,85 @@ import { Footer } from '../../../../shared/components/footer/footer';
   templateUrl: './cart.html',
   styleUrl: './cart.css',
 })
-export class Cart {
-  cartItems = [
-    {
-      id: 1,
-      name: 'Professional Wireless Mouse - Ergonomic Design',
-      price: 29.99,
-      originalPrice: 39.99,
-      image: '/mouse2.jpg',
-      quantity: 2,
-      inStock: true
-    },
-    {
-      id: 2,
-      name: 'Mechanical Gaming Keyboard RGB Backlit',
-      price: 79.99,
-      originalPrice: 99.99,
-      image: '/keyboard.jpg',
-      quantity: 1,
-      inStock: true
-    },
-    {
-      id: 3,
-      name: 'Wireless Bluetooth Earbuds Pro',
-      price: 89.99,
-      originalPrice: 129.99,
-      image: '/air-pod.jpg',
-      quantity: 1,
-      inStock: true
-    }
-  ];
+export class Cart implements OnInit {
+  private readonly cartStorageKey = 'cart_items';
+
+  cartItems: any[] = [];
+  quantityOptions: number[] = [0, 1, 2, 3, 4, 5, 6, 7];
+  openQtyDropdownForId: string | null = null;
 
   increaseQuantity(item: any) {
     item.quantity++;
+    this.persistCartItems();
   }
 
   decreaseQuantity(item: any) {
     if (item.quantity > 1) {
       item.quantity--;
+      this.persistCartItems();
     }
   }
 
-  removeItem(id: number) {
-    this.cartItems = this.cartItems.filter(item => item.id !== id);
+  removeItem(id: string | number) {
+    this.cartItems = this.cartItems.filter(item => String(item.id) !== String(id));
+    this.persistCartItems();
+  }
+
+  toggleQuantityDropdown(itemId: string | number, event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
+    const normalizedId = String(itemId);
+    this.openQtyDropdownForId =
+      this.openQtyDropdownForId === normalizedId ? null : normalizedId;
+  }
+
+  isQuantityDropdownOpen(itemId: string | number): boolean {
+    return this.openQtyDropdownForId === String(itemId);
+  }
+
+  setQuantity(item: any, quantity: number, event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    this.openQtyDropdownForId = null;
+
+    if (quantity <= 0) {
+      this.removeItem(item.id);
+      return;
+    }
+
+    item.quantity = quantity;
+    this.persistCartItems();
+  }
+
+  ngOnInit(): void {
+    const savedItems = localStorage.getItem(this.cartStorageKey);
+    if (!savedItems) return;
+
+    try {
+      const parsedItems = JSON.parse(savedItems);
+      if (Array.isArray(parsedItems)) {
+        this.cartItems = parsedItems;
+      }
+    } catch {
+      this.cartItems = [];
+    }
+  }
+
+  prepareQuotation(): void {
+    this.persistCartItems();
+  }
+
+  @HostListener('document:click')
+  closeAllDropdowns() {
+    this.openQtyDropdownForId = null;
+  }
+
+  private persistCartItems(): void {
+    localStorage.setItem(this.cartStorageKey, JSON.stringify(this.cartItems));
+    window.dispatchEvent(new Event('cart-updated'));
   }
 
   get subtotal() {

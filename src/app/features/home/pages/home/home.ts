@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef, OnInit } from '@angular/core';
+import { Component, ViewChild, ElementRef, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Header } from '../../../../shared/components/header/header';
 import { Footer } from '../../../../shared/components/footer/footer';
@@ -12,8 +12,9 @@ import { AllCategoryModel } from '../../../../core/models/all-category-model/all
   templateUrl: './home.html',
   styleUrl: './home.css',
 })
-export class Home implements OnInit {
+export class Home implements OnInit, OnDestroy {
   @ViewChild('recentlyViewedCarousel') recentlyViewedCarousel?: ElementRef<HTMLElement>;
+  @ViewChild('interestCarousel') interestCarousel?: ElementRef<HTMLElement>;
 
   activeTab: string = 'feature';
   activeProductTab: string = 'top20';
@@ -23,6 +24,12 @@ export class Home implements OnInit {
   activeChildMap: Map<string, any> = new Map(); // Track active child for each parent category
   isAllCategoryModalOpen: boolean = false;
   isLoading: boolean = true;
+  heroCategoryImages: string[] = Array.from({ length: 12 }, (_, idx) => `/Categories${idx + 1}.jpg`);
+  activeHeroImageIndex: number = 0;
+  nextHeroImageIndex: number = 1;
+  isHeroImageTransitioning: boolean = false;
+  private heroImageIntervalId: ReturnType<typeof setInterval> | null = null;
+  private heroImageTransitionTimeoutId: ReturnType<typeof setTimeout> | null = null;
   
   constructor(private router: Router, private api: BackendapiServices) {}
 
@@ -81,6 +88,18 @@ export class Home implements OnInit {
 
   ngOnInit(): void {
     this.loadCategory();
+    this.startHeroImageRotation();
+  }
+
+  ngOnDestroy(): void {
+    if (this.heroImageIntervalId) {
+      clearInterval(this.heroImageIntervalId);
+      this.heroImageIntervalId = null;
+    }
+    if (this.heroImageTransitionTimeoutId) {
+      clearTimeout(this.heroImageTransitionTimeoutId);
+      this.heroImageTransitionTimeoutId = null;
+    }
   }
 
   // loadCategory() {
@@ -203,17 +222,44 @@ export class Home implements OnInit {
     // });
   }
 
-  serviceHighlights = [
-    {
-      iconType: 'delivery',
-      title: 'Free delivery',
-      description: 'Free Shipping for orders over $20',
-    },
-    { iconType: 'support', title: 'Support 24/7', description: '24 hours a day, 7 days a week' },
-    { iconType: 'payment', title: 'Payment', description: 'Pay with Multiple Credit Cards' },
-    { iconType: 'reliable', title: 'Reliable', description: 'Trusted by 2000+ major brands' },
-    { iconType: 'guarantee', title: 'Guarantee', description: 'Within 30 days for an exchange' },
-  ];
+  onInterestCategoryClick(category: any) {
+    if (!category?.category_id) {
+      return;
+    }
+
+    this.router.navigate(['/product-list'], {
+      queryParams: {
+        categoryId: category.category_id,
+        category_id: category.category_id,
+        categoryName: category.category_name,
+      },
+    });
+  }
+
+  private startHeroImageRotation() {
+    if (this.heroCategoryImages.length <= 1 || this.heroImageIntervalId) {
+      return;
+    }
+
+    this.heroImageIntervalId = setInterval(() => {
+      this.transitionHeroImage();
+    }, 1000);
+  }
+
+  private transitionHeroImage() {
+    if (this.isHeroImageTransitioning || this.heroCategoryImages.length <= 1) {
+      return;
+    }
+
+    this.nextHeroImageIndex = (this.activeHeroImageIndex + 1) % this.heroCategoryImages.length;
+    this.isHeroImageTransitioning = true;
+
+    this.heroImageTransitionTimeoutId = setTimeout(() => {
+      this.activeHeroImageIndex = this.nextHeroImageIndex;
+      this.isHeroImageTransitioning = false;
+      this.heroImageTransitionTimeoutId = null;
+    }, 420);
+  }
 
   dealOfTheDay = [
     {
@@ -439,6 +485,16 @@ export class Home implements OnInit {
       const newScroll =
         direction === 'left' ? currentScroll - scrollAmount : currentScroll + scrollAmount;
       this.recentlyViewedCarousel.nativeElement.scrollTo({ left: newScroll, behavior: 'smooth' });
+    }
+  }
+
+  scrollInterestCategories(direction: 'left' | 'right') {
+    if (this.interestCarousel?.nativeElement) {
+      const scrollAmount = 300;
+      const currentScroll = this.interestCarousel.nativeElement.scrollLeft;
+      const newScroll =
+        direction === 'left' ? currentScroll - scrollAmount : currentScroll + scrollAmount;
+      this.interestCarousel.nativeElement.scrollTo({ left: newScroll, behavior: 'smooth' });
     }
   }
 

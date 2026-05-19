@@ -3,8 +3,8 @@
 <section class="min-h-screen py-4 bg-gray-50">
   <div class="container px-4 mx-auto">
     <div class="flex gap-4">
-      <aside class="flex-shrink-0 hidden w-64 lg:block">
-        <div class="sticky bg-white border border-gray-200 rounded-lg shadow-sm top-4">
+      <aside class="flex-shrink-0 hidden w-72 lg:block">
+        <div class="sticky overflow-hidden bg-white border border-gray-200 shadow-sm rounded-xl top-4">
           <!-- Sidebar Skeleton -->
           <div *ngIf="isLoading" class="p-4 space-y-3">
             <div class="h-6 w-24 skeleton-pulse rounded"></div>
@@ -16,13 +16,13 @@
             <div class="h-4 w-5/6 skeleton-pulse rounded"></div>
           </div>
 
-          <div *ngIf="!isLoading" class="p-4 border-b border-gray-200">
+          <div *ngIf="!isLoading" class="p-4 border-b border-gray-200 bg-gray-50/80">
             <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold text-gray-900">Categories</h2>
+              <h2 class="text-lg font-semibold tracking-tight text-gray-900">Categories</h2>
               <button
                 *ngIf="selectedCategory"
                 (click)="onViewAllCategories()"
-                class="text-xs font-medium text-green-600 hover:text-green-700"
+                class="text-xs font-semibold text-green-700 transition hover:text-green-800"
               >
                 View All
               </button>
@@ -30,21 +30,20 @@
           </div>
 
           <!-- Category Navigation -->
-          <nav *ngIf="!isLoading" class="max-h-[calc(100vh-200px)] overflow-y-auto">
+          <nav *ngIf="!isLoading" class="max-h-[calc(100vh-200px)] overflow-y-auto category-sidebar-nav p-2.5">
             <ng-container *ngFor="let category of displayedCategoryTree">
               <!-- Parent Category -->
-              <div class="relative group">
+              <div class="relative mb-1">
                 <a
                   (click)="onCategoryClick(category)"
-                  class="flex items-center justify-between px-4 py-2.5 text-sm text-gray-700 transition border-l-4 border-transparent hover:bg-green-50 hover:text-green-600 hover:border-green-600 cursor-pointer"
-                  [class.bg-green-50]="isCategorySelected(category)"
-                  [class.text-green-600]="isCategorySelected(category)"
-                  [class.border-green-600]="isCategorySelected(category)"
+                  class="category-link category-link-parent"
+                  [class.category-link-active]="isCategorySelected(category)"
                 >
                   <span>{{ category.category_name }}</span>
                   <svg
                     *ngIf="category.children.length > 0"
-                    class="w-4 h-4 text-gray-400 transition-colors group-hover:text-green-600"
+                    class="w-4 h-4 text-gray-400 transition-colors"
+                    [class.text-green-600]="isCategorySelected(category)"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -61,20 +60,19 @@
                 <!-- Children (First Level) -->
                 <div
                   *ngIf="category.children.length > 0"
-                  class="pl-4 border-l-2 border-gray-100 ml-4"
+                  class="ml-4 pl-3 border-l border-gray-200/80 my-1"
                 >
                   <ng-container *ngFor="let child of category.children">
                     <a
                       (click)="onCategoryClick(child)"
-                      class="flex items-center justify-between px-4 py-2 text-sm text-gray-700 transition border-l-4 border-transparent hover:bg-green-50 hover:text-green-600 hover:border-green-600 cursor-pointer"
-                      [class.bg-green-50]="isCategorySelected(child)"
-                      [class.text-green-600]="isCategorySelected(child)"
-                      [class.border-green-600]="isCategorySelected(child)"
+                      class="category-link category-link-child"
+                      [class.category-link-active]="isCategorySelected(child)"
                     >
                       <span>{{ child.category_name }}</span>
                       <svg
                         *ngIf="child.children.length > 0"
-                        class="w-3 h-3 text-gray-400 transition-colors group-hover:text-green-600"
+                        class="w-3 h-3 text-gray-400 transition-colors"
+                        [class.text-green-600]="isCategorySelected(child)"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -91,15 +89,13 @@
                     <!-- Grandchildren (Second Level) -->
                     <div
                       *ngIf="child.children.length > 0"
-                      class="pl-4 border-l-2 border-gray-100 ml-4"
+                      class="ml-4 pl-3 border-l border-gray-200/70 my-1"
                     >
                       <a
                         *ngFor="let grandchild of child.children"
                         (click)="onCategoryClick(grandchild)"
-                        class="block px-4 py-1.5 text-xs text-gray-600 transition border-l-4 border-transparent hover:bg-green-50 hover:text-green-600 hover:border-green-600 cursor-pointer"
-                        [class.bg-green-50]="isCategorySelected(grandchild)"
-                        [class.text-green-600]="isCategorySelected(grandchild)"
-                        [class.border-green-600]="isCategorySelected(grandchild)"
+                        class="category-link category-link-grandchild"
+                        [class.category-link-active]="isCategorySelected(grandchild)"
                       >
                         {{ grandchild.category_name }}
                       </a>
@@ -113,7 +109,7 @@
             <div *ngIf="selectedCategory" class="p-4 border-t border-gray-200">
               <button
                 (click)="onViewAllCategories()"
-                class="flex items-center justify-center w-full gap-2 px-4 py-2.5 text-sm font-semibold text-green-600 transition bg-green-50 rounded-lg hover:bg-green-100 hover:text-green-700"
+                class="flex items-center justify-center w-full gap-2 px-4 py-2.5 text-sm font-semibold text-green-700 transition bg-green-50 rounded-lg hover:bg-green-100 hover:text-green-800"
               >
                 <span>View All Categories</span>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -250,16 +246,30 @@
             <div
               *ngFor="let product of filteredProducts"
               (click)="onProductClick(product)"
+              (mouseenter)="onProductHover(product, true)"
+              (mouseleave)="onProductHover(product, false)"
               class="flex flex-col gap-4 p-4 transition bg-white border border-gray-200 rounded-lg cursor-pointer sm:flex-row hover:shadow-md"
             >
             <!-- Product Image -->
             <div class="flex-shrink-0 w-full h-48 mx-auto sm:w-48 sm:mx-0">
               <div class="relative w-full h-full overflow-hidden bg-gray-100 rounded-lg">
-                <img
-                  [src]="product.image"
-                  [alt]="product.name"
+                <video
+                  *ngIf="shouldPlayProductVideo(product); else productImageTemplate"
+                  [src]="product.video"
                   class="object-cover w-full h-full"
-                />
+                  autoplay
+                  muted
+                  loop
+                  playsinline
+                  preload="metadata"
+                ></video>
+                <ng-template #productImageTemplate>
+                  <img
+                    [src]="product.image"
+                    [alt]="product.name"
+                    class="object-cover w-full h-full"
+                  />
+                </ng-template>
               </div>
             </div>
 
@@ -317,7 +327,7 @@
 
               <!-- Add to Cart Button -->
               <button
-                (click)="onProductClick(product); $event.stopPropagation()"
+                (click)="onAddToCart(product, $event)"
                 class="px-6 py-2 text-sm font-medium text-white transition bg-green-600 rounded-lg hover:bg-green-700"
               >
                 Add to Cart
