@@ -1,12 +1,28 @@
-header {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-
 /* Category Dropdown Animation */
 .category-dropdown-menu {
   animation: dropdownFadeIn 0.2s ease-out;
+}
+
+@media (min-width: 768px) {
+  .desktop-header-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    border-bottom: 1px solid rgb(229 231 235);
+  }
+}
+
+@media (max-width: 767px) {
+  .desktop-header-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    border-bottom: 1px solid rgb(229 231 235);
+  }
 }
 
 @keyframes dropdownFadeIn {

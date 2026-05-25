@@ -15,6 +15,7 @@ import { AllCategoryModel } from '../../../../core/models/all-category-model/all
 export class Home implements OnInit, OnDestroy {
   @ViewChild('recentlyViewedCarousel') recentlyViewedCarousel?: ElementRef<HTMLElement>;
   @ViewChild('interestCarousel') interestCarousel?: ElementRef<HTMLElement>;
+  @ViewChild('newArrivalsCarousel') newArrivalsCarousel?: ElementRef<HTMLElement>;
 
   activeTab: string = 'feature';
   activeProductTab: string = 'top20';
@@ -23,7 +24,59 @@ export class Home implements OnInit, OnDestroy {
   allCategoryTree: any[] = []; // Full category tree for modal
   activeChildMap: Map<string, any> = new Map(); // Track active child for each parent category
   isAllCategoryModalOpen: boolean = false;
-  isLoading: boolean = true;
+  mobileTopCategoryFallback: Array<{ category_name: string }> = [
+    { category_name: 'Books & Stationery' },
+    { category_name: 'Sports & Outdoors' },
+    { category_name: 'Travel & Luggage' },
+    { category_name: 'Home Products' },
+    { category_name: 'Electronics' },
+  ];
+  mobileShopTypes: Array<{ label: string; value: string }> = [
+    { label: 'All', value: 'all' },
+    { label: 'Men', value: 'men' },
+    { label: 'Sports', value: 'sports' },
+    { label: 'Women', value: 'women' },
+    { label: 'Bags', value: 'bags' },
+    { label: 'Jewelry', value: 'jewelry' },
+    { label: 'Toy', value: 'toy' },
+    { label: 'Home', value: 'home' },
+    { label: 'Kids', value: 'kids' },
+    { label: 'Industrial', value: 'industrial' },
+    { label: 'Electronics', value: 'electronics' },
+    { label: 'Crafts', value: 'crafts' },
+    { label: 'Beauty', value: 'beauty' },
+    { label: 'Baby', value: 'baby' },
+    { label: 'Health', value: 'health' },
+    { label: 'Household', value: 'household' },
+    { label: 'Pets', value: 'pets' },
+    { label: 'Musical', value: 'musical' },
+    { label: 'Appliances', value: 'appliances' },
+    { label: 'Food', value: 'food' },
+    { label: 'Books', value: 'books' },
+  ];
+  activeMobileShopType: string = 'all';
+  private readonly categoryChipImages: Record<string, string> = {
+    electronics: '/Categories1.jpg',
+    phone: '/mobile.jpg',
+    mobile: '/mobile2.jpg',
+    fashion: '/shirt.jpg',
+    clothing: '/shirt2.jpg',
+    apparel: '/shirts.jpg',
+    home: '/Categories3.jpg',
+    furniture: '/Categories4.jpg',
+    beauty: '/Categories5.jpg',
+    sport: '/shoe.jpg',
+    shoes: '/shoe2.jpg',
+    watch: '/air-pod.jpg',
+    jewelry: '/glass.jpg',
+    grocery: '/Categories6.jpg',
+    food: '/Categories7.jpg',
+    kitchen: '/Categories8.jpg',
+    book: '/Categories9.jpg',
+    baby: '/Categories10.jpg',
+    toy: '/Categories11.jpg',
+    automotive: '/Categories12.jpg',
+  };
   heroCategoryImages: string[] = Array.from({ length: 12 }, (_, idx) => `/Categories${idx + 1}.jpg`);
   activeHeroImageIndex: number = 0;
   nextHeroImageIndex: number = 1;
@@ -32,59 +85,6 @@ export class Home implements OnInit, OnDestroy {
   private heroImageTransitionTimeoutId: ReturnType<typeof setTimeout> | null = null;
   
   constructor(private router: Router, private api: BackendapiServices) {}
-
-  // categories = [
-  //   {
-  //     name: 'Apparel',
-  //     iconType: 'tshirt',
-  //     submenu: ['Men', 'Women', 'Kids', 'Accessories', 'Shoes', 'Bags']
-  //   },
-  //   {
-  //     name: 'Automotive parts',
-  //     iconType: 'car',
-  //     submenu: ['Engine', 'Lubricants & Fluids', 'Best sellers', 'Cooling System', 'Exhaust System', 'Battery', 'Interior']
-  //   },
-  //   {
-  //     name: 'Beauty & personal care',
-  //     iconType: 'beauty',
-  //     submenu: ['Skincare', 'Makeup', 'Haircare', 'Fragrance & Deodorant', 'Body Care']
-  //   },
-  //   {
-  //     name: 'Consumer Electronics',
-  //     iconType: 'electronics',
-  //     submenu: ['Smartphones', 'Laptops', 'Tablets', 'Headphones', 'Cameras', 'Gaming']
-  //   },
-  //   {
-  //     name: 'Furniture',
-  //     iconType: 'furniture',
-  //     submenu: ['Living Room', 'Bedroom', 'Dining Room', 'Office', 'Outdoor', 'Storage']
-  //   },
-  //   {
-  //     name: 'Home products',
-  //     iconType: 'home',
-  //     submenu: ['Kitchen', 'Bathroom', 'Bedding', 'Decor', 'Lighting', 'Storage']
-  //   },
-  //   {
-  //     name: 'Machinery',
-  //     iconType: 'machinery',
-  //     submenu: ['Industrial', 'Agricultural', 'Construction', 'Manufacturing', 'Tools']
-  //   },
-  //   {
-  //     name: 'Timepieces, jewelry & eyewear',
-  //     iconType: 'jewelry',
-  //     submenu: ['Watches', 'Jewelry', 'Eyewear', 'Accessories', 'Luxury']
-  //   },
-  //   {
-  //     name: 'Tool & hardware',
-  //     iconType: 'tool',
-  //     submenu: ['Power Tools', 'Hand Tools', 'Hardware', 'Safety Equipment', 'Measuring Tools']
-  //   },
-  //   {
-  //     name: 'Bestseller',
-  //     iconType: 'bestseller',
-  //     submenu: ['Top Rated', 'Most Popular', 'New Arrivals', 'Special Offers']
-  //   },
-  // ];
 
   ngOnInit(): void {
     this.loadCategory();
@@ -102,12 +102,6 @@ export class Home implements OnInit, OnDestroy {
     }
   }
 
-  // loadCategory() {
-  //   this.api.getAllCategory().subscribe((res: any) => {
-  //     this.categories = res.data || [];
-  //     console.log('home category ->', this.categories);
-  //   });
-  // }
 
   loadCategory() {
     this.api.getAllCategoryList().subscribe((res: any) => {
@@ -133,9 +127,6 @@ export class Home implements OnInit, OnDestroy {
       }));
 
       console.log('Home Category Tree:', this.categoryTree);
-      this.isLoading = false;
-    }, () => {
-      this.isLoading = false;
     });
   }
 
@@ -236,6 +227,35 @@ export class Home implements OnInit, OnDestroy {
     });
   }
 
+  getMobileTopCategories(): any[] {
+    const dynamic = this.allCategoryTree.length ? this.allCategoryTree : this.categoryTree;
+    return dynamic.length ? dynamic : this.mobileTopCategoryFallback;
+  }
+
+  onMobileShopTypeClick(type: { label: string; value: string }) {
+    this.activeMobileShopType = type.value;
+    this.router.navigate(['/product-list'], {
+      queryParams: {
+        mode: 'browse',
+        type: type.value,
+      },
+    });
+  }
+
+  isMobileShopTypeActive(value: string): boolean {
+    return this.activeMobileShopType === value;
+  }
+
+  getCategoryChipImage(category: any): string {
+    const name = String(category?.category_name || '').toLowerCase();
+    for (const key of Object.keys(this.categoryChipImages)) {
+      if (name.includes(key)) {
+        return this.categoryChipImages[key];
+      }
+    }
+    return '/Categories1.jpg';
+  }
+
   private startHeroImageRotation() {
     if (this.heroCategoryImages.length <= 1 || this.heroImageIntervalId) {
       return;
@@ -317,6 +337,24 @@ export class Home implements OnInit, OnDestroy {
       id: 3,
       title: 'Apple Watch Series 5',
       price: 349.99,
+      image: 'https://via.placeholder.com/150',
+    },
+    {
+      id: 4,
+      title: 'Huawei P40 Pro 16GB',
+      price: 799.99,
+      image: 'https://via.placeholder.com/150',
+    },
+    {
+      id: 5,
+      title: 'Earphone 3.5mm Retro',
+      price: 99.99,
+      image: 'https://via.placeholder.com/150',
+    },
+    {
+      id: 6,
+      title: 'Apple Watch Series 5',
+      price: 549.99,
       image: 'https://via.placeholder.com/150',
     },
   ];
@@ -498,6 +536,16 @@ export class Home implements OnInit, OnDestroy {
     }
   }
 
+  scrollNewArrivals(direction: 'left' | 'right') {
+    if (this.newArrivalsCarousel?.nativeElement) {
+      const scrollAmount = 240;
+      const currentScroll = this.newArrivalsCarousel.nativeElement.scrollLeft;
+      const newScroll =
+        direction === 'left' ? currentScroll - scrollAmount : currentScroll + scrollAmount;
+      this.newArrivalsCarousel.nativeElement.scrollTo({ left: newScroll, behavior: 'smooth' });
+    }
+  }
+
   newArrivals = [
     {
       id: 1,
@@ -597,9 +645,21 @@ export class Home implements OnInit, OnDestroy {
       originalPrice: 21700,
       image: '/mobile4.jpg',
     },
+      {
+      id: 2,
+      name: 'Apple iPhone 11 Pro Max, 256GB, Space Gray',
+      category: 'Smartphone',
+      price: 34700,
+      originalPrice: 42800,
+      image: '/shirts.jpg',
+    },
   ];
 
   onProductDetails() {
-    this.router.navigate(['product-details']);
+    this.router.navigate(['/product-list'], {
+      queryParams: {
+        mode: 'browse',
+      },
+    });
   }
 }

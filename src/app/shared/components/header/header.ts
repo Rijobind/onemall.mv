@@ -3,6 +3,7 @@ import {
   HostListener,
   OnInit,
   OnDestroy,
+  AfterViewInit,
   ChangeDetectorRef,
   ElementRef,
   ViewChild,
@@ -29,7 +30,7 @@ interface SearchSuggestionItem {
   templateUrl: './header.html',
   styleUrl: './header.css',
 })
-export class Header implements OnInit, OnDestroy {
+export class Header implements OnInit, OnDestroy, AfterViewInit {
   private readonly cartStorageKey = 'cart_items';
   private readonly recentSearchesStorageKey = 'recent_searches';
   private categoryCloseTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -226,6 +227,17 @@ export class Header implements OnInit, OnDestroy {
     this.loadCartCount();
   }
 
+  @HostListener('window:scroll')
+  onWindowScroll() {
+    this.updateDesktopHeaderStickyState();
+  }
+
+  @HostListener('window:resize')
+  onWindowResize() {
+    this.recalculateDesktopHeaderMetrics();
+    this.updateDesktopHeaderStickyState();
+  }
+
   shopMenu = [
     { label: 'Shop Grid', link: '#' },
     { label: 'Shop List', link: '#' },
@@ -253,9 +265,21 @@ export class Header implements OnInit, OnDestroy {
   selectedCategory = 'All Category';
   isCategoryOpen = false;
   isMobileMenuOpen = false;
-  activeMobileTab: 'home' | 'search' | 'notification' | 'profile' = 'home';
+  activeMobileTab: 'home' | 'search' | 'category' | 'notification' | 'profile' = 'home';
   isMobileSearchOpen = false;
+  isDesktopHeaderFixed = false;
+  desktopHeaderSpacerHeight = 0;
+  private desktopHeaderAnchorTop = 0;
+  @ViewChild('desktopHeaderAnchor') desktopHeaderAnchor?: ElementRef<HTMLDivElement>;
+  @ViewChild('desktopHeaderRow') desktopHeaderRow?: ElementRef<HTMLDivElement>;
   @ViewChild('mobileSearchInput') mobileSearchInput?: ElementRef<HTMLInputElement>;
+
+  ngAfterViewInit(): void {
+    setTimeout(() => {
+      this.recalculateDesktopHeaderMetrics();
+      this.updateDesktopHeaderStickyState();
+    });
+  }
 
   toggleCategoryDropdown() {
     this.isCategoryOpen = !this.isCategoryOpen;
@@ -360,6 +384,21 @@ export class Header implements OnInit, OnDestroy {
     setTimeout(() => {
       this.mobileSearchInput?.nativeElement?.focus();
     });
+  }
+
+  closeMobileSearch() {
+    this.isMobileSearchOpen = false;
+    this.isSearchDropdownOpen = false;
+    this.selectedSearchIndex = -1;
+    this.activeMobileTab = 'home';
+  }
+
+  onMobileCategories() {
+    this.activeMobileTab = 'category';
+    this.isMobileSearchOpen = false;
+    this.isSearchDropdownOpen = false;
+    this.selectedSearchIndex = -1;
+    this.toggleMobileMenu();
   }
 
   onAboutUs() {
@@ -485,9 +524,14 @@ export class Header implements OnInit, OnDestroy {
     this.addRecentSearch(term);
     this.isSearchDropdownOpen = false;
     this.selectedSearchIndex = -1;
-    this.router.navigate(['/product-list'], {
+    const isMobile = window.innerWidth < 768;
+    this.router.navigate(['/search-result'], {
       queryParams: { search: term },
     });
+    if (isMobile) {
+      this.isMobileSearchOpen = false;
+      this.activeMobileTab = 'search';
+    }
   }
 
   onSelectSearchSuggestion(suggestion: SearchSuggestionItem) {
@@ -498,13 +542,18 @@ export class Header implements OnInit, OnDestroy {
     this.addRecentSearch(query);
     this.isSearchDropdownOpen = false;
     this.selectedSearchIndex = -1;
-    this.router.navigate(['/product-list'], {
+    const isMobile = window.innerWidth < 768;
+    this.router.navigate(['/search-result'], {
       queryParams: {
         search: query,
         categoryId: suggestion.categoryId || undefined,
         categoryName: suggestion.categoryName || undefined,
       },
     });
+    if (isMobile) {
+      this.isMobileSearchOpen = false;
+      this.activeMobileTab = 'search';
+    }
   }
 
   onSearchSuggestionHover(index: number) {
@@ -609,7 +658,7 @@ export class Header implements OnInit, OnDestroy {
     this.searchQuery = urlSearch;
   }
 
-  isMobileTabActive(tab: 'home' | 'search' | 'notification' | 'profile'): boolean {
+  isMobileTabActive(tab: 'home' | 'search' | 'category' | 'notification' | 'profile'): boolean {
     return this.activeMobileTab === tab;
   }
 
@@ -627,9 +676,9 @@ export class Header implements OnInit, OnDestroy {
       return;
     }
 
-    if (path.startsWith('/product-list')) {
+    if (path.startsWith('/product-list') || path.startsWith('/search-result')) {
       this.activeMobileTab = 'search';
-      this.isMobileSearchOpen = true;
+      this.isMobileSearchOpen = false;
       return;
     }
 
@@ -753,5 +802,24 @@ export class Header implements OnInit, OnDestroy {
     } catch {
       this.cartCount = 0;
     }
+  }
+
+  private recalculateDesktopHeaderMetrics() {
+    if (!this.desktopHeaderAnchor || !this.desktopHeaderRow) return;
+
+    const anchorEl = this.desktopHeaderAnchor.nativeElement;
+    const rowEl = this.desktopHeaderRow.nativeElement;
+    this.desktopHeaderAnchorTop = anchorEl.getBoundingClientRect().top + window.scrollY;
+    this.desktopHeaderSpacerHeight = rowEl.offsetHeight || 0;
+  }
+
+  private updateDesktopHeaderStickyState() {
+    if (typeof window === 'undefined') return;
+
+    if (!this.desktopHeaderAnchorTop) {
+      this.recalculateDesktopHeaderMetrics();
+    }
+
+    this.isDesktopHeaderFixed = window.scrollY >= this.desktopHeaderAnchorTop;
   }
 }

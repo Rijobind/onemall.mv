@@ -27,6 +27,31 @@ export class ProductList implements OnInit {
   hoveredProductId: string | null = null;
   private pendingCategoryId: string | null = null;
   private searchTerm: string = '';
+  browseType: string = '';
+  listingMode: 'search' | 'browse' = 'browse';
+  mobileShopTypes: Array<{ label: string; value: string }> = [
+    { label: 'All', value: 'all' },
+    { label: 'Men', value: 'men' },
+    { label: 'Sports', value: 'sports' },
+    { label: 'Women', value: 'women' },
+    { label: 'Bags', value: 'bags' },
+    { label: 'Jewelry', value: 'jewelry' },
+    { label: 'Toy', value: 'toy' },
+    { label: 'Home', value: 'home' },
+    { label: 'Kids', value: 'kids' },
+    { label: 'Industrial', value: 'industrial' },
+    { label: 'Electronics', value: 'electronics' },
+    { label: 'Crafts', value: 'crafts' },
+    { label: 'Beauty', value: 'beauty' },
+    { label: 'Baby', value: 'baby' },
+    { label: 'Health', value: 'health' },
+    { label: 'Household', value: 'household' },
+    { label: 'Pets', value: 'pets' },
+    { label: 'Musical', value: 'musical' },
+    { label: 'Appliances', value: 'appliances' },
+    { label: 'Food', value: 'food' },
+    { label: 'Books', value: 'books' },
+  ];
 
   sortOptions = [
     { label: 'Featured', value: 'featured' },
@@ -45,7 +70,10 @@ export class ProductList implements OnInit {
   ngOnInit(): void {
     this.route.queryParams.subscribe((params) => {
       const categoryId = params['categoryId'] || params['category_id'];
+      const requestedMode = String(params['mode'] || '').toLowerCase();
+      this.listingMode = requestedMode === 'browse' ? 'browse' : 'search';
       this.searchTerm = (params['search'] || '').toString().trim().toLowerCase();
+      this.browseType = (params['type'] || '').toString().trim().toLowerCase();
 
       if (!categoryId) {
         this.pendingCategoryId = null;
@@ -397,6 +425,30 @@ export class ProductList implements OnInit {
     return option ? option.label : 'Featured';
   }
 
+  get selectedBrowseTypeLabel(): string {
+    if (!this.browseType || this.browseType === 'all') {
+      return 'All';
+    }
+    const item = this.mobileShopTypes.find((type) => type.value === this.browseType);
+    return item?.label || this.browseType;
+  }
+
+  isBrowseTypeActive(value: string): boolean {
+    const current = this.browseType || 'all';
+    return current === value;
+  }
+
+  onBrowseTypeClick(type: { label: string; value: string }) {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        mode: 'browse',
+        type: type.value,
+      },
+      queryParamsHandling: 'merge',
+    });
+  }
+
   applySort() {
     const products = [...this.filteredProducts];
     switch (this.sortBy) {
@@ -473,7 +525,7 @@ export class ProductList implements OnInit {
       });
     }
 
-    if (this.searchTerm) {
+    if (this.listingMode === 'search' && this.searchTerm) {
       result = result.filter((product: any) => {
         const name = (product?.name || '').toLowerCase();
         const brand = (product?.brand || '').toLowerCase();
@@ -483,6 +535,17 @@ export class ProductList implements OnInit {
           brand.includes(this.searchTerm) ||
           desc.includes(this.searchTerm)
         );
+      });
+    }
+
+    if (this.listingMode === 'browse' && this.browseType && this.browseType !== 'all') {
+      result = result.filter((product: any) => {
+        const haystacks = [
+          String(product?.name || '').toLowerCase(),
+          String(product?.brand || '').toLowerCase(),
+          String(product?.description || '').toLowerCase(),
+        ];
+        return haystacks.some((text) => text.includes(this.browseType));
       });
     }
 

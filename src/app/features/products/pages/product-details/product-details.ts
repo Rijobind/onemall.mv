@@ -40,6 +40,7 @@ export class ProductDetails implements OnInit {
     id: '',
     name: 'Unknown Shop',
     logo: '/shirt.jpg',
+    totalProducts: '0',
     rating: 0,
     reviewsLabel: '0',
     responseRate: '',
@@ -655,6 +656,14 @@ export class ProductDetails implements OnInit {
           ),
           name: payload?.store_name || payload?.name || 'Unknown Shop',
           logo: payload?.logo || payload?.logo_url || payload?.image || '/shirt.jpg',
+          totalProducts: this.formatCompactCount(
+            payload?.total_products ??
+            payload?.products_count ??
+            payload?.product_count ??
+            payload?.total_items ??
+            payload?.item_count ??
+            0
+          ),
           rating: Number(payload?.rating || payload?.average_rating || 0),
           reviewsLabel: this.formatCompactCount(
             payload?.reviews ??
@@ -689,6 +698,7 @@ export class ProductDetails implements OnInit {
       id: storeId,
       name: 'Shop information unavailable',
       logo: '/shirt.jpg',
+      totalProducts: '0',
       rating: 0,
       reviewsLabel: '0',
       responseRate: '',

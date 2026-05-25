@@ -7,6 +7,12 @@
   scrollbar-width: none;
 }
 
+:host {
+  display: block;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 /* Continuous Scrolling Animation for Brand Logos */
 @keyframes scroll {
   0% {
@@ -21,10 +27,17 @@
   animation: scroll 30s linear infinite;
   display: flex;
   width: fit-content;
+  pointer-events: none;
 }
 
 .animate-scroll:hover {
   animation-play-state: paused;
+}
+
+@media (max-width: 767px) {
+  .animate-scroll {
+    pointer-events: auto;
+  }
 }
 @keyframes slowZoom {
   0% { transform: scale(1); }
@@ -34,6 +47,17 @@
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(25px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-36px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes pulseGlow {
@@ -50,19 +74,40 @@
 .skeleton-pulse {
   background: linear-gradient(
     90deg,
-    #f0f0f0 25%,
+    #f0f0f0 0%,
+    #f0f0f0 42%,
     #e8e8e8 50%,
-    #f0f0f0 75%
+    #f0f0f0 58%,
+    #f0f0f0 100%
   );
-  background-size: 200% 100%;
-  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  background-repeat: no-repeat;
+  background-size: 300% 100%;
+  animation: skeleton-shimmer 0.9s ease-in-out infinite;
 }
 
 @keyframes skeleton-shimmer {
   0% {
-    background-position: 200% 0;
+    background-position: 100% 0;
   }
   100% {
-    background-position: -200% 0;
+    background-position: -100% 0;
+  }
+}
+
+.hero-text-slide-left {
+  opacity: 0;
+  animation: slideInLeft 700ms ease-out forwards;
+}
+
+.hero-text-slide-left-delay {
+  opacity: 0;
+  animation: slideInLeft 700ms ease-out 140ms forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-text-slide-left,
+  .hero-text-slide-left-delay {
+    opacity: 1;
+    animation: none;
   }
 }

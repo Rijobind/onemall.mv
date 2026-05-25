@@ -11,6 +11,7 @@ export const routes: Routes = [
     { path: 'about-us', loadComponent: () => import('./features/pages/about-us/about-us').then(a => a.AboutUs) },
     { path: 'contact', loadComponent: () => import('./features/pages/contact-us/contact-us').then(a => a.ContactUs) },
     { path: 'product-list', loadComponent: () => import('./features/products/pages/product-list/product-list').then(a => a.ProductList) },
+    { path: 'search-result', loadComponent: () => import('./features/products/search-result/search-result').then(a => a.SearchResult) },
     { path: 'product-details-demo', loadComponent: () => import('./features/products/pages/product-details-demo/product-details-demo').then(a => a.ProductDetailsDemo) },
 
 ];

@@ -241,19 +241,14 @@
 @media (max-width: 639px) {
   .product-gallery-layout {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 8px;
     width: 100%;
     min-width: 0;
     max-width: 100%;
   }
 
   .product-thumb-rail {
-    order: 2;
-    flex-direction: row;
-    max-height: none;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-bottom: 2px;
+    display: none;
   }
 
   .product-main-stage {
@@ -265,12 +260,23 @@
 
   .product-main-media {
     width: 100%;
-    height: min(82vw, 420px);
+    height: min(84vw, 420px);
+    border-radius: 12px;
   }
 
   .product-left-stack {
     width: 100%;
     min-width: 0;
     max-width: 100%;
+  }
+
+  .product-tabs-content {
+    padding: 12px;
+  }
+
+  .product-tab-btn {
+    min-height: 40px;
+    padding: 8px 6px;
+    font-size: 0.75rem;
   }
 }

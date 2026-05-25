@@ -1,5 +1,6 @@
 import { Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 import { Header } from '../../../../shared/components/header/header';
 import { Footer } from '../../../../shared/components/footer/footer';
@@ -12,25 +13,45 @@ import { Footer } from '../../../../shared/components/footer/footer';
 })
 export class Cart implements OnInit {
   private readonly cartStorageKey = 'cart_items';
+  private readonly maxSwipeOffset = 72;
+  private activeSwipeItemId: string | null = null;
+  private touchStartX = 0;
+  private touchStartY = 0;
+  private swipeStartOffset = 0;
+  private isHorizontalSwipe = false;
 
   cartItems: any[] = [];
   quantityOptions: number[] = [0, 1, 2, 3, 4, 5, 6, 7];
   openQtyDropdownForId: string | null = null;
+  swipeOffsets: Record<string, number> = {};
 
-  increaseQuantity(item: any) {
+  constructor(private router: Router) {}
+
+  increaseQuantity(item: any, event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
     item.quantity++;
     this.persistCartItems();
   }
 
-  decreaseQuantity(item: any) {
+  decreaseQuantity(item: any, event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
     if (item.quantity > 1) {
       item.quantity--;
       this.persistCartItems();
     }
   }
 
-  removeItem(id: string | number) {
-    this.cartItems = this.cartItems.filter(item => String(item.id) !== String(id));
+  removeItem(id: string | number, event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
+    const normalizedId = String(id);
+    this.cartItems = this.cartItems.filter(item => String(item.id) !== normalizedId);
+    delete this.swipeOffsets[normalizedId];
     this.persistCartItems();
   }
 
@@ -75,6 +96,67 @@ export class Cart implements OnInit {
     } catch {
       this.cartItems = [];
     }
+  }
+
+  onItemSwipeStart(itemId: string | number, event: TouchEvent): void {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+
+    const normalizedId = String(itemId);
+    this.activeSwipeItemId = normalizedId;
+    this.touchStartX = touch.clientX;
+    this.touchStartY = touch.clientY;
+    this.swipeStartOffset = this.swipeOffsets[normalizedId] || 0;
+    this.isHorizontalSwipe = false;
+  }
+
+  onItemSwipeMove(itemId: string | number, event: TouchEvent): void {
+    if (this.activeSwipeItemId !== String(itemId)) return;
+    const touch = event.touches?.[0];
+    if (!touch) return;
+
+    const deltaX = touch.clientX - this.touchStartX;
+    const deltaY = touch.clientY - this.touchStartY;
+
+    if (!this.isHorizontalSwipe) {
+      if (Math.abs(deltaX) < 8) return;
+      if (Math.abs(deltaX) <= Math.abs(deltaY)) return;
+      this.isHorizontalSwipe = true;
+    }
+
+    event.preventDefault();
+    const normalizedId = String(itemId);
+    const nextOffset = this.swipeStartOffset + deltaX;
+    this.swipeOffsets[normalizedId] = Math.max(0, Math.min(this.maxSwipeOffset, nextOffset));
+  }
+
+  onItemSwipeEnd(itemId: string | number): void {
+    const normalizedId = String(itemId);
+    const offset = this.swipeOffsets[normalizedId] || 0;
+    this.swipeOffsets[normalizedId] = offset > this.maxSwipeOffset / 2 ? this.maxSwipeOffset : 0;
+    this.activeSwipeItemId = null;
+    this.isHorizontalSwipe = false;
+  }
+
+  closeSwipe(itemId: string | number): void {
+    this.swipeOffsets[String(itemId)] = 0;
+  }
+
+  getSwipeOffset(itemId: string | number): number {
+    return this.swipeOffsets[String(itemId)] || 0;
+  }
+
+  onCartItemClick(item: any): void {
+    const productId = String(item?.id || '').trim();
+    if (!productId) return;
+
+    const storeId = String(item?.store_id || item?.storeId || '').trim();
+    this.router.navigate(['/product-details'], {
+      queryParams: {
+        productId,
+        store_id: storeId || undefined,
+      },
+    });
   }
 
   prepareQuotation(): void {
