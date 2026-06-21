@@ -135,12 +135,35 @@
                   <p class="text-sm text-gray-600">Store: {{ product.storeName }}</p>
                 </div>
 
-                <button
-                  (click)="onAddToCart(product, $event)"
-                  class="px-6 py-2 text-sm font-medium text-white transition bg-green-600 rounded-lg hover:bg-green-700"
-                >
-                  Add to Cart
-                </button>
+                <div class="flex items-center gap-2">
+                  <button
+                    (click)="onAddToCart(product, $event)"
+                    class="px-6 py-2 text-sm font-medium text-white transition bg-green-600 rounded-lg hover:bg-green-700"
+                  >
+                    Add to Cart
+                  </button>
+                  <button
+                    (click)="onToggleFavorite(product, $event)"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition border rounded-lg"
+                    [class.text-red-500]="isProductFavorite(product)"
+                    [class.border-red-300]="isProductFavorite(product)"
+                    [class.bg-red-50]="isProductFavorite(product)"
+                    [class.text-gray-700]="!isProductFavorite(product)"
+                    [class.border-gray-300]="!isProductFavorite(product)"
+                    [class.hover:border-red-300]="!isProductFavorite(product)"
+                    [class.hover:text-red-500]="!isProductFavorite(product)"
+                  >
+                    <svg class="w-4 h-4" [attr.fill]="isProductFavorite(product) ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                      />
+                    </svg>
+                    {{ isProductFavorite(product) ? 'Saved' : 'Add to Favorite' }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -281,20 +304,38 @@
                 <p class="text-base font-bold leading-none text-gray-900">${{ product.price.toFixed(2) }}</p>
                 <p class="mt-0.5 text-[10px] leading-none text-gray-500">{{ product.soldLabel }}</p>
               </div>
-              <button
-                (click)="onAddToCart(product, $event)"
-                class="flex items-center justify-center w-8 h-8 mb-0.5 text-white bg-green-600 rounded-full"
-                aria-label="Add to cart"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-              </button>
+              <div class="flex items-center gap-1">
+                <button
+                  (click)="onToggleFavorite(product, $event)"
+                  class="flex items-center justify-center w-8 h-8 transition bg-white border border-gray-200 rounded-full"
+                  [class.text-red-500]="isProductFavorite(product)"
+                  [class.text-gray-500]="!isProductFavorite(product)"
+                  aria-label="Toggle favorite"
+                >
+                  <svg class="w-4 h-4" [attr.fill]="isProductFavorite(product) ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    />
+                  </svg>
+                </button>
+                <button
+                  (click)="onAddToCart(product, $event)"
+                  class="flex items-center justify-center w-8 h-8 mb-0.5 text-white bg-green-600 rounded-full"
+                  aria-label="Add to cart"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </button>

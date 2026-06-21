@@ -186,6 +186,15 @@
   overflow-x: auto;
 }
 
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 @media (min-width: 640px) {
   .product-gallery-layout {
     grid-template-columns: 64px 420px;
@@ -260,7 +269,7 @@
 
   .product-main-media {
     width: 100%;
-    height: min(84vw, 420px);
+    height: 100% ;
     border-radius: 12px;
   }
 

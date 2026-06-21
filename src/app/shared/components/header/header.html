@@ -482,7 +482,30 @@
         <button
           (click)="onFavorites()"
           (mouseenter)="closeSearchDropdown()"
+          data-fly-target="favorite"
+          class="relative p-2 text-gray-700 transition cursor-pointer md:hidden hover:text-green-600"
+          aria-label="Favorites"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+          <span
+            *ngIf="wishlistCount > 0"
+            class="absolute top-0 right-0 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-green-600 rounded-full"
+            >{{ wishlistCount }}</span
+          >
+        </button>
+        <button
+          (click)="onFavorites()"
+          (mouseenter)="closeSearchDropdown()"
+          data-fly-target="favorite"
           class="relative hidden p-2 text-gray-700 transition cursor-pointer md:block hover:text-green-600"
+          aria-label="Favorites"
         >
           <svg class="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -493,6 +516,7 @@
             />
           </svg>
           <span
+            *ngIf="wishlistCount > 0"
             class="absolute top-0 right-0 flex items-center justify-center w-4 h-4 md:w-5 md:h-5 text-[10px] md:text-xs font-bold text-white bg-green-600 rounded-full"
             >{{ wishlistCount }}</span
           >
@@ -500,6 +524,7 @@
         <button
           (click)="onCart()"
           (mouseenter)="closeSearchDropdown()"
+          data-fly-target="cart"
           class="relative p-2 text-gray-700 transition cursor-pointer hover:text-green-600"
         >
           <svg class="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -511,6 +536,7 @@
             />
           </svg>
           <span
+            *ngIf="cartCount > 0"
             class="absolute top-0 right-0 flex items-center justify-center w-4 h-4 md:w-5 md:h-5 text-[10px] md:text-xs font-bold text-white bg-green-600 rounded-full"
             >{{ cartCount }}</span
           >

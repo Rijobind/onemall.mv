@@ -4,6 +4,8 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { Header } from '../../../../shared/components/header/header';
 import { Footer } from '../../../../shared/components/footer/footer';
 import { BackendapiServices } from '../../../../core/services/backendapi.services/backendapi.services';
+import { FavoritesService } from '../../../../core/services/favorites.service/favorites.service';
+import { ActionFeedbackService } from '../../../../core/services/action-feedback.service/action-feedback.service';
 
 @Component({
   selector: 'app-product-list',
@@ -27,8 +29,12 @@ export class ProductList implements OnInit {
   hoveredProductId: string | null = null;
   private pendingCategoryId: string | null = null;
   private searchTerm: string = '';
+  private featuredOnly: boolean = false;
+  private newArrivalsOnly: boolean = false;
   browseType: string = '';
   listingMode: 'search' | 'browse' = 'browse';
+  mobileSecondCategories: any[] = [];
+  readonly mobileAllCategoryOption = { category_id: 'all', category_name: 'All' };
   mobileShopTypes: Array<{ label: string; value: string }> = [
     { label: 'All', value: 'all' },
     { label: 'Men', value: 'men' },
@@ -64,7 +70,9 @@ export class ProductList implements OnInit {
   constructor(
     private api: BackendapiServices,
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private favoritesService: FavoritesService,
+    private actionFeedback: ActionFeedbackService
   ) {}
 
   ngOnInit(): void {
@@ -74,6 +82,8 @@ export class ProductList implements OnInit {
       this.listingMode = requestedMode === 'browse' ? 'browse' : 'search';
       this.searchTerm = (params['search'] || '').toString().trim().toLowerCase();
       this.browseType = (params['type'] || '').toString().trim().toLowerCase();
+      this.featuredOnly = this.isTruthyFlag(params['featured']);
+      this.newArrivalsOnly = this.isTruthyFlag(params['new_arrivals']);
 
       if (!categoryId) {
         this.pendingCategoryId = null;
@@ -90,6 +100,18 @@ export class ProductList implements OnInit {
 
     this.loadCategory();
     this.loadProducts();
+    this.logMarketplaceProductsResponse();
+  }
+
+  private logMarketplaceProductsResponse(): void {
+    this.api.getMarketplaceProducts().subscribe({
+      next: (res: any) => {
+        console.log('Marketplace products API response:', res);
+      },
+      error: (error: any) => {
+        console.error('Marketplace products API error:', error);
+      },
+    });
   }
 
   private normalizeId(value: any): string {
@@ -124,14 +146,23 @@ export class ProductList implements OnInit {
       const parents = this.allCategories.filter((cat: any) => cat.parent_id == null);
       this.categoryTree = parents.map((parent: any) => this.buildCategoryTree(parent, this.allCategories));
       this.displayedCategoryTree = this.categoryTree; // Initialize with all categories
+      this.mobileSecondCategories = this.buildMobileSecondCategories();
       console.log('Product List Category Tree:', this.categoryTree);
 
       this.tryApplyPendingCategoryFilter();
+      this.refreshMobileSecondCategories();
     });
   }
 
+  private refreshMobileSecondCategories(): void {
+    if (!this.allCategories.length) {
+      return;
+    }
+    this.mobileSecondCategories = this.buildMobileSecondCategories();
+  }
+
   loadProducts() {
-    this.api.getAllProductList().subscribe(
+    this.api.getMarketplaceProducts().subscribe(
       (res: any) => {
         const apiProducts = res.data || [];
         
@@ -158,7 +189,7 @@ export class ProductList implements OnInit {
               : 0,
             rating: 4.5, // Default rating - update when API provides
             reviews: Math.floor(Math.random() * 5000) + 100, // Mock reviews - update when API provides
-            image: firstImage || product.thumbnail_url || firstVideo || '/mobile.jpg',
+            image: product.thumbnail_url || firstImage || firstVideo || '/mobile.jpg',
             video: firstVideo,
             category_id: this.normalizeId(product.category_id),
             sub_category_id: this.normalizeId(product.sub_category_id),
@@ -166,12 +197,15 @@ export class ProductList implements OnInit {
             store_id: storeId,
             description: product.description,
             brand: product.brand,
+            created_at: product?.created_at || '',
+            updated_at: product?.updated_at || '',
             inStock: onHandQty > 0,
             delivery: 'FREE delivery',
             offer: 'Up to 5% back',
             stock: onHandQty > 0 && onHandQty < 10 
               ? `Only ${onHandQty} left in stock` 
               : null,
+            featured_item: String(product?.featured_item ?? '').trim(),
           };
         });
         
@@ -183,12 +217,14 @@ export class ProductList implements OnInit {
 
         this.tryApplyPendingCategoryFilter();
         this.isLoading = false;
+        this.refreshMobileSecondCategories();
       },
       (error) => {
         console.error('Error loading products:', error);
         this.products = [];
         this.filteredProducts = [];
         this.isLoading = false;
+        this.refreshMobileSecondCategories();
       }
     );
   }
@@ -438,6 +474,72 @@ export class ProductList implements OnInit {
     return current === value;
   }
 
+  buildMobileSecondCategories(): any[] {
+    const secondLevel = this.collectSecondLevelCategories();
+    const withProducts = secondLevel.filter((category) =>
+      this.categoryHasProducts(category)
+    );
+    return [this.mobileAllCategoryOption, ...withProducts];
+  }
+
+  private collectSecondLevelCategories(): any[] {
+    const secondLevel: any[] = [];
+    this.categoryTree.forEach((parent: any) => {
+      (parent.children || []).forEach((child: any) => secondLevel.push(child));
+    });
+
+    if (secondLevel.length) {
+      return secondLevel;
+    }
+
+    const rootIds = new Set(
+      this.allCategories
+        .filter((cat: any) => {
+          const parentId = cat?.parent_id;
+          return parentId == null || String(parentId).trim() === '';
+        })
+        .map((cat: any) => this.normalizeId(cat.category_id))
+    );
+
+    return this.allCategories.filter((cat: any) =>
+      rootIds.has(this.normalizeId(cat.parent_id))
+    );
+  }
+
+  private categoryHasProducts(category: any): boolean {
+    if (!this.products.length) {
+      return false;
+    }
+
+    const categoryIds = new Set(this.getAllCategoryIds(category));
+    return this.products.some((product) =>
+      this.productMatchesCategoryIds(product, categoryIds)
+    );
+  }
+
+  onMobileSecondCategoryClick(category: any) {
+    if (this.normalizeId(category?.category_id) === 'all') {
+      this.onViewAllCategories();
+      return;
+    }
+
+    if (!category?.category_id) {
+      return;
+    }
+
+    this.onCategoryClick(category);
+  }
+
+  isMobileSecondCategoryActive(category: any): boolean {
+    const categoryId = this.normalizeId(category?.category_id);
+    if (categoryId === 'all') {
+      return !this.selectedCategory;
+    }
+    return (
+      this.normalizeId(this.selectedCategory?.category_id) === categoryId
+    );
+  }
+
   onBrowseTypeClick(type: { label: string; value: string }) {
     this.router.navigate([], {
       relativeTo: this.route,
@@ -462,7 +564,7 @@ export class ProductList implements OnInit {
         products.sort((a, b) => b.rating - a.rating);
         break;
       case 'newest':
-        products.sort((a, b) => (b.id || '').localeCompare(a.id || ''));
+        products.sort((a, b) => this.getProductTimestamp(b) - this.getProductTimestamp(a));
         break;
       default:
         // Featured - keep original order
@@ -472,17 +574,66 @@ export class ProductList implements OnInit {
   }
 
   private applyCategoryFilter(category: any) {
-    const categoryIds = new Set(this.getAllCategoryIds(category));
-
-    this.filteredProducts = this.products.filter((product: any) => {
-      return (
-        categoryIds.has(this.normalizeId(product.category_id)) ||
-        categoryIds.has(this.normalizeId(product.sub_category_id)) ||
-        categoryIds.has(this.normalizeId(product.sub_sub_category_id))
-      );
-    });
-
+    this.filteredProducts = this.filterProductsByCategoryWithChildPriority(this.products, category);
     this.applySort();
+  }
+
+  private filterProductsByCategoryWithChildPriority(products: any[], category: any): any[] {
+    const rootParent = this.findRootParentCategory(category);
+    const isSecondLevelSelection =
+      !!rootParent &&
+      this.normalizeId(rootParent.category_id) !== this.normalizeId(category.category_id);
+
+    if (isSecondLevelSelection && rootParent) {
+      const parentCategoryIds = new Set(this.getAllCategoryIds(rootParent));
+      const childCategoryIds = new Set(this.getAllCategoryIds(category));
+      const parentProducts = products.filter((product: any) =>
+        this.productMatchesCategoryIds(product, parentCategoryIds)
+      );
+      const childProducts = parentProducts.filter((product: any) =>
+        this.productMatchesCategoryIds(product, childCategoryIds)
+      );
+      const childProductIds = new Set(
+        childProducts.map((product: any) => this.normalizeId(product.id))
+      );
+      const remainingProducts = parentProducts.filter(
+        (product: any) => !childProductIds.has(this.normalizeId(product.id))
+      );
+      return [...childProducts, ...remainingProducts];
+    }
+
+    const categoryIds = new Set(this.getAllCategoryIds(category));
+    return products.filter((product: any) =>
+      this.productMatchesCategoryIds(product, categoryIds)
+    );
+  }
+
+  private productMatchesCategoryIds(product: any, categoryIds: Set<string>): boolean {
+    return (
+      categoryIds.has(this.normalizeId(product.category_id)) ||
+      categoryIds.has(this.normalizeId(product.sub_category_id)) ||
+      categoryIds.has(this.normalizeId(product.sub_sub_category_id))
+    );
+  }
+
+  private findRootParentCategory(category: any): any | null {
+    if (!category) {
+      return null;
+    }
+
+    const parentId = category?.parent_id;
+    if (parentId == null || String(parentId).trim() === '') {
+      return category;
+    }
+
+    const parent = this.allCategories.find(
+      (cat: any) => this.normalizeId(cat.category_id) === this.normalizeId(parentId)
+    );
+    if (!parent) {
+      return category;
+    }
+
+    return this.findRootParentCategory(parent);
   }
 
   private tryApplyPendingCategoryFilter() {
@@ -496,33 +647,33 @@ export class ProductList implements OnInit {
   private applyFiltersFromState() {
     let result = [...this.products];
 
+    if (this.newArrivalsOnly) {
+      this.sortBy = 'newest';
+    }
+
+    if (this.featuredOnly) {
+      result = result.filter((product: any) => this.isFeaturedProduct(product));
+    }
+
     if (this.selectedCategory) {
-      const categoryIds = new Set(this.getAllCategoryIds(this.selectedCategory));
-      result = result.filter((product: any) => {
-        return (
-          categoryIds.has(this.normalizeId(product.category_id)) ||
-          categoryIds.has(this.normalizeId(product.sub_category_id)) ||
-          categoryIds.has(this.normalizeId(product.sub_sub_category_id))
-        );
-      });
+      result = this.filterProductsByCategoryWithChildPriority(result, this.selectedCategory);
     } else if (this.pendingCategoryId) {
       const targetCategoryId = this.normalizeId(this.pendingCategoryId);
       const selectedCategoryFromList = this.allCategories.find(
         (cat: any) => this.normalizeId(cat.category_id) === targetCategoryId
       );
-      const fallbackCategoryIds = new Set<string>(
-        selectedCategoryFromList
-          ? this.getAllCategoryIds(selectedCategoryFromList)
-          : [targetCategoryId]
-      );
 
-      result = result.filter((product: any) => {
-        return (
-          fallbackCategoryIds.has(this.normalizeId(product.category_id)) ||
-          fallbackCategoryIds.has(this.normalizeId(product.sub_category_id)) ||
-          fallbackCategoryIds.has(this.normalizeId(product.sub_sub_category_id))
+      if (selectedCategoryFromList) {
+        result = this.filterProductsByCategoryWithChildPriority(
+          result,
+          selectedCategoryFromList
         );
-      });
+      } else {
+        const fallbackCategoryIds = new Set<string>([targetCategoryId]);
+        result = result.filter((product: any) =>
+          this.productMatchesCategoryIds(product, fallbackCategoryIds)
+        );
+      }
     }
 
     if (this.listingMode === 'search' && this.searchTerm) {
@@ -553,6 +704,22 @@ export class ProductList implements OnInit {
     this.applySort();
   }
 
+  private isFeaturedProduct(product: any): boolean {
+    const flag = String(product?.featured_item || '').trim().toUpperCase();
+    return flag === 'T' || flag === 'TRUE' || flag === '1' || flag === 'Y' || flag === 'YES';
+  }
+
+  private isTruthyFlag(value: any): boolean {
+    const normalized = String(value ?? '').trim().toLowerCase();
+    return ['t', 'true', '1', 'y', 'yes'].includes(normalized);
+  }
+
+  private getProductTimestamp(product: any): number {
+    const candidate = product?.created_at || product?.updated_at || '';
+    const parsed = Date.parse(String(candidate));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
   onProductClick(product: any) {
     const selectedStoreId = this.normalizeId(product?.store_id);
     if (selectedStoreId) {
@@ -576,6 +743,18 @@ export class ProductList implements OnInit {
       !!product?.video &&
       this.hoveredProductId === this.normalizeId(product?.id)
     );
+  }
+
+  onToggleFavorite(product: any, event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
+    const added = this.favoritesService.toggle(this.favoritesService.fromListProduct(product));
+    this.actionFeedback.feedback(event, 'favorite', { added, image: product?.image });
+  }
+
+  isProductFavorite(product: any): boolean {
+    return this.favoritesService.isFavorite(product?.id);
   }
 
   onAddToCart(product: any, event?: MouseEvent) {
@@ -613,6 +792,7 @@ export class ProductList implements OnInit {
 
     localStorage.setItem(this.cartStorageKey, JSON.stringify(existingItems));
     window.dispatchEvent(new Event('cart-updated'));
+    this.actionFeedback.feedback(event, 'cart', { image: product?.image });
   }
 
   getDiscountPercentage(product: any): number {

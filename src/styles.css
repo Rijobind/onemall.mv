@@ -50,3 +50,97 @@
     max-width: 1840px;
   }
 }
+
+@keyframes action-cart-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.28);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: none;
+  }
+}
+
+@keyframes action-favorite-pop {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.14);
+  }
+  55% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes action-favorite-out {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  45% {
+    transform: scale(0.94);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.action-fly-particle {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 9999;
+  border: 2px solid #ffffff;
+  will-change: transform, opacity;
+}
+
+.action-fly-particle-cart {
+  background: #16a34a;
+  box-shadow: 0 8px 22px rgba(22, 163, 74, 0.42);
+}
+
+.action-fly-particle-favorite {
+  background: #ef4444;
+  box-shadow: 0 8px 22px rgba(239, 68, 68, 0.42);
+}
+
+.action-fly-particle-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #ffffff;
+}
+
+.action-fly-particle-icon svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.action-cart-pop {
+  animation: action-cart-pop 0.45s ease-out;
+}
+
+.action-favorite-pop {
+  animation: action-favorite-pop 0.5s ease-out;
+}
+
+.action-favorite-out {
+  animation: action-favorite-out 0.35s ease-out;
+}

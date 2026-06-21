@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-shop-products',
@@ -9,6 +9,8 @@ import { RouterModule } from '@angular/router';
   styleUrl: './shop-products.css',
 })
 export class ShopProducts implements OnInit, OnChanges {
+  constructor(private router: Router) {}
+
   @Input() products: any[] = [];
   @Input() size: 'small' | 'medium' | 'large' = 'medium';
   @Input() showSort: boolean = true;
@@ -46,6 +48,20 @@ export class ShopProducts implements OnInit, OnChanges {
     this.internalSortBy = sortValue;
     this.isSortOpen = false;
     this.sortChange.emit(sortValue);
+  }
+
+  onProductClick(product: any): void {
+    if (!product?.id) return;
+    const storeId = product?.store_id ? String(product.store_id) : '';
+    if (storeId && typeof window !== 'undefined') {
+      localStorage.setItem('store_id', storeId);
+    }
+    this.router.navigate(['/product-details'], {
+      queryParams: {
+        productId: product.id,
+        store_id: storeId || undefined,
+      },
+    });
   }
 
   @HostListener('document:click', ['$event'])

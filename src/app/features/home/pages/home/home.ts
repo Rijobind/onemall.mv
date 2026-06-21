@@ -6,6 +6,21 @@ import { Router } from '@angular/router';
 import { BackendapiServices } from '../../../../core/services/backendapi.services/backendapi.services';
 import { AllCategoryModel } from '../../../../core/models/all-category-model/all-category-model';
 
+export interface HomeProductCard {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  originalPrice: number;
+  image: string;
+  store_id?: string;
+  category_id?: string;
+  sub_category_id?: string;
+  sub_sub_category_id?: string;
+  created_at?: string;
+  featured_item?: string;
+}
+
 @Component({
   selector: 'app-home',
   imports: [CommonModule, Header, Footer, AllCategoryModel],
@@ -55,6 +70,8 @@ export class Home implements OnInit, OnDestroy {
     { label: 'Books', value: 'books' },
   ];
   activeMobileShopType: string = 'all';
+  activeMobileSecondCategoryId: string = 'all';
+  readonly mobileAllCategoryOption = { category_id: 'all', category_name: 'All' };
   private readonly categoryChipImages: Record<string, string> = {
     electronics: '/Categories1.jpg',
     phone: '/mobile.jpg',
@@ -83,11 +100,21 @@ export class Home implements OnInit, OnDestroy {
   isHeroImageTransitioning: boolean = false;
   private heroImageIntervalId: ReturnType<typeof setInterval> | null = null;
   private heroImageTransitionTimeoutId: ReturnType<typeof setTimeout> | null = null;
-  
+  private readonly recentlyViewedStorageKey = 'recently_viewed_products';
+  private readonly recentSearchesStorageKey = 'recent_searches';
+  private allCategoriesFlat: any[] = [];
+  private allMarketplaceCards: HomeProductCard[] = [];
+
+  newArrivals: HomeProductCard[] = [];
+  featuredProducts: HomeProductCard[] = [];
+  discoverProductsForYou: HomeProductCard[] = [];
+  recentlyViewed: HomeProductCard[] = [];
+
   constructor(private router: Router, private api: BackendapiServices) {}
 
   ngOnInit(): void {
     this.loadCategory();
+    this.loadMarketplaceProducts();
     this.startHeroImageRotation();
   }
 
@@ -106,9 +133,13 @@ export class Home implements OnInit, OnDestroy {
   loadCategory() {
     this.api.getAllCategoryList().subscribe((res: any) => {
       const allCategories = res.data || [];
+      this.allCategoriesFlat = Array.isArray(allCategories) ? allCategories : [];
 
-      // Parent categories
-      const parents = allCategories.filter((cat: any) => cat.parent_id === null);
+      // Parent categories (API may return null/undefined/empty parent_id for top-level nodes)
+      const parents = allCategories.filter((cat: any) => {
+        const parentId = cat?.parent_id;
+        return parentId == null || String(parentId).trim() === '';
+      });
 
       // Build recursive tree for all categories
       const allCategoryTree = parents.map((parent: any) => this.buildCategoryTree(parent, allCategories));
@@ -127,6 +158,253 @@ export class Home implements OnInit, OnDestroy {
       }));
 
       console.log('Home Category Tree:', this.categoryTree);
+      this.refreshProductSections();
+    });
+  }
+
+  private loadMarketplaceProducts(): void {
+    this.api.getMarketplaceProducts().subscribe({
+      next: (res: any) => {
+        const rawList = this.extractProductList(res);
+        this.allMarketplaceCards = rawList.map((product: any) => this.mapApiProductToCard(product));
+        this.refreshProductSections();
+      },
+      error: () => {
+        this.allMarketplaceCards = [];
+        this.newArrivals = [];
+        this.featuredProducts = [];
+        this.discoverProductsForYou = [];
+        this.buildRecentlyViewed();
+      },
+    });
+  }
+
+  private extractProductList(res: any): any[] {
+    const rawPayload = res?.data ?? res;
+    if (Array.isArray(rawPayload)) return rawPayload;
+    if (rawPayload && typeof rawPayload === 'object') return [rawPayload];
+    return [];
+  }
+
+  private mapApiProductToCard(product: any): HomeProductCard {
+    const variant = product?.im_ProductVariants?.[0];
+    const images = Array.isArray(variant?.im_ProductImages) ? variant.im_ProductImages : [];
+    const productImages = Array.isArray(product?.im_ProductImages) ? product.im_ProductImages : [];
+    const allImages = [...images, ...productImages];
+    const imageUrl =
+      product?.thumbnail_url ||
+      allImages.find((img: any) => img?.is_primary === 'T')?.image_url ||
+      allImages[0]?.image_url ||
+      '/mobile.jpg';
+    const basePrice = Number(variant?.base_price ?? product?.fixed_price ?? 0);
+    const categoryId = this.normalizeId(product?.category_id);
+    const subCategoryId = this.normalizeId(product?.sub_category_id);
+    const subSubCategoryId = this.normalizeId(product?.sub_sub_category_id);
+
+    return {
+      id: this.normalizeId(product?.product_id ?? product?.id),
+      name: product?.title || 'Untitled Product',
+      category: this.resolveCategoryName(categoryId, subCategoryId, subSubCategoryId),
+      price: basePrice,
+      originalPrice: basePrice > 0 ? Math.round(basePrice * 1.2 * 100) / 100 : 0,
+      image: imageUrl,
+      store_id: this.resolveStoreId(product, variant),
+      category_id: categoryId,
+      sub_category_id: subCategoryId,
+      sub_sub_category_id: subSubCategoryId,
+      created_at: product?.created_at || product?.updated_at || '',
+      featured_item: String(product?.featured_item ?? '').trim(),
+    };
+  }
+
+  private refreshProductSections(): void {
+    if (this.allMarketplaceCards.length && this.allCategoriesFlat.length) {
+      this.allMarketplaceCards = this.allMarketplaceCards.map((product) => ({
+        ...product,
+        category: this.resolveCategoryName(
+          product.category_id || '',
+          product.sub_category_id || '',
+          product.sub_sub_category_id || ''
+        ),
+      }));
+    }
+    this.buildNewArrivals();
+    this.buildFeaturedProducts();
+    this.buildDiscoverProductsForYou();
+    this.buildRecentlyViewed();
+  }
+
+  private buildNewArrivals(): void {
+    this.newArrivals = [...this.allMarketplaceCards]
+      .sort((a, b) => this.getProductTimestamp(b) - this.getProductTimestamp(a))
+      .slice(0, 8);
+  }
+
+  private buildFeaturedProducts(): void {
+    this.featuredProducts = this.allMarketplaceCards
+      .filter((product) => this.isFeaturedProduct(product))
+      .slice(0, 8);
+  }
+
+  private buildDiscoverProductsForYou(): void {
+    const searchTerm = this.getLatestSearchTerm();
+    if (!searchTerm || !this.allMarketplaceCards.length) {
+      this.discoverProductsForYou = this.allMarketplaceCards.slice(0, 5);
+      return;
+    }
+
+    const term = searchTerm.toLowerCase();
+    const directMatches = this.allMarketplaceCards.filter((product) =>
+      this.productMatchesSearchTerm(product, term)
+    );
+
+    const relatedCategoryIds = new Set<string>();
+    directMatches.forEach((product) => {
+      [product.category_id, product.sub_category_id, product.sub_sub_category_id]
+        .filter((id) => !!id)
+        .forEach((id) => relatedCategoryIds.add(id!));
+    });
+
+    const categoryRelated = this.allMarketplaceCards.filter((product) => {
+      const ids = [product.category_id, product.sub_category_id, product.sub_sub_category_id].filter(
+        (id) => !!id
+      ) as string[];
+      return ids.some((id) => relatedCategoryIds.has(id));
+    });
+
+    const merged = [...directMatches, ...categoryRelated];
+    const unique = new Map<string, HomeProductCard>();
+    merged.forEach((product) => {
+      if (product.id) unique.set(product.id, product);
+    });
+    const discovered = Array.from(unique.values()).slice(0, 8);
+    this.discoverProductsForYou = discovered.length
+      ? discovered
+      : this.allMarketplaceCards.slice(0, 8);
+  }
+
+  private buildRecentlyViewed(): void {
+    const stored = this.getStoredRecentlyViewed();
+    const resolved: HomeProductCard[] = [];
+
+    stored.forEach((entry: any) => {
+      const productId = this.normalizeId(entry?.id ?? entry?.productId);
+      if (!productId) return;
+
+      const fromApi = this.allMarketplaceCards.find((p) => p.id === productId);
+      if (fromApi) {
+        resolved.push(fromApi);
+        return;
+      }
+
+      if (entry?.name && entry?.image) {
+        resolved.push({
+          id: productId,
+          name: entry.name,
+          category: entry.category || 'Product',
+          price: Number(entry.price) || 0,
+          originalPrice: Number(entry.originalPrice) || 0,
+          image: entry.image,
+          store_id: entry.store_id ? String(entry.store_id) : undefined,
+        });
+      }
+    });
+
+    this.recentlyViewed = resolved.slice(0, 12);
+  }
+
+  private getLatestSearchTerm(): string {
+    if (typeof window === 'undefined') return '';
+    const raw = localStorage.getItem(this.recentSearchesStorageKey);
+    if (!raw) return '';
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || !parsed.length) return '';
+      return String(parsed[0]?.query || '').trim();
+    } catch {
+      return '';
+    }
+  }
+
+  private productMatchesSearchTerm(product: HomeProductCard, term: string): boolean {
+    const haystacks = [
+      product.name,
+      product.category,
+      product.category_id,
+      product.sub_category_id,
+      product.sub_sub_category_id,
+    ]
+      .map((v) => String(v || '').toLowerCase())
+      .filter(Boolean);
+    return haystacks.some((text) => text.includes(term));
+  }
+
+  private isFeaturedProduct(product: HomeProductCard): boolean {
+    const flag = String(product.featured_item || '').trim().toUpperCase();
+    return flag === 'T' || flag === 'TRUE' || flag === '1' || flag === 'Y' || flag === 'YES';
+  }
+
+  private getProductTimestamp(product: HomeProductCard): number {
+    const raw = product.created_at || '';
+    const parsed = Date.parse(raw);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  private resolveCategoryName(
+    categoryId: string,
+    subCategoryId: string,
+    subSubCategoryId: string
+  ): string {
+    const ids = [subSubCategoryId, subCategoryId, categoryId].filter(Boolean);
+    for (const id of ids) {
+      const match = this.allCategoriesFlat.find(
+        (cat: any) => this.normalizeId(cat?.category_id ?? cat?.id) === id
+      );
+      if (match?.category_name || match?.name) {
+        return match.category_name || match.name;
+      }
+    }
+    return 'Products';
+  }
+
+  private resolveStoreId(product: any, variant: any): string {
+    return this.normalizeId(
+      product?.store_id ??
+        product?.storeId ??
+        variant?.store_id ??
+        variant?.storeId ??
+        variant?.im_StoreVariantInventory?.[0]?.store_id ??
+        variant?.im_StoreVariantInventory?.[0]?.storeId
+    );
+  }
+
+  private normalizeId(value: any): string {
+    return value == null ? '' : String(value);
+  }
+
+  private getStoredRecentlyViewed(): any[] {
+    if (typeof window === 'undefined') return [];
+    const raw = localStorage.getItem(this.recentlyViewedStorageKey);
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  onProductClick(product: HomeProductCard): void {
+    if (!product?.id) return;
+    if (product.store_id && typeof window !== 'undefined') {
+      localStorage.setItem('store_id', product.store_id);
+    }
+    this.router.navigate(['/product-details'], {
+      queryParams: {
+        productId: product.id,
+        store_id: product.store_id || undefined,
+      },
     });
   }
 
@@ -227,13 +505,181 @@ export class Home implements OnInit, OnDestroy {
     });
   }
 
+  getMobileSecondCategories(): any[] {
+    const secondLevel = this.collectAllSecondLevelCategories();
+    const withProducts = secondLevel.filter((category) =>
+      this.categoryHasProducts(category)
+    );
+    return [this.mobileAllCategoryOption, ...withProducts];
+  }
+
+  private collectAllSecondLevelCategories(): any[] {
+    const tree = this.allCategoryTree.length ? this.allCategoryTree : this.categoryTree;
+    const secondLevel: any[] = [];
+
+    tree.forEach((parent: any) => {
+      (parent.children || []).forEach((child: any) => secondLevel.push(child));
+    });
+
+    if (secondLevel.length) {
+      return secondLevel;
+    }
+
+    const rootIds = new Set(
+      this.allCategoriesFlat
+        .filter((cat: any) => {
+          const parentId = cat?.parent_id;
+          return parentId == null || String(parentId).trim() === '';
+        })
+        .map((cat: any) => this.normalizeId(cat.category_id))
+    );
+
+    return this.allCategoriesFlat.filter((cat: any) =>
+      rootIds.has(this.normalizeId(cat.parent_id))
+    );
+  }
+
+  private categoryHasProducts(category: any): boolean {
+    if (!this.allMarketplaceCards.length) {
+      return false;
+    }
+
+    const categoryIds = new Set(this.getAllCategoryIds(category));
+    return this.allMarketplaceCards.some((product) =>
+      this.productMatchesCategoryIds(product, categoryIds)
+    );
+  }
+
+  private getAllCategoryIds(category: any): string[] {
+    const selectedId = this.normalizeId(category?.category_id);
+    if (!selectedId) {
+      return [];
+    }
+
+    const ids = new Set<string>();
+
+    const addDescendants = (categoryId: string) => {
+      if (!categoryId || ids.has(categoryId)) {
+        return;
+      }
+      ids.add(categoryId);
+      const children = this.allCategoriesFlat.filter(
+        (cat: any) => this.normalizeId(cat.parent_id) === categoryId
+      );
+      children.forEach((child: any) =>
+        addDescendants(this.normalizeId(child.category_id))
+      );
+    };
+
+    const addAncestors = (categoryId: string) => {
+      if (!categoryId) {
+        return;
+      }
+      const current = this.allCategoriesFlat.find(
+        (cat: any) => this.normalizeId(cat.category_id) === categoryId
+      );
+      const parentId = this.normalizeId(current?.parent_id);
+      if (!parentId || ids.has(parentId)) {
+        return;
+      }
+      ids.add(parentId);
+      addAncestors(parentId);
+    };
+
+    addDescendants(selectedId);
+    addAncestors(selectedId);
+
+    return Array.from(ids);
+  }
+
+  private productMatchesCategoryIds(
+    product: HomeProductCard,
+    categoryIds: Set<string>
+  ): boolean {
+    const productCategoryIds = [
+      product.category_id,
+      product.sub_category_id,
+      product.sub_sub_category_id,
+    ]
+      .filter(Boolean)
+      .map((id) => this.normalizeId(id));
+
+    return productCategoryIds.some((id) => categoryIds.has(id));
+  }
+
+  onMobileSecondCategoryClick(category: any) {
+    if (this.normalizeId(category?.category_id) === 'all') {
+      this.activeMobileSecondCategoryId = 'all';
+      this.router.navigate(['/product-list'], {
+        queryParams: {
+          mode: 'browse',
+        },
+      });
+      return;
+    }
+
+    if (!category?.category_id) {
+      return;
+    }
+
+    this.activeMobileSecondCategoryId = this.normalizeId(category.category_id);
+    this.router.navigate(['/product-list'], {
+      queryParams: {
+        categoryId: category.category_id,
+        category_id: category.category_id,
+        categoryName: category.category_name,
+        mode: 'browse',
+      },
+    });
+  }
+
+  isMobileSecondCategoryActive(category: any): boolean {
+    const categoryId = this.normalizeId(category?.category_id);
+    if (categoryId === 'all') {
+      return this.activeMobileSecondCategoryId === 'all';
+    }
+    return this.activeMobileSecondCategoryId === categoryId;
+  }
+
   getMobileTopCategories(): any[] {
-    const dynamic = this.allCategoryTree.length ? this.allCategoryTree : this.categoryTree;
+    const parentCategoriesFromFlat = this.allCategoriesFlat.filter((cat: any) => {
+      const parentId = cat?.parent_id;
+      return parentId == null || String(parentId).trim() === '';
+    });
+    const dynamic = this.allCategoryTree.length
+      ? this.allCategoryTree
+      : parentCategoriesFromFlat.length
+        ? parentCategoriesFromFlat
+        : this.categoryTree;
     return dynamic.length ? dynamic : this.mobileTopCategoryFallback;
   }
 
   onMobileShopTypeClick(type: { label: string; value: string }) {
     this.activeMobileShopType = type.value;
+
+    if (type.value === 'all') {
+      this.router.navigate(['/product-list'], {
+        queryParams: {
+          mode: 'browse',
+        },
+      });
+      return;
+    }
+
+    const matchedCategory = this.findCategoryForMobileShopType(type.value);
+    if (matchedCategory?.category_id) {
+      this.router.navigate(['/product-list'], {
+        queryParams: {
+          categoryId: matchedCategory.category_id,
+          category_id: matchedCategory.category_id,
+          categoryName: matchedCategory.category_name,
+          mode: 'browse',
+          type: type.value,
+        },
+      });
+      return;
+    }
+
     this.router.navigate(['/product-list'], {
       queryParams: {
         mode: 'browse',
@@ -244,6 +690,27 @@ export class Home implements OnInit, OnDestroy {
 
   isMobileShopTypeActive(value: string): boolean {
     return this.activeMobileShopType === value;
+  }
+
+  private findCategoryForMobileShopType(typeValue: string): any | null {
+    const normalizedType = String(typeValue || '').toLowerCase().trim();
+    if (!normalizedType || !this.allCategoriesFlat.length) {
+      return null;
+    }
+
+    const categoryMatches = this.allCategoriesFlat.filter((category: any) => {
+      const categoryName = String(category?.category_name || '').toLowerCase();
+      return categoryName.includes(normalizedType);
+    });
+
+    if (!categoryMatches.length) {
+      return null;
+    }
+
+    const parentMatch = categoryMatches.find(
+      (category: any) => category?.parent_id == null
+    );
+    return parentMatch || categoryMatches[0];
   }
 
   getCategoryChipImage(category: any): string {
@@ -320,45 +787,6 @@ export class Home implements OnInit, OnDestroy {
     },
   ];
 
-  featuredProducts = [
-    {
-      id: 1,
-      title: 'Huawei P40 Pro 16GB',
-      price: 699.99,
-      image: 'https://via.placeholder.com/150',
-    },
-    {
-      id: 2,
-      title: 'Earphone 3.5mm Retro',
-      price: 29.99,
-      image: 'https://via.placeholder.com/150',
-    },
-    {
-      id: 3,
-      title: 'Apple Watch Series 5',
-      price: 349.99,
-      image: 'https://via.placeholder.com/150',
-    },
-    {
-      id: 4,
-      title: 'Huawei P40 Pro 16GB',
-      price: 799.99,
-      image: 'https://via.placeholder.com/150',
-    },
-    {
-      id: 5,
-      title: 'Earphone 3.5mm Retro',
-      price: 99.99,
-      image: 'https://via.placeholder.com/150',
-    },
-    {
-      id: 6,
-      title: 'Apple Watch Series 5',
-      price: 549.99,
-      image: 'https://via.placeholder.com/150',
-    },
-  ];
-
   mainFeaturedProduct = {
     title: 'Professional Drone Camera',
     price: 103999,
@@ -426,65 +854,6 @@ export class Home implements OnInit, OnDestroy {
     },
   ];
 
-  recentlyViewed = [
-    {
-      id: 1,
-      name: 'Urbanears Pampas - Wireless Over-Ear Headphones with Immersive Sound...',
-      category: 'Headphone',
-      price: 48.99,
-      image: '/shirt.jpg',
-    },
-    {
-      id: 2,
-      name: 'Upgrader Headphones - Altec Lansing by ECCO Design, Premium Sound &...',
-      category: 'Headphone',
-      price: 27.5,
-      image: '/mobile4.jpg',
-    },
-    {
-      id: 3,
-      name: 'Apple Watch Series 6 (GPS) - 40mm Aluminum Case with Sport Band, Offic...',
-      category: 'Smartwatch',
-      price: 63.999,
-      image: '/shoe3.jpg',
-    },
-    {
-      id: 4,
-      name: 'Lenovo Yoga 910-13IKB - 2-in-1 Ultrabook with Touchscreen & 360°...',
-      category: 'Laptop & Computer',
-      price: 39.99,
-      image: '/glass.jpg',
-    },
-    {
-      id: 5,
-      name: 'JBL LIVE200BT - Wireless Neckband Earphones with Premium Sound &...',
-      category: 'Wireless Earphones',
-      price: 14.999,
-      image: '/keyboard.jpg',
-    },
-    {
-      id: 5,
-      name: 'JBL LIVE200BT - Wireless Neckband Earphones with Premium Sound &...',
-      category: 'Wireless Earphones',
-      price: 14.999,
-      image: '/shirt2.jpg',
-    },
-    {
-      id: 5,
-      name: 'JBL LIVE200BT - Wireless Neckband Earphones with Premium Sound &...',
-      category: 'Wireless Earphones',
-      price: 14.999,
-      image: '/mobile4.jpg',
-    },
-    {
-      id: 5,
-      name: 'JBL LIVE200BT - Wireless Neckband Earphones with Premium Sound &...',
-      category: 'Wireless Earphones',
-      price: 14.999,
-      image: '/shoe4.jpg',
-    },
-  ];
-
   products = [
     {
       title: 'iPhone 15 Pro',
@@ -546,119 +915,28 @@ export class Home implements OnInit, OnDestroy {
     }
   }
 
-  newArrivals = [
-    {
-      id: 1,
-      name: '3Dconnexion 3DX-700040 SpaceMouse Pro 3D - Professional...',
-      category: 'Electronics',
-      price: 64500,
-      originalPrice: 80400,
-      image: '/glass.jpg',
-    },
-    {
-      id: 2,
-      name: 'Apple iPhone 11 Pro Max, 256GB, Space Gray',
-      category: 'Smartphone',
-      price: 34700,
-      originalPrice: 42800,
-      image: '/keyboard.jpg',
-    },
-    {
-      id: 3,
-      name: 'GameConsole Destiny Special Edition - Limited Edition Console Bundle fo...',
-      category: 'Game Controllers',
-      price: 68200,
-      originalPrice: 85500,
-      image: '/ps5.jpg',
-    },
-    {
-      id: 4,
-      name: 'Garmin fenix 7 Adventure Smartwatch - Rugged Outdoor GPS...',
-      category: 'Smartwatch',
-      price: 17100,
-      originalPrice: 21700,
-      image: '/air-pod.jpg',
-    },
-    {
-      id: 5,
-      name: 'Skytech Shadow Gaming PC Desktop - INTEL Core i5, 16GB RAM, 1TB HD...',
-      category: 'Laptop & Computers',
-      price: 61000,
-      originalPrice: 76800,
-      image: '/laptop.jpg',
-    },
-    {
-      id: 6,
-      name: 'Apple Watch Series 6 (GPS + Cellular, 40mm) - Space Gray...',
-      category: 'Smartwatch',
-      price: 35400,
-      originalPrice: 43900,
-      image: '/shoe3.jpg',
-    },
-    {
-      id: 7,
-      name: 'Logitech G Pro Wireless Gaming Mouse',
-      category: 'Computer Accessories',
-      price: 57600,
-      originalPrice: 72400,
-      image: '/mouse2.jpg',
-    },
-    {
-      id: 8,
-      name: 'All-new Fire 7 tablet, 7" display, 16 GB, latest model (2022 release),...',
-      category: 'Tablets',
-      price: 24900,
-      originalPrice: 30800,
-      image: '/shoe4.jpg',
-    },
-  ];
-  newArrival = [
-    {
-      id: 1,
-      name: '3Dconnexion 3DX-700040 SpaceMouse Pro 3D - Professional...',
-      category: 'Electronics',
-      price: 64500,
-      originalPrice: 80400,
-      image: '/shirt.jpg',
-    },
-    {
-      id: 2,
-      name: 'Apple iPhone 11 Pro Max, 256GB, Space Gray',
-      category: 'Smartphone',
-      price: 34700,
-      originalPrice: 42800,
-      image: '/shirts.jpg',
-    },
-    {
-      id: 3,
-      name: 'GameConsole Destiny Special Edition - Limited Edition Console Bundle fo...',
-      category: 'Game Controllers',
-      price: 68200,
-      originalPrice: 85500,
-      image: '/shirt2.jpg',
-    },
-    {
-      id: 4,
-      name: 'Garmin fenix 7 Adventure Smartwatch - Rugged Outdoor GPS...',
-      category: 'Smartwatch',
-      price: 17100,
-      originalPrice: 21700,
-      image: '/mobile4.jpg',
-    },
-      {
-      id: 2,
-      name: 'Apple iPhone 11 Pro Max, 256GB, Space Gray',
-      category: 'Smartphone',
-      price: 34700,
-      originalPrice: 42800,
-      image: '/shirts.jpg',
-    },
-  ];
-
   onProductDetails() {
     this.router.navigate(['/product-list'], {
       queryParams: {
         mode: 'browse',
+      },
+    });
+  }
+
+  onNewArrivalsSeeAll() {
+    this.router.navigate(['/product-list'], {
+      queryParams: {
+        mode: 'browse',
+        new_arrivals: 'T',
+      },
+    });
+  }
+
+  onFeaturedProductsSeeAll() {
+    this.router.navigate(['/product-list'], {
+      queryParams: {
+        mode: 'browse',
+        featured: 'T',
       },
     });
   }

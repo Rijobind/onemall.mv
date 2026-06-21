@@ -13,6 +13,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { Signin } from '../../../features/products/models/signin/signin';
 import { Signup } from '../../../features/products/models/signup/signup';
 import { BackendapiServices } from '../../../core/services/backendapi.services/backendapi.services';
+import { FavoritesService } from '../../../core/services/favorites.service/favorites.service';
 import { filter, Subscription } from 'rxjs';
 
 type SearchSuggestionType = 'autocomplete' | 'category';
@@ -32,12 +33,13 @@ interface SearchSuggestionItem {
 })
 export class Header implements OnInit, OnDestroy, AfterViewInit {
   private readonly cartStorageKey = 'cart_items';
+  private readonly favoritesStorageKey = 'favorite_products';
   private readonly recentSearchesStorageKey = 'recent_searches';
   private categoryCloseTimeout: ReturnType<typeof setTimeout> | null = null;
   private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private routerEventsSub: Subscription | null = null;
   cartCount = 0;
-  wishlistCount = 3;
+  wishlistCount = 0;
   notificationCount = 4;
   isSigninModalOpen = false;
   isSignupModalOpen = false;
@@ -101,7 +103,8 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
   constructor(
     private router: Router,
     private cdr: ChangeDetectorRef,
-    private api: BackendapiServices
+    private api: BackendapiServices,
+    private favoritesService: FavoritesService
   ) {}
 
   ngOnInit() {
@@ -109,6 +112,7 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
     this.loadCategory();
     this.loadProductList();
     this.loadCartCount();
+    this.loadWishlistCount();
     this.loadRecentSearches();
     this.syncSearchQueryFromUrl();
     this.syncActiveMobileTabFromUrl();
@@ -121,7 +125,7 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
   }
 
   loadProductList() {
-    this.api.getAllProductList().subscribe({
+    this.api.getMarketplaceProducts().subscribe({
       next: (res: any) => {
         this.ProductList = res.data || [];
       },
@@ -220,11 +224,19 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
     if (!event.key || event.key === this.cartStorageKey) {
       this.loadCartCount();
     }
+    if (!event.key || event.key === this.favoritesStorageKey) {
+      this.loadWishlistCount();
+    }
   }
 
   @HostListener('window:cart-updated')
   onCartUpdated() {
     this.loadCartCount();
+  }
+
+  @HostListener('window:favorites-updated')
+  onFavoritesUpdated() {
+    this.loadWishlistCount();
   }
 
   @HostListener('window:scroll')
@@ -398,7 +410,8 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
     this.isMobileSearchOpen = false;
     this.isSearchDropdownOpen = false;
     this.selectedSearchIndex = -1;
-    this.toggleMobileMenu();
+    this.isMobileMenuOpen = false;
+    this.router.navigate(['/categories']);
   }
 
   onAboutUs() {
@@ -682,6 +695,12 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
+    if (path.startsWith('/categories')) {
+      this.activeMobileTab = 'category';
+      this.isMobileSearchOpen = false;
+      return;
+    }
+
     this.isMobileSearchOpen = false;
   }
 
@@ -780,6 +799,10 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
       return primary.slice(input.length);
     }
     return '';
+  }
+
+  private loadWishlistCount() {
+    this.wishlistCount = this.favoritesService.getCount();
   }
 
   private loadCartCount() {

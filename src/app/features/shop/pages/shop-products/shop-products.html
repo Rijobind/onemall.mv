@@ -68,7 +68,7 @@
     <div
       *ngFor="let product of sortedProducts"
       class="overflow-hidden transition bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer hover:shadow-md"
-      [routerLink]="['/product-details', product.id]"
+      (click)="onProductClick(product)"
     >
       <div class="relative overflow-hidden bg-gray-100 aspect-square">
         <img
@@ -110,7 +110,7 @@
     <div
       *ngFor="let product of sortedProducts"
       class="overflow-hidden transition bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer hover:shadow-md"
-      [routerLink]="['/product-details', product.id]"
+      (click)="onProductClick(product)"
     >
       <div class="relative overflow-hidden bg-gray-100 aspect-square">
         <img
@@ -153,7 +153,7 @@
     <div
       *ngFor="let product of sortedProducts"
       class="overflow-hidden transition bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer hover:shadow-md"
-      [routerLink]="['/product-details', product.id]"
+      (click)="onProductClick(product)"
     >
       <div class="relative overflow-hidden bg-gray-100 aspect-square">
         <img

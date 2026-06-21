@@ -1,21 +1,22 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { Header } from "../../../../shared/components/header/header";
 import { Footer } from "../../../../shared/components/footer/footer";
 import { ShopProducts } from "../shop-products/shop-products";
 import { BackendapiServices } from '../../../../core/services/backendapi.services/backendapi.services';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'app-shop-details',
-  imports: [CommonModule, RouterModule, Header, Footer, ShopProducts],
+  imports: [CommonModule, RouterModule, FormsModule, Header, Footer, ShopProducts],
   templateUrl: './shop-details.html',
   styleUrl: './shop-details.css',
 })
 export class ShopDetails implements OnInit {
   private readonly fallbackShop = {
-    id: 1,
+    id: '1',
     name: 'Premium Electronics',
     description: 'Your trusted source for premium electronics and tech accessories. We offer the latest gadgets, accessories, and tech solutions for your everyday needs.',
     logo: '/shirt.jpg',
@@ -36,217 +37,17 @@ export class ShopDetails implements OnInit {
   sortBy: string = 'newest';
   currentStoreId: string = '';
   isShopDataFromApi: boolean = false;
+  isLoading: boolean = true;
+  activeMobileTab: 'items' | 'categories' | 'reviews' = 'items';
+  shopSearchQuery: string = '';
+  private isStoreLoaded: boolean = false;
+  private isProductsLoaded: boolean = false;
 
   shop = { ...this.fallbackShop };
 
   categories: Array<{ id: string; name: string; count: number; isApiData?: boolean }> = [];
 
-  allProducts = [
-    {
-      id: 1,
-      name: 'Professional Wireless Mouse - Ergonomic Design',
-      price: 29.99,
-      originalPrice: 39.99,
-      rating: 4.5,
-      reviews: 1250,
-      sold: 850,
-      image: '/mouse2.jpg',
-      category: 'accessories',
-      inStock: true
-    },
-    {
-      id: 2,
-      name: 'Mechanical Gaming Keyboard RGB Backlit',
-      price: 79.99,
-      originalPrice: 99.99,
-      rating: 4.7,
-      reviews: 2300,
-      sold: 1200,
-      image: '/keyboard.jpg',
-      category: 'accessories',
-      inStock: true
-    },
-    {
-      id: 3,
-      name: 'Premium Laptop Stand Aluminum',
-      price: 49.99,
-      originalPrice: 69.99,
-      rating: 4.3,
-      reviews: 890,
-      sold: 650,
-      image: '/laptop.jpg',
-      category: 'computers',
-      inStock: true
-    },
-    {
-      id: 4,
-      name: 'Wireless Bluetooth Earbuds Pro',
-      price: 89.99,
-      originalPrice: 129.99,
-      rating: 4.6,
-      reviews: 3450,
-      sold: 2800,
-      image: '/air-pod.jpg',
-      category: 'electronics',
-      inStock: true
-    },
-    {
-      id: 5,
-      name: 'High-Performance Gaming Mouse Pad',
-      price: 19.99,
-      originalPrice: 29.99,
-      rating: 4.4,
-      reviews: 1560,
-      sold: 1100,
-      image: '/mouse2.jpg',
-      category: 'accessories',
-      inStock: true
-    },
-    {
-      id: 6,
-      name: 'USB-C Hub Multi-Port Adapter',
-      price: 34.99,
-      originalPrice: 49.99,
-      rating: 4.2,
-      reviews: 780,
-      sold: 520,
-      image: '/Categories2.jpg',
-      category: 'accessories',
-      inStock: true
-    },
-    {
-      id: 1,
-      name: 'Professional Wireless Mouse - Ergonomic Design',
-      price: 29.99,
-      originalPrice: 39.99,
-      rating: 4.5,
-      reviews: 1250,
-      sold: 850,
-      image: '/mouse2.jpg',
-      category: 'accessories',
-      inStock: true
-    },
-    {
-      id: 2,
-      name: 'Mechanical Gaming Keyboard RGB Backlit',
-      price: 79.99,
-      originalPrice: 99.99,
-      rating: 4.7,
-      reviews: 2300,
-      sold: 1200,
-      image: '/keyboard.jpg',
-      category: 'accessories',
-      inStock: true
-    },
-    {
-      id: 3,
-      name: 'Premium Laptop Stand Aluminum',
-      price: 49.99,
-      originalPrice: 69.99,
-      rating: 4.3,
-      reviews: 890,
-      sold: 650,
-      image: '/laptop.jpg',
-      category: 'computers',
-      inStock: true
-    },
-    {
-      id: 4,
-      name: 'Wireless Bluetooth Earbuds Pro',
-      price: 89.99,
-      originalPrice: 129.99,
-      rating: 4.6,
-      reviews: 3450,
-      sold: 2800,
-      image: '/air-pod.jpg',
-      category: 'electronics',
-      inStock: true
-    },
-    {
-      id: 5,
-      name: 'High-Performance Gaming Mouse Pad',
-      price: 19.99,
-      originalPrice: 29.99,
-      rating: 4.4,
-      reviews: 1560,
-      sold: 1100,
-      image: '/mouse2.jpg',
-      category: 'accessories',
-      inStock: true
-    },
-    {
-      id: 7,
-      name: 'Smart Watch Fitness Tracker',
-      price: 149.99,
-      originalPrice: 199.99,
-      rating: 4.5,
-      reviews: 2100,
-      sold: 1500,
-      image: '/mobile.jpg',
-      category: 'electronics',
-      inStock: true
-    },
-    {
-      id: 8,
-      name: 'Portable External SSD 1TB',
-      price: 99.99,
-      originalPrice: 149.99,
-      rating: 4.8,
-      reviews: 1890,
-      sold: 1350,
-      image: '/ps5.jpg',
-      category: 'computers',
-      inStock: true
-    },
-    {
-      id: 9,
-      name: 'Wireless Charging Pad Fast',
-      price: 24.99,
-      originalPrice: 39.99,
-      rating: 4.3,
-      reviews: 1120,
-      sold: 890,
-      image: '/mobile2.jpg',
-      category: 'mobile',
-      inStock: true
-    },
-    {
-      id: 10,
-      name: 'HD Webcam 1080p with Microphone',
-      price: 59.99,
-      originalPrice: 79.99,
-      rating: 4.6,
-      reviews: 2430,
-      sold: 1800,
-      image: '/Categories2.jpg',
-      category: 'electronics',
-      inStock: true
-    },
-    {
-      id: 11,
-      name: 'Gaming Headset with Surround Sound',
-      price: 89.99,
-      originalPrice: 119.99,
-      rating: 4.7,
-      reviews: 3200,
-      sold: 2500,
-      image: '/air-pod.jpg',
-      category: 'electronics',
-      inStock: true
-    },
-    {
-      id: 12,
-      name: 'Laptop Cooling Pad with LED',
-      price: 39.99,
-      originalPrice: 59.99,
-      rating: 4.2,
-      reviews: 980,
-      sold: 720,
-      image: '/laptop.jpg',
-      category: 'computers',
-      inStock: true
-    }
-  ];
+  allProducts: any[] = [];
 
   get filteredProducts() {
     if (this.selectedCategory === 'all') {
@@ -258,72 +59,136 @@ export class ShopDetails implements OnInit {
   get sortedProducts() {
     const products = [...this.filteredProducts];
     switch (this.sortBy) {
+      case 'relevance':
+        return products;
+      case 'top-sales':
+        return products.sort((a, b) => b.sold - a.sold);
+      case 'most-recent':
+      case 'newest':
+        return products.sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
       case 'price-low':
         return products.sort((a, b) => a.price - b.price);
       case 'price-high':
         return products.sort((a, b) => b.price - a.price);
       case 'rating':
         return products.sort((a, b) => b.rating - a.rating);
-      case 'newest':
       default:
-        return products;
+        return products.sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
     }
+  }
+
+  get mobileTabProducts() {
+    const term = this.shopSearchQuery.trim().toLowerCase();
+    const source = [...this.sortedProducts];
+    if (!term) return source;
+    return source.filter((product: any) =>
+      String(product?.name || '').toLowerCase().includes(term)
+    );
   }
 
   constructor(
     private backendapiServices: BackendapiServices,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private router: Router
   ) {}
+
+  onProductClick(product: any): void {
+    if (!product?.id) return;
+    const storeId = this.normalizeId(product?.store_id || this.currentStoreId);
+    if (storeId && typeof window !== 'undefined') {
+      localStorage.setItem('store_id', storeId);
+    }
+    this.router.navigate(['/product-details'], {
+      queryParams: {
+        productId: product.id,
+        store_id: storeId || undefined,
+      },
+    });
+  }
 
   ngOnInit() {
     this.currentStoreId = this.getStoreIdForApi();
+    this.isLoading = true;
+    this.isStoreLoaded = false;
+    this.isProductsLoaded = false;
     this.loadCategoryMapAndData();
   }
 
   selectCategory(categoryId: string) {
     this.selectedCategory = categoryId;
+    this.activeMobileTab = 'items';
   }
 
   onSortChange(sortValue: string) {
     this.sortBy = sortValue;
   }
 
-  private loadApiDataInConsole() {
-    this.backendapiServices.Store_details(this.currentStoreId).subscribe({
-      next: (response) => {
-        const payload = response?.data ?? response ?? {};
-        this.isShopDataFromApi = true;
-        this.shop = {
-          ...this.fallbackShop,
-          id: payload?.store_id ?? payload?.storeId ?? this.currentStoreId,
-          name: payload?.store_name || payload?.name || this.fallbackShop.name,
-          description: payload?.description || this.fallbackShop.description,
-          logo: payload?.logo || payload?.logo_url || payload?.image || this.fallbackShop.logo,
-          rating: Number(payload?.rating || payload?.average_rating || this.fallbackShop.rating),
-          reviews: Number(payload?.reviews || payload?.review_count || payload?.total_reviews || this.fallbackShop.reviews),
-          responseRate: Number(payload?.response_rate || this.fallbackShop.responseRate),
-          responseTime: payload?.response_time || this.fallbackShop.responseTime,
-          itemsSold: Number(payload?.items_sold || payload?.total_sold || payload?.sold_count || this.fallbackShop.itemsSold),
-          followers: Number(payload?.followers || payload?.follower_count || this.fallbackShop.followers),
-          joinedDate: payload?.joined_date || payload?.created_at || this.fallbackShop.joinedDate,
-          location: payload?.location || payload?.address || this.fallbackShop.location,
-          verified: payload?.verified === undefined ? this.fallbackShop.verified : !!payload.verified
-        };
-      },
-      error: () => {
-        this.isShopDataFromApi = false;
-        this.shop = { ...this.fallbackShop };
-      },
-    });
+  setMobileTab(tab: 'items' | 'categories' | 'reviews') {
+    this.activeMobileTab = tab;
+  }
 
-    this.backendapiServices.getAllProductList().subscribe({
+  setMobileSort(sortValue: string) {
+    this.sortBy = sortValue;
+  }
+
+  private loadApiDataInConsole() {
+    this.loadStoreDetails();
+    this.backendapiServices.getMarketplaceProducts().subscribe({
       next: (response: any) => {
         const apiProducts = response?.data || [];
         this.allApiProducts = Array.isArray(apiProducts) ? apiProducts : [];
         this.populateProductsAndCategories();
+        this.isProductsLoaded = true;
+        this.updateLoadingState();
       },
       error: () => {
-        this.categories = this.buildFallbackCategories();
+        this.allProducts = [];
+        this.categories = [];
+        this.isProductsLoaded = true;
+        this.updateLoadingState();
+      },
+    });
+  }
+
+  private loadStoreDetails(): void {
+    if (!this.currentStoreId) {
+      this.isShopDataFromApi = false;
+      this.shop = { ...this.fallbackShop };
+      this.isStoreLoaded = true;
+      this.updateLoadingState();
+      return;
+    }
+
+    this.backendapiServices.getstores(this.currentStoreId).subscribe({
+      next: (response: any) => {
+        const payload = response?.data ?? response ?? {};
+        const store = Array.isArray(payload) ? payload[0] : payload;
+
+        this.isShopDataFromApi = true;
+        this.shop = {
+          ...this.fallbackShop,
+          id: String(store?.store_id ?? store?.storeId ?? this.currentStoreId ?? this.fallbackShop.id),
+          name: store?.store_name || store?.name || store?.store || this.fallbackShop.name,
+          description: store?.description || this.fallbackShop.description,
+          logo: store?.logo || store?.logo_url || store?.image || this.fallbackShop.logo,
+          rating: Number(store?.rating || store?.average_rating || this.fallbackShop.rating),
+          reviews: Number(store?.reviews || store?.review_count || store?.total_reviews || this.fallbackShop.reviews),
+          responseRate: Number(store?.response_rate || this.fallbackShop.responseRate),
+          responseTime: store?.response_time || this.fallbackShop.responseTime,
+          itemsSold: Number(store?.items_sold || store?.total_sold || store?.sold_count || this.fallbackShop.itemsSold),
+          followers: Number(store?.followers || store?.follower_count || this.fallbackShop.followers),
+          joinedDate: store?.joined_date || store?.created_at || this.fallbackShop.joinedDate,
+          location: store?.location || store?.address || this.fallbackShop.location,
+          verified: store?.verified === undefined ? this.fallbackShop.verified : !!store.verified,
+        };
+        this.isStoreLoaded = true;
+        this.updateLoadingState();
+      },
+      error: () => {
+        this.isShopDataFromApi = false;
+        this.shop = { ...this.fallbackShop };
+        this.isStoreLoaded = true;
+        this.updateLoadingState();
       },
     });
   }
@@ -354,7 +219,7 @@ export class ShopDetails implements OnInit {
   }
 
   private loadCategoryMapAndData(): void {
-    this.backendapiServices.Category_list().subscribe({
+    this.backendapiServices.getAllCategoryList().subscribe({
       next: (response) => {
         const list = response?.data || [];
         this.categoryLookup.clear();
@@ -383,7 +248,8 @@ export class ShopDetails implements OnInit {
     });
 
     if (!storeProducts.length) {
-      this.categories = this.buildFallbackCategories();
+      this.allProducts = [];
+      this.categories = [];
       return;
     }
 
@@ -402,6 +268,7 @@ export class ShopDetails implements OnInit {
 
       return {
         id: product?.product_id,
+        store_id: this.resolveStoreId(product, variant),
         name: product?.title || 'Untitled Product',
         price: Number(variant?.base_price || 0),
         originalPrice: Number(variant?.base_price || 0) > 0
@@ -441,6 +308,10 @@ export class ShopDetails implements OnInit {
       })),
     ];
     this.selectedCategory = 'all';
+  }
+
+  private updateLoadingState(): void {
+    this.isLoading = !(this.isStoreLoaded && this.isProductsLoaded);
   }
 
   private buildFallbackCategories(): Array<{ id: string; name: string; count: number; isApiData?: boolean }> {

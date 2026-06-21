@@ -25,6 +25,22 @@
   }
 }
 
+@keyframes header-fly-landing {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.28);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.header-fly-landing {
+  animation: header-fly-landing 0.42s ease-out;
+}
+
 @keyframes dropdownFadeIn {
   from {
     opacity: 0;

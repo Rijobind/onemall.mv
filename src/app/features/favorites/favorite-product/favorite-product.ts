@@ -1,8 +1,14 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { Header } from "../../../shared/components/header/header";
-import { Footer } from "../../../shared/components/footer/footer";
+import { Router, RouterModule } from '@angular/router';
+import { Header } from '../../../shared/components/header/header';
+import { Footer } from '../../../shared/components/footer/footer';
+import {
+  FavoriteProduct as FavoriteProductItem,
+  FavoritesService,
+} from '../../../core/services/favorites.service/favorites.service';
+import { ActionFeedbackService } from '../../../core/services/action-feedback.service/action-feedback.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-favorite-product',
@@ -10,76 +16,100 @@ import { Footer } from "../../../shared/components/footer/footer";
   templateUrl: './favorite-product.html',
   styleUrl: './favorite-product.css',
 })
-export class FavoriteProduct {
-  favoriteProducts = [
-    {
-      id: 1,
-      name: 'Professional Wireless Mouse - Ergonomic Design',
-      price: 29.99,
-      originalPrice: 39.99,
-      rating: 4.5,
-      reviews: 1250,
-      image: '/mouse2.jpg',
-      inStock: true
-    },
-    {
-      id: 2,
-      name: 'Mechanical Gaming Keyboard RGB Backlit',
-      price: 79.99,
-      originalPrice: 99.99,
-      rating: 4.7,
-      reviews: 2300,
-      image: '/keyboard.jpg',
-      inStock: true
-    },
-    {
-      id: 3,
-      name: 'Premium Laptop Stand Aluminum',
-      price: 49.99,
-      originalPrice: 69.99,
-      rating: 4.3,
-      reviews: 890,
-      image: '/laptop.jpg',
-      inStock: true
-    },
-    {
-      id: 4,
-      name: 'Wireless Bluetooth Earbuds Pro',
-      price: 89.99,
-      originalPrice: 129.99,
-      rating: 4.6,
-      reviews: 3450,
-      image: '/air-pod.jpg',
-      inStock: true
-    },
-    {
-      id: 5,
-      name: 'High-Performance Gaming Mouse Pad',
-      price: 19.99,
-      originalPrice: 29.99,
-      rating: 4.4,
-      reviews: 1560,
-      image: '/mouse2.jpg',
-      inStock: true
-    },
-    {
-      id: 6,
-      name: 'USB-C Hub Multi-Port Adapter',
-      price: 34.99,
-      originalPrice: 49.99,
-      rating: 4.2,
-      reviews: 780,
-      image: '/Categories1.jpg',
-      inStock: false
-    }
-  ];
+export class FavoriteProduct implements OnInit, OnDestroy {
+  private readonly cartStorageKey = 'cart_items';
+  private favoritesSub: Subscription | null = null;
 
-  removeFromFavorites(id: number) {
-    this.favoriteProducts = this.favoriteProducts.filter(product => product.id !== id);
+  favoriteProducts: FavoriteProductItem[] = [];
+
+  constructor(
+    private favoritesService: FavoritesService,
+    private router: Router,
+    private actionFeedback: ActionFeedbackService
+  ) {}
+
+  ngOnInit(): void {
+    this.favoriteProducts = this.favoritesService.getFavorites();
+    this.favoritesSub = this.favoritesService.favorites$.subscribe((items) => {
+      this.favoriteProducts = items;
+    });
   }
 
-  addToCart(product: any) {
-    // Add to cart logic
-    console.log('Added to cart:', product);
+  ngOnDestroy(): void {
+    if (this.favoritesSub) {
+      this.favoritesSub.unsubscribe();
+      this.favoritesSub = null;
+    }
+  }
+
+  removeFromFavorites(id: string, event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.favoritesService.remove(id);
+  }
+
+  onProductClick(product: FavoriteProductItem) {
+    const storeId = product.store_id ? String(product.store_id) : '';
+    if (storeId) {
+      localStorage.setItem('store_id', storeId);
+    }
+
+    this.router.navigate(['/product-details'], {
+      queryParams: {
+        productId: product.id,
+        store_id: storeId || undefined,
+      },
+    });
+  }
+
+  addToCart(product: FavoriteProductItem, event?: MouseEvent) {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    const productId = String(product?.id ?? '');
+    if (!productId) return;
+
+    const existingItems = this.getStoredCartItems();
+    const existingIndex = existingItems.findIndex(
+      (item: any) => String(item?.id) === productId
+    );
+
+    if (existingIndex >= 0) {
+      existingItems[existingIndex].quantity =
+        (Number(existingItems[existingIndex].quantity) || 0) + 1;
+      existingItems[existingIndex].price = Number(product?.price) || 0;
+      existingItems[existingIndex].originalPrice = Number(product?.originalPrice) || 0;
+      existingItems[existingIndex].image = product?.image || '/mobile.jpg';
+      existingItems[existingIndex].name = product?.name || 'Untitled Product';
+      existingItems[existingIndex].inStock = product?.inStock !== false;
+    } else {
+      existingItems.push({
+        id: productId,
+        name: product?.name || 'Untitled Product',
+        price: Number(product?.price) || 0,
+        originalPrice: Number(product?.originalPrice) || 0,
+        image: product?.image || '/mobile.jpg',
+        quantity: 1,
+        inStock: product?.inStock !== false,
+      });
+    }
+
+    localStorage.setItem(this.cartStorageKey, JSON.stringify(existingItems));
+    window.dispatchEvent(new Event('cart-updated'));
+    this.actionFeedback.feedback(event, 'cart', { image: product?.image });
+  }
+
+  private getStoredCartItems(): any[] {
+    const raw = localStorage.getItem(this.cartStorageKey);
+    if (!raw) return [];
+
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   }
 }

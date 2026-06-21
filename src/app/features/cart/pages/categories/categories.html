@@ -1,0 +1,60 @@
+<app-header></app-header>
+
+<section class="categories-page md:hidden">
+  <div class="top-strip">
+    <p class="top-strip-title">Shop by Category</p>
+    <p class="top-strip-subtitle">Find products from your favorite collections</p>
+  </div>
+
+  <div *ngIf="isLoading; else categoriesContent" class="categories-layout">
+    <aside class="featured-panel">
+      <div class="featured-skeleton-list">
+        <div *ngFor="let _ of [1,2,3,4,5,6,7,8,9,10,11,12,13]" class="featured-skeleton-item skeleton-pulse"></div>
+      </div>
+    </aside>
+
+    <main class="categories-panel mb-16">
+      <div class="categories-grid">
+        <div *ngFor="let _ of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]" class="category-card">
+          <div class="thumb-wrap skeleton-pulse"></div>
+          <div class="category-label-skeleton skeleton-pulse"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <ng-template #categoriesContent>
+    <div class="categories-layout">
+      <aside class="featured-panel">
+        <button
+          *ngFor="let item of featuredCategories; trackBy: trackByCategoryName"
+          type="button"
+          class="featured-item"
+          [class.active]="item.id === selectedFeaturedCategoryId"
+          (click)="onSelectFeaturedCategory(item)"
+        >
+          {{ item.name }}
+        </button>
+        <p *ngIf="featuredCategories.length === 0" class="state-text">No categories found</p>
+      </aside>
+
+      <main class="categories-panel mb-16">
+        <div class="categories-grid">
+          <button
+            *ngFor="let category of shopCategories; trackBy: trackByCategoryName"
+            type="button"
+            class="category-card"
+            (click)="onSelectCategory(category)"
+          >
+            <div class="thumb-wrap">
+              <img [src]="category.image" [alt]="category.name" (error)="onImageError($event)" />
+              <span *ngIf="category.hot" class="hot-badge">HOT</span>
+            </div>
+            <p>{{ category.name }}</p>
+          </button>
+        </div>
+        <p *ngIf="shopCategories.length === 0" class="state-text">No categories available</p>
+      </main>
+    </div>
+  </ng-template>
+</section>

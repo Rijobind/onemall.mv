@@ -2,6 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BackendapiServices } from '../../../core/services/backendapi.services/backendapi.services';
+import { FavoritesService } from '../../../core/services/favorites.service/favorites.service';
+import { ActionFeedbackService } from '../../../core/services/action-feedback.service/action-feedback.service';
 import { Header } from '../../../shared/components/header/header';
 import { MobileCart } from '../../../core/models/mobile-cart/mobile-cart';
 
@@ -46,7 +48,9 @@ export class SearchResult implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private api: BackendapiServices
+    private api: BackendapiServices,
+    private favoritesService: FavoritesService,
+    private actionFeedback: ActionFeedbackService
   ) {}
 
   ngOnInit(): void {
@@ -59,16 +63,16 @@ export class SearchResult implements OnInit {
 
   private loadProducts(): void {
     this.isLoading = true;
-    this.api.getAllProductList().subscribe({
+    this.api.getMarketplaceProducts().subscribe({
       next: (res: any) => {
         const apiProducts = res.data || [];
         this.allProducts = apiProducts.map((product: any) => {
           const variant = product?.im_ProductVariants?.[0];
           const images = variant?.im_ProductImages || [];
           const imageUrl =
+            product?.thumbnail_url ||
             images.find((img: any) => img?.is_primary === 'T')?.image_url ||
             images[0]?.image_url ||
-            product?.thumbnail_url ||
             '/mobile.jpg';
 
           const basePrice = Number(variant?.base_price || 0);
@@ -176,6 +180,29 @@ export class SearchResult implements OnInit {
     });
   }
 
+  onToggleFavorite(product: any, event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    const added = this.favoritesService.toggle({
+      id: product?.id,
+      name: product?.title || 'Untitled Product',
+      price: Number(product?.price) || 0,
+      originalPrice: 0,
+      image: product?.image || '/mobile.jpg',
+      inStock: true,
+      store_id: product?.storeId ? String(product.storeId) : undefined,
+      rating: product?.rating,
+      reviews: product?.reviews,
+      brand: product?.brand,
+    });
+    this.actionFeedback.feedback(event, 'favorite', { added, image: product?.image });
+  }
+
+  isProductFavorite(product: any): boolean {
+    return this.favoritesService.isFavorite(product?.id);
+  }
+
   onAddToCart(product: any, event?: MouseEvent): void {
     if (event) {
       event.stopPropagation();
@@ -208,6 +235,7 @@ export class SearchResult implements OnInit {
 
     localStorage.setItem(this.cartStorageKey, JSON.stringify(existingItems));
     window.dispatchEvent(new Event('cart-updated'));
+    this.actionFeedback.feedback(event, 'cart', { image: product?.image });
 
     const savedItem = existingItems.find((item: any) => String(item?.id || '').trim() === productId);
     this.selectedCartItem = {

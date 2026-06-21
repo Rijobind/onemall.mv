@@ -1,13 +1,14 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Header } from "../../../../shared/components/header/header";
 import { Footer } from "../../../../shared/components/footer/footer";
 import { BackendapiServices } from "../../../../core/services/backendapi.services/backendapi.services";
+import { FavoritesService } from "../../../../core/services/favorites.service/favorites.service";
+import { ActionFeedbackService } from "../../../../core/services/action-feedback.service/action-feedback.service";
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { HttpErrorResponse } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HomeProductCard } from '../../../home/pages/home/home';
 
 @Component({
   selector: 'app-product-details',
@@ -16,7 +17,12 @@ import { Observable } from 'rxjs';
   styleUrl: './product-details.css',
 })
 export class ProductDetails implements OnInit {
+  @ViewChild('recentlyViewedCarousel') recentlyViewedCarousel?: ElementRef<HTMLElement>;
+
   private readonly cartStorageKey = 'cart_items';
+  private readonly recentlyViewedStorageKey = 'recently_viewed_products';
+  private allMarketplaceCards: HomeProductCard[] = [];
+  recentlyViewed: HomeProductCard[] = [];
   qtyOptions: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
   
@@ -39,7 +45,7 @@ export class ProductDetails implements OnInit {
   shopProfile = {
     id: '',
     name: 'Unknown Shop',
-    logo: '/shirt.jpg',
+    logo: '/store2.jpeg',
     totalProducts: '0',
     rating: 0,
     reviewsLabel: '0',
@@ -96,59 +102,6 @@ export class ProductDetails implements OnInit {
     }
   };
 
-  similarProducts = [
-    {
-      id: 1,
-      name: 'Professional Wireless Mouse - Ergonomic Design',
-      price: 29.99,
-      originalPrice: 39.99,
-      rating: 4.5,
-      reviews: 1250,
-      sold: 850,
-      image: '/mouse2.jpg'
-    },
-    {
-      id: 2,
-      name: 'Mechanical Gaming Keyboard RGB Backlit',
-      price: 79.99,
-      originalPrice: 99.99,
-      rating: 4.7,
-      reviews: 2300,
-      sold: 1200,
-      image: '/keyboard.jpg'
-    },
-    {
-      id: 3,
-      name: 'Premium Laptop Stand Aluminum',
-      price: 49.99,
-      originalPrice: 69.99,
-      rating: 4.3,
-      reviews: 890,
-      sold: 650,
-      image: '/laptop.jpg'
-    },
-    {
-      id: 4,
-      name: 'Wireless Bluetooth Earbuds Pro',
-      price: 89.99,
-      originalPrice: 129.99,
-      rating: 4.6,
-      reviews: 3450,
-      sold: 2800,
-      image: '/air-pod.jpg'
-    },
-    {
-      id: 5,
-      name: 'High-Performance Gaming Mouse Pad',
-      price: 19.99,
-      originalPrice: 29.99,
-      rating: 4.4,
-      reviews: 1560,
-      sold: 1100,
-      image: '/mouse2.jpg'
-    }
-  ];
-
   reviewBreakdown = [
     { label: 'Small', percent: 0 },
     { label: 'True to size', percent: 0 },
@@ -174,7 +127,9 @@ export class ProductDetails implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private api: BackendapiServices,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private favoritesService: FavoritesService,
+    private actionFeedback: ActionFeedbackService
   ) {}
 
   ngOnInit() {
@@ -191,59 +146,49 @@ export class ProductDetails implements OnInit {
   }
 
   loadProduct(productId: string) {
-    // Prefer multilevel endpoint; fallback to single endpoint for compatibility.
-    this.loadProductFromSource(this.api.getMultilevelProductDetails(productId), productId, true);
-  }
-
-  private loadProductFromSource(
-    request$: Observable<any>,
-    productId: string,
-    allowSingleFallback: boolean
-  ) {
-    request$.subscribe({
+    this.api.getMarketplaceProducts().subscribe({
       next: (res: any) => {
-        // Accept common backend response shapes:
-        // 1) { data: { ...product } }
-        // 2) { data: [ { ...product } ] }
-        // 3) raw product object
-        // 4) stringified JSON
+        console.log('[ProductDetails] Marketplace API response:', res);
         const rawPayload = res?.data ?? res;
-        let productData: any = rawPayload;
+        let productList: any[] = [];
 
         if (typeof rawPayload === 'string') {
           try {
-            productData = JSON.parse(rawPayload);
+            const parsed = JSON.parse(rawPayload);
+            productList = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
           } catch {
-            productData = null;
+            productList = [];
           }
+        } else if (Array.isArray(rawPayload)) {
+          productList = rawPayload;
+        } else if (rawPayload) {
+          productList = [rawPayload];
         }
 
-        if (Array.isArray(productData)) {
-          productData = productData[0] || null;
-        }
+        const matchedProduct = productList.find(
+          (product: any) => String(product?.product_id ?? product?.id ?? '') === String(productId)
+        );
+        console.log('[ProductDetails] Product list count:', productList.length);
+        console.log('[ProductDetails] Matched product for productId:', productId, matchedProduct);
 
-        if (productData) {
-          this.transformProductData(productData);
-          this.loadShopProfileForProduct(productData);
-        } else if (allowSingleFallback) {
-          this.loadProductFromSource(this.api.getProductDetails(productId), productId, false);
+        if (!matchedProduct) {
+          console.warn('[ProductDetails] No product found in marketplace list for productId:', productId, res);
+          this.isLoading = false;
           return;
-        } else {
-          console.warn('[ProductDetails] No product found for productId:', productId, res);
         }
+
+        this.allMarketplaceCards = productList.map((product: any) =>
+          this.mapApiProductToCard(product)
+        );
+        this.transformProductData(matchedProduct);
+        this.loadShopProfileForProduct(matchedProduct);
+        this.buildRecentlyViewed();
         this.isLoading = false;
       },
-      error: (err: HttpErrorResponse) => {
-        if (allowSingleFallback && err?.status === 404) {
-          this.loadProductFromSource(this.api.getProductDetails(productId), productId, false);
-          return;
-        }
-
-        if (err?.status === 401 || err?.status === 403) {
-          console.error('[ProductDetails] Authorization failed for product details API. Check access token/session.', err);
-        } else {
-          console.error('[ProductDetails] getProductDetails error:', err);
-        }
+      error: (err: any) => {
+        console.error('[ProductDetails] getMarketplaceProducts error:', err);
+        this.allMarketplaceCards = [];
+        this.buildRecentlyViewed();
         this.isLoading = false;
       }
     });
@@ -253,9 +198,136 @@ export class ProductDetails implements OnInit {
     this.apiProductData = apiProduct;
     this.initializeVariants(apiProduct);
     const variant = this.getSelectedVariant();
-    this.updateProductFromVariant(variant, apiProduct);
+    this.updateProductFromVariant(variant, apiProduct, false);
     if (!this.currentStoreId) {
       this.currentStoreId = this.resolveStoreIdFromProduct(apiProduct, variant);
+    }
+    this.trackRecentlyViewed(apiProduct, variant);
+  }
+
+  private trackRecentlyViewed(apiProduct: any, variant: any): void {
+    if (typeof window === 'undefined' || !apiProduct) return;
+
+    const productId = String(apiProduct?.product_id ?? '').trim();
+    if (!productId) return;
+
+    const images = variant?.im_ProductImages || [];
+    const primaryImage =
+      images.find((img: any) => img?.is_primary === 'T')?.image_url ||
+      images[0]?.image_url ||
+      apiProduct?.thumbnail_url ||
+      '/mobile.jpg';
+    const basePrice = Number(variant?.base_price ?? 0);
+
+    const entry = {
+      id: productId,
+      productId,
+      name: apiProduct?.title || 'Untitled Product',
+      category: this.getCategoryName(apiProduct?.category_id),
+      price: basePrice,
+      originalPrice: basePrice > 0 ? Math.round(basePrice * 1.2 * 100) / 100 : 0,
+      image: primaryImage,
+      store_id: this.resolveStoreIdFromProduct(apiProduct, variant),
+      viewedAt: Date.now(),
+    };
+
+    const existing = this.getStoredRecentlyViewed();
+    const filtered = existing.filter(
+      (item: any) => String(item?.id ?? item?.productId ?? '').trim() !== productId
+    );
+    const updated = [entry, ...filtered].slice(0, 20);
+    localStorage.setItem(this.recentlyViewedStorageKey, JSON.stringify(updated));
+    this.buildRecentlyViewed();
+  }
+
+  private buildRecentlyViewed(): void {
+    const stored = this.getStoredRecentlyViewed();
+    const currentId = String(this.productId ?? '').trim();
+    const resolved: HomeProductCard[] = [];
+
+    stored.forEach((entry: any) => {
+      const productId = this.normalizeProductId(entry?.id ?? entry?.productId);
+      if (!productId || productId === currentId) return;
+
+      const fromApi = this.allMarketplaceCards.find((p) => p.id === productId);
+      if (fromApi) {
+        resolved.push(fromApi);
+        return;
+      }
+
+      if (entry?.name && entry?.image) {
+        resolved.push({
+          id: productId,
+          name: entry.name,
+          category: entry.category || 'Product',
+          price: Number(entry.price) || 0,
+          originalPrice: Number(entry.originalPrice) || 0,
+          image: entry.image,
+          store_id: entry.store_id ? String(entry.store_id) : undefined,
+        });
+      }
+    });
+
+    this.recentlyViewed = resolved.slice(0, 12);
+  }
+
+  private mapApiProductToCard(product: any): HomeProductCard {
+    const variant = product?.im_ProductVariants?.[0];
+    const images = Array.isArray(variant?.im_ProductImages) ? variant.im_ProductImages : [];
+    const productImages = Array.isArray(product?.im_ProductImages) ? product.im_ProductImages : [];
+    const allImages = [...images, ...productImages];
+    const imageUrl =
+      product?.thumbnail_url ||
+      allImages.find((img: any) => img?.is_primary === 'T')?.image_url ||
+      allImages[0]?.image_url ||
+      '/mobile.jpg';
+    const basePrice = Number(variant?.base_price ?? product?.fixed_price ?? 0);
+
+    return {
+      id: this.normalizeProductId(product?.product_id ?? product?.id),
+      name: product?.title || 'Untitled Product',
+      category: this.getCategoryName(product?.category_id),
+      price: basePrice,
+      originalPrice: basePrice > 0 ? Math.round(basePrice * 1.2 * 100) / 100 : 0,
+      image: imageUrl,
+      store_id: this.resolveStoreIdFromProduct(product, variant),
+    };
+  }
+
+  private normalizeProductId(value: any): string {
+    return value == null ? '' : String(value);
+  }
+
+  scrollRecentlyViewed(direction: 'left' | 'right'): void {
+    if (!this.recentlyViewedCarousel?.nativeElement) return;
+    const scrollAmount = 280;
+    const currentScroll = this.recentlyViewedCarousel.nativeElement.scrollLeft;
+    const newScroll =
+      direction === 'left' ? currentScroll - scrollAmount : currentScroll + scrollAmount;
+    this.recentlyViewedCarousel.nativeElement.scrollTo({ left: newScroll, behavior: 'smooth' });
+  }
+
+  onRecentlyViewedProductClick(product: HomeProductCard): void {
+    if (!product?.id) return;
+    if (product.store_id && typeof window !== 'undefined') {
+      localStorage.setItem('store_id', product.store_id);
+    }
+    this.router.navigate(['/product-details'], {
+      queryParams: {
+        productId: product.id,
+        store_id: product.store_id || undefined,
+      },
+    });
+  }
+
+  private getStoredRecentlyViewed(): any[] {
+    const raw = localStorage.getItem(this.recentlyViewedStorageKey);
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
     }
   }
 
@@ -264,11 +336,20 @@ export class ProductDetails implements OnInit {
     this.attributeLabels.clear();
     this.valueLabels.clear();
     this.colorCodes.clear();
+    this.selectedAttributes.clear();
+    this.colors = [];
+    this.sizes = [];
+    this.selectedColor = '';
+    this.selectedSize = '';
     this.variantGroups = [];
 
     if (variants.length === 0) return;
 
     const attributeMap = new Map<string, Set<string>>();
+    const attributeMeta = new Map<
+      string,
+      { names: Set<string>; attrs: any[]; colorScore: number; sizeScore: number }
+    >();
     variants.forEach((v: any) => {
       if (v.im_VariantAttributes && v.im_VariantAttributes.length > 0) {
         v.im_VariantAttributes.forEach((attr: any) => {
@@ -277,6 +358,38 @@ export class ProductDetails implements OnInit {
               attributeMap.set(attr.attribute_id, new Set());
             }
             attributeMap.get(attr.attribute_id)!.add(attr.value_id);
+
+            if (!attributeMeta.has(attr.attribute_id)) {
+              attributeMeta.set(attr.attribute_id, {
+                names: new Set<string>(),
+                attrs: [],
+                colorScore: 0,
+                sizeScore: 0,
+              });
+            }
+            const meta = attributeMeta.get(attr.attribute_id)!;
+            meta.attrs.push(attr);
+
+            const attrName = String(
+              attr?.attribute_name || attr?.attributeName || attr?.name || ''
+            ).trim();
+            if (attrName) {
+              meta.names.add(attrName);
+            }
+
+            if (this.isColorLikeAttribute(attr)) {
+              meta.colorScore += 2;
+            }
+            if (this.isSizeLikeAttribute(attr)) {
+              meta.sizeScore += 2;
+            }
+            if (/color/i.test(attrName)) {
+              meta.colorScore += 4;
+            }
+            if (/size/i.test(attrName)) {
+              meta.sizeScore += 4;
+            }
+
             if (!this.valueLabels.has(attr.value_id)) {
               const readableValue = this.getReadableVariantValue(attr);
               if (readableValue) {
@@ -301,13 +414,31 @@ export class ProductDetails implements OnInit {
     });
 
     const attributeIds = Array.from(attributeMap.keys());
-    const typeNames = ['color', 'size', 'style', 'material', 'option'];
-    attributeIds.forEach((attrId, idx) => {
-      this.attributeLabels.set(attrId, typeNames[idx] || `Option ${idx + 1}`);
+    const sortedByColor = [...attributeIds].sort((a, b) => {
+      const aScore = attributeMeta.get(a)?.colorScore || 0;
+      const bScore = attributeMeta.get(b)?.colorScore || 0;
+      return bScore - aScore;
+    });
+    const sortedBySize = [...attributeIds].sort((a, b) => {
+      const aScore = attributeMeta.get(a)?.sizeScore || 0;
+      const bScore = attributeMeta.get(b)?.sizeScore || 0;
+      return bScore - aScore;
     });
 
-    if (attributeIds.length > 0) {
-      const colorAttrId = attributeIds[0];
+    const colorAttrId = sortedByColor[0] || '';
+    const sizeAttrId =
+      sortedBySize.find((id) => id !== colorAttrId) ||
+      attributeIds.find((id) => id !== colorAttrId) ||
+      '';
+
+    attributeIds.forEach((attrId, idx) => {
+      const fallbackLabel = idx === 0 ? 'Color' : idx === 1 ? 'Size' : `Option ${idx + 1}`;
+      const metaLabel = Array.from(attributeMeta.get(attrId)?.names || [])[0];
+      const finalLabel = metaLabel || fallbackLabel;
+      this.attributeLabels.set(attrId, finalLabel);
+    });
+
+    if (colorAttrId) {
       const colorValues = Array.from(attributeMap.get(colorAttrId) || []);
       this.colors = colorValues;
       const firstVariantWithAttr = variants.find((v: any) => v.im_VariantAttributes?.some((a: any) => a.attribute_id === colorAttrId));
@@ -316,8 +447,7 @@ export class ProductDetails implements OnInit {
       this.selectedAttributes.set(colorAttrId, this.selectedColor);
     }
 
-    if (attributeIds.length > 1) {
-      const sizeAttrId = attributeIds[1];
+    if (sizeAttrId && sizeAttrId !== colorAttrId) {
       const sizeValues = Array.from(attributeMap.get(sizeAttrId) || []);
       this.sizes = sizeValues;
       const firstVariantWithSize = variants.find((v: any) => v.im_VariantAttributes?.some((a: any) => a.attribute_id === sizeAttrId));
@@ -329,7 +459,16 @@ export class ProductDetails implements OnInit {
     this.variantGroups = attributeIds.map((attrId, idx) => ({
       attributeId: attrId,
       values: Array.from(attributeMap.get(attrId) || []),
-      type: typeNames[idx] || 'other',
+      type:
+        attrId === colorAttrId
+          ? 'color'
+          : attrId === sizeAttrId
+            ? 'size'
+            : idx === 2
+              ? 'style'
+              : idx === 3
+                ? 'material'
+                : 'option',
       label: this.attributeLabels.get(attrId) || `Option ${idx + 1}`
     }));
   }
@@ -406,16 +545,49 @@ export class ProductDetails implements OnInit {
   private getReadableVariantValue(attr: any): string {
     const value = String(attr?.value || '').trim();
     const colorName = String(attr?.color_name || '').trim();
+    const sizeName = String(attr?.size_name || '').trim();
 
     const valueLooksLikeHex = this.isHexColor(value);
     const colorNameLooksLikeHex = this.isHexColor(colorName);
+    const valueLooksLikeId = /^\d+$/.test(value) || /^[a-f0-9-]{12,}$/i.test(value);
 
+    if (sizeName) return sizeName;
+    if (colorName && (valueLooksLikeId || !value || valueLooksLikeHex)) return colorName;
     // Prefer non-hex, human-readable labels.
-    if (value && !valueLooksLikeHex) return value;
+    if (value && !valueLooksLikeHex && !valueLooksLikeId) return value;
     if (colorName && !colorNameLooksLikeHex) return colorName;
     if (value) return value;
     if (colorName) return colorName;
     return '';
+  }
+
+  private isColorLikeAttribute(attr: any): boolean {
+    const value = String(attr?.value || '').trim().toLowerCase();
+    const colorName = String(attr?.color_name || '').trim().toLowerCase();
+    const attrName = String(attr?.attribute_name || attr?.attributeName || '').trim().toLowerCase();
+    const commonColors = [
+      'black', 'white', 'red', 'blue', 'green', 'yellow', 'orange', 'pink', 'purple',
+      'brown', 'grey', 'gray', 'beige', 'gold', 'silver', 'navy', 'maroon',
+    ];
+    return (
+      this.isHexColor(value) ||
+      this.isHexColor(colorName) ||
+      commonColors.includes(value) ||
+      commonColors.includes(colorName) ||
+      /color|colour/.test(attrName)
+    );
+  }
+
+  private isSizeLikeAttribute(attr: any): boolean {
+    const value = String(attr?.value || '').trim().toLowerCase();
+    const sizeName = String(attr?.size_name || '').trim().toLowerCase();
+    const attrName = String(attr?.attribute_name || attr?.attributeName || '').trim().toLowerCase();
+    const sizePattern = /^(xs|s|m|l|xl|xxl|xxxl|\d+(\.\d+)?(cm|mm|in|inch)?|\d{2,3})$/i;
+    return (
+      sizePattern.test(value) ||
+      sizePattern.test(sizeName) ||
+      /size/.test(attrName)
+    );
   }
 
   private isHexColor(text: string): boolean {
@@ -423,6 +595,9 @@ export class ProductDetails implements OnInit {
   }
 
   onAttributeSelect(attributeId: string, valueId: string) {
+    if (!this.isAttributeValueAvailable(attributeId, valueId)) {
+      return;
+    }
     if (this.variantGroups.find((g: any) => g.attributeId === attributeId)?.type === 'color') {
       this.selectedColor = valueId;
     } else if (this.variantGroups.find((g: any) => g.attributeId === attributeId)?.type === 'size') {
@@ -430,11 +605,39 @@ export class ProductDetails implements OnInit {
     }
     this.selectedAttributes.set(attributeId, valueId);
     const variant = this.findCompatibleVariant();
-    if (variant && this.apiProductData) this.updateProductFromVariant(variant, this.apiProductData);
+    if (variant && this.apiProductData) {
+      this.updateProductFromVariant(variant, this.apiProductData, true);
+    }
   }
 
   isAttributeValueSelected(attributeId: string, valueId: string): boolean {
     return this.selectedAttributes.get(attributeId) === valueId;
+  }
+
+  isAttributeValueAvailable(attributeId: string, valueId: string): boolean {
+    const variants = this.apiProductData?.im_ProductVariants || [];
+    if (!Array.isArray(variants) || variants.length === 0) {
+      return true;
+    }
+
+    return variants.some((variant: any) => {
+      const attributes = variant?.im_VariantAttributes || [];
+      const hasCandidate = attributes.some(
+        (attr: any) => attr.attribute_id === attributeId && attr.value_id === valueId
+      );
+      if (!hasCandidate) return false;
+
+      for (const [selectedAttrId, selectedValueId] of this.selectedAttributes.entries()) {
+        if (selectedAttrId === attributeId || !selectedValueId) continue;
+        const hasSelected = attributes.some(
+          (attr: any) =>
+            attr.attribute_id === selectedAttrId && attr.value_id === selectedValueId
+        );
+        if (!hasSelected) return false;
+      }
+
+      return true;
+    });
   }
 
   getSelectedVariant(): any {
@@ -452,7 +655,11 @@ export class ProductDetails implements OnInit {
     return variants[0] || null;
   }
 
-  updateProductFromVariant(variant: any, apiProduct: any) {
+  updateProductFromVariant(
+    variant: any,
+    apiProduct: any,
+    preferVariantImage: boolean = false
+  ) {
     const variants = apiProduct?.im_ProductVariants || [];
     if (!variant) variant = variants[0];
     const images = variant?.im_ProductImages || [];
@@ -464,8 +671,16 @@ export class ProductDetails implements OnInit {
     }
     const primaryImage = images.find((img: any) => img?.is_primary === 'T') || images[0];
     const thumbnail = apiProduct?.thumbnail_url || primaryImage?.image_url || variantImages[0] || '/mobile.jpg';
-    if (thumbnail && !variantImages.includes(thumbnail)) variantImages.unshift(thumbnail);
-    if (variantImages.length === 0) variantImages.push(apiProduct?.thumbnail_url || '/mobile.jpg');
+
+    if (variantImages.length === 0) {
+      variantImages.push(thumbnail);
+    } else if (!preferVariantImage && thumbnail && !variantImages.includes(thumbnail)) {
+      // Initial load keeps thumbnail as first image.
+      variantImages.unshift(thumbnail);
+    } else if (preferVariantImage && thumbnail && !variantImages.includes(thumbnail)) {
+      // After variant/color selection, keep variant image first and append thumbnail as fallback.
+      variantImages.push(thumbnail);
+    }
 
     const inventory = variant?.im_StoreVariantInventory?.[0];
     const onHandQty = inventory?.on_hand_quantity != null ? inventory.on_hand_quantity : (variant ? null : 0);
@@ -644,51 +859,101 @@ export class ProductDetails implements OnInit {
     if (typeof window !== 'undefined') {
       localStorage.setItem('store_id', storeIdToLoad);
     }
-
-    this.api.Store_details(storeIdToLoad).subscribe({
+    this.api.getstores(storeIdToLoad).subscribe({
       next: (res: any) => {
-        const payload = res?.data ?? res ?? {};
+        const rawStore = res?.data ?? res;
+        const storeData = Array.isArray(rawStore) ? rawStore[0] : rawStore;
+
         this.shopProfile = {
           id: String(
-            payload?.store_id ??
-            payload?.storeId ??
+            storeData?.store_id ??
+            storeData?.storeId ??
             storeIdToLoad
           ),
-          name: payload?.store_name || payload?.name || 'Unknown Shop',
-          logo: payload?.logo || payload?.logo_url || payload?.image || '/shirt.jpg',
+          name:
+            storeData?.store_name ||
+            storeData?.name ||
+            storeData?.store ||
+            'Unknown Shop',
+          logo:
+            storeData?.logo ||
+            storeData?.logo_url ||
+            storeData?.image ||
+            productData?.store_logo ||
+            productData?.logo ||
+            productData?.logo_url ||
+            productData?.image ||
+            '/store.jpg',
           totalProducts: this.formatCompactCount(
-            payload?.total_products ??
-            payload?.products_count ??
-            payload?.product_count ??
-            payload?.total_items ??
-            payload?.item_count ??
+            storeData?.total_products ??
+            storeData?.products_count ??
+            storeData?.product_count ??
             0
           ),
-          rating: Number(payload?.rating || payload?.average_rating || 0),
+          rating: Number(storeData?.rating || storeData?.average_rating || 0),
           reviewsLabel: this.formatCompactCount(
-            payload?.reviews ??
-            payload?.review_count ??
-            payload?.total_reviews ??
+            storeData?.reviews ??
+            storeData?.review_count ??
+            storeData?.total_reviews ??
             0
           ),
-          responseRate: payload?.response_rate ? `${payload.response_rate}%` : '',
-          responseTime: payload?.response_time || '',
+          responseRate: storeData?.response_rate ? `${storeData.response_rate}%` : '',
+          responseTime: storeData?.response_time || '',
           itemsSoldLabel: this.formatCompactCount(
-            payload?.items_sold ??
-            payload?.total_sold ??
-            payload?.sold_count ??
+            storeData?.items_sold ??
+            storeData?.total_sold ??
+            storeData?.sold_count ??
             0
           ),
           followersLabel: this.formatCompactCount(
-            payload?.followers ??
-            payload?.follower_count ??
+            storeData?.followers ??
+            storeData?.follower_count ??
             0
           ),
           isApiData: true,
         };
       },
       error: () => {
-        this.setFallbackShopProfile(storeIdToLoad);
+        this.shopProfile = {
+          id: storeIdToLoad,
+          name:
+            productData?.store_name ||
+            productData?.store ||
+            'Unknown Shop',
+          logo:
+            productData?.store_logo ||
+            productData?.logo ||
+            productData?.logo_url ||
+            productData?.image ||
+            '/store.jpg',
+          totalProducts: this.formatCompactCount(
+            productData?.total_products ??
+            productData?.products_count ??
+            productData?.product_count ??
+            0
+          ),
+          rating: Number(productData?.rating || productData?.average_rating || 0),
+          reviewsLabel: this.formatCompactCount(
+            productData?.reviews ??
+            productData?.review_count ??
+            productData?.total_reviews ??
+            0
+          ),
+          responseRate: productData?.response_rate ? `${productData.response_rate}%` : '',
+          responseTime: productData?.response_time || '',
+          itemsSoldLabel: this.formatCompactCount(
+            productData?.items_sold ??
+            productData?.total_sold ??
+            productData?.sold_count ??
+            0
+          ),
+          followersLabel: this.formatCompactCount(
+            productData?.followers ??
+            productData?.follower_count ??
+            0
+          ),
+          isApiData: true,
+        };
       },
     });
   }
@@ -697,7 +962,7 @@ export class ProductDetails implements OnInit {
     this.shopProfile = {
       id: storeId,
       name: 'Shop information unavailable',
-      logo: '/shirt.jpg',
+      logo: '/store.jpg',
       totalProducts: '0',
       rating: 0,
       reviewsLabel: '0',
@@ -764,7 +1029,7 @@ export class ProductDetails implements OnInit {
   }
 
 
-  addToCart() {
+  addToCart(event?: Event) {
     if (!this.product) return;
 
     const productId = String(this.product.id ?? '');
@@ -800,10 +1065,30 @@ export class ProductDetails implements OnInit {
 
     localStorage.setItem(this.cartStorageKey, JSON.stringify(existingItems));
     window.dispatchEvent(new Event('cart-updated'));
+    this.actionFeedback.feedback(event, 'cart', { image: this.getPreferredCartImage() });
   }
 
-  buyNow() {
-    this.addToCart();
+  toggleFavorite(event?: Event) {
+    if (!this.product) return;
+    const added = this.favoritesService.toggle(
+      this.favoritesService.fromDetailsProduct(
+        this.product,
+        this.getPreferredCartImage(),
+        this.currentStoreId
+      )
+    );
+    this.actionFeedback.feedback(event, 'favorite', {
+      added,
+      image: this.getPreferredCartImage(),
+    });
+  }
+
+  isFavoriteProduct(): boolean {
+    return this.favoritesService.isFavorite(this.product?.id);
+  }
+
+  buyNow(event?: Event) {
+    this.addToCart(event);
     this.router.navigate(['/cart']);
   }
 

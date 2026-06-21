@@ -17,7 +17,10 @@
 <section class="py-6 bg-white md:py-12">
   <div class="container px-4 mx-auto md:px-6">
     <!-- Skeleton Loader -->
-    <div *ngIf="isLoading" class="grid grid-cols-1 gap-8 lg:grid-cols-[598px_minmax(0,1fr)] lg:gap-6 xl:gap-8 items-start">
+    <div
+      *ngIf="isLoading"
+      class="grid grid-cols-1 gap-8 lg:grid-cols-[598px_minmax(0,1fr)] lg:gap-6 xl:gap-8 items-start"
+    >
       <div class="lg:col-span-1">
         <div class="mb-4 product-gallery-layout">
           <div class="product-thumb-rail">
@@ -46,19 +49,6 @@
           </div>
         </div>
 
-        <div class="hidden pt-5 mt-8 border-t border-gray-200 product-left-stack lg:block">
-          <div class="flex items-center gap-4 mb-4">
-            <div class="w-20 h-20 rounded-full skeleton-pulse"></div>
-            <div class="flex-1">
-              <div class="w-40 h-5 mb-2 rounded skeleton-pulse"></div>
-              <div class="w-32 h-4 rounded skeleton-pulse"></div>
-            </div>
-          </div>
-          <div class="flex gap-3">
-            <div class="h-10 rounded-full w-28 skeleton-pulse"></div>
-            <div class="h-10 rounded-full w-36 skeleton-pulse"></div>
-          </div>
-        </div>
       </div>
       <div class="lg:col-span-1">
         <div class="sticky top-24 min-h-[520px]">
@@ -68,14 +58,24 @@
             <div class="w-24 rounded h-7 skeleton-pulse"></div>
             <div class="w-20 rounded h-7 skeleton-pulse"></div>
           </div>
-          <div class="py-4 space-y-3 border-gray-200 border-y">
+          <div class="py-4 space-y-3 border-t border-gray-200 lg:border-b-0">
             <div class="w-full h-8 rounded skeleton-pulse"></div>
             <div class="w-full h-8 rounded skeleton-pulse"></div>
             <div class="w-1/2 h-8 rounded skeleton-pulse"></div>
             <div class="w-40 h-10 rounded-lg skeleton-pulse"></div>
             <div class="w-full h-20 rounded-lg skeleton-pulse"></div>
           </div>
-          <div class="mt-8">
+          <div class="hidden border-t border-b border-gray-200 py-4 lg:block">
+            <div class="flex items-center gap-3 p-2.5 border border-gray-200 rounded-lg">
+              <div class="w-10 h-10 rounded-md skeleton-pulse shrink-0"></div>
+              <div class="flex-1 w-48 h-4 rounded skeleton-pulse"></div>
+              <div class="flex gap-2 shrink-0">
+                <div class="w-14 h-7 rounded-md skeleton-pulse"></div>
+                <div class="w-14 h-7 rounded-md skeleton-pulse"></div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-8 lg:mt-0 lg:pt-6">
             <div class="mb-4 border-b border-gray-200">
               <div class="flex gap-6">
                 <div class="w-24 h-8 rounded skeleton-pulse"></div>
@@ -94,7 +94,10 @@
     </div>
 
     <!-- Actual Content -->
-    <div *ngIf="!isLoading" class="grid grid-cols-1 gap-6 lg:grid-cols-[598px_minmax(0,1fr)] lg:gap-6 xl:gap-8 items-start">
+    <div
+      *ngIf="!isLoading"
+      class="grid grid-cols-1 gap-6 lg:grid-cols-[598px_minmax(0,1fr)] lg:gap-6 xl:gap-8 items-start"
+    >
       <!-- Left: Images only -->
       <div class="lg:col-span-1">
         <div class="mb-3 md:mb-4 product-gallery-layout">
@@ -115,18 +118,24 @@
                 preload="metadata"
               ></video>
               <ng-template #imageThumbTemplate>
-                <img [src]="image" alt="Thumbnail {{ i + 1 }}" class="object-contain w-full h-full bg-white" />
+                <img
+                  [src]="image"
+                  alt="Thumbnail {{ i + 1 }}"
+                  class="object-contain w-full h-full bg-white"
+                />
               </ng-template>
             </button>
           </div>
 
           <div class="product-main-stage">
             <div class="product-main-media">
-              <ng-container *ngIf="product.images && product.images.length > 0; else noMediaTemplate">
+              <ng-container
+                *ngIf="product.images && product.images.length > 0; else noMediaTemplate"
+              >
                 <video
                   *ngIf="isVideoMedia(product.images[selectedImageIndex]); else imageMediaTemplate"
                   [src]="product.images[selectedImageIndex]"
-                  class="object-contain w-full h-full p-2 bg-[#f2f2f2]"
+                  class=" w-full h-full  bg-[#f2f2f2]"
                   controls
                   playsinline
                   preload="metadata"
@@ -135,7 +144,7 @@
                   <img
                     [src]="product.images[selectedImageIndex]"
                     [alt]="product.name"
-                    class="object-contain w-full h-full p-2 bg-[#f2f2f2]"
+                    class=" w-full h-full  bg-[#f2f2f2]"
                   />
                 </ng-template>
               </ng-container>
@@ -153,7 +162,12 @@
               aria-label="Previous media"
             >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </button>
             <button
@@ -164,15 +178,22 @@
               aria-label="Next media"
             >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5l7 7-7 7"
+                />
               </svg>
             </button>
           </div>
         </div>
-        
+
         <div class="hidden pt-5 mt-8 border-t border-gray-200 product-left-stack lg:block">
           <div class="flex flex-wrap items-center gap-3 mb-4">
-            <span class="text-2xl font-semibold text-gray-900">{{ productReviews.length }} review</span>
+            <span class="text-2xl font-semibold text-gray-900"
+              >{{ productReviews.length }} review</span
+            >
             <span class="text-2xl text-gray-300">|</span>
             <span class="text-2xl font-semibold text-gray-900">{{ product.rating }}</span>
             <div class="flex items-center gap-1">
@@ -189,9 +210,16 @@
                 />
               </svg>
             </div>
-            <span class="inline-flex items-center gap-2 px-2 py-1 ml-auto text-sm font-semibold text-green-700 rounded bg-green-50">
+            <span
+              class="inline-flex items-center gap-2 px-2 py-1 ml-auto text-sm font-semibold text-green-700 rounded bg-green-50"
+            >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l8 4v6c0 5-3.5 8-8 8s-8-3-8-8V7l8-4z" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 3l8 4v6c0 5-3.5 8-8 8s-8-3-8-8V7l8-4z"
+                />
               </svg>
               All reviews are from verified purchases
             </span>
@@ -213,7 +241,9 @@
                 <span class="font-medium">{{ review.user }}</span>
                 <span>in {{ review.country }}</span>
                 <span class="text-gray-400">on {{ review.date }}</span>
-                <span *ngIf="review.purchasedCount > 0" class="ml-auto text-orange-500">Purchased {{ review.purchasedCount }} times</span>
+                <span *ngIf="review.purchasedCount > 0" class="ml-auto text-orange-500"
+                  >Purchased {{ review.purchasedCount }} times</span
+                >
               </div>
               <div class="flex items-center gap-1 mt-2">
                 <svg
@@ -230,45 +260,20 @@
                 </svg>
               </div>
               <p class="mt-2 text-sm text-gray-800">{{ review.text }}</p>
-              <div *ngIf="review.relatedText" class="p-2 mt-2 text-sm text-gray-700 border border-gray-300 rounded">
+              <div
+                *ngIf="review.relatedText"
+                class="p-2 mt-2 text-sm text-gray-700 border border-gray-300 rounded"
+              >
                 {{ review.relatedText }}
               </div>
             </div>
           </div>
         </div>
 
-        <div class="hidden pt-5 mt-8 border-t border-gray-200 product-left-stack lg:block">
-          <div class="flex items-center gap-4">
-            <div class="flex items-center justify-center w-20 h-20 text-white bg-red-500 rounded-full">
-              {{ (shopProfile.name || 'Shop').slice(0, 6) }}
-            </div>
-            <div>
-              <h3 class="text-2xl font-semibold text-gray-900">{{ shopProfile.name }}</h3>
-              <div class="flex flex-wrap items-center gap-3 text-sm text-gray-700">
-                <span>{{ shopProfile.followersLabel || '0' }} Followers</span>
-                <span>|</span>
-                <span>{{ shopProfile.itemsSoldLabel || '0' }} Sold</span>
-                <span>|</span>
-                <span>{{ shopProfile.rating || 0 }} ★</span>
-              </div>
-            </div>
-          </div>
-          <div class="flex gap-3 mt-4">
-            <button class="px-6 py-2 font-semibold text-gray-900 transition border border-gray-300 rounded-full hover:bg-gray-50">
-              Follow
-            </button>
-            <button (click)="onShop()" class="px-6 py-2 font-semibold text-gray-900 transition border border-gray-300 rounded-full hover:bg-gray-50">
-              Shop all items
-            </button>
-          </div>
-          <div class="mt-4 text-sm text-gray-700">
-            Started to sell on OneMall
-          </div>
-        </div>
       </div>
       <!-- Center: Title, Details, Variants -->
-      <div class="lg:col-span-1">
-        <div class="relative min-h-[520px] lg:sticky lg:top-24">
+      <div class="min-w-0 overflow-hidden lg:col-span-1">
+        <div class="relative min-h-[520px]  lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
           <button
             type="button"
             (click)="toggleShareMenu(); $event.stopPropagation()"
@@ -311,7 +316,12 @@
               (click)="shareViaEmail(); $event.stopPropagation()"
               class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                class="w-5 h-5 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -326,7 +336,10 @@
               (click)="shareToPinterest(); $event.stopPropagation()"
               class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors border-t border-gray-100"
             >
-              <span class="flex h-6 w-6 items-center justify-center rounded-full bg-[#E60023] text-white text-xs font-bold">P</span>
+              <span
+                class="flex h-6 w-6 items-center justify-center rounded-full bg-[#E60023] text-white text-xs font-bold"
+                >P</span
+              >
               <span>Pinterest</span>
             </button>
             <button
@@ -334,7 +347,10 @@
               (click)="shareToFacebook(); $event.stopPropagation()"
               class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors border-t border-gray-100"
             >
-              <span class="flex h-6 w-6 items-center justify-center rounded-full bg-[#1877F2] text-white text-xs font-bold">f</span>
+              <span
+                class="flex h-6 w-6 items-center justify-center rounded-full bg-[#1877F2] text-white text-xs font-bold"
+                >f</span
+              >
               <span>Facebook</span>
             </button>
             <button
@@ -342,7 +358,10 @@
               (click)="shareToX(); $event.stopPropagation()"
               class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors border-t border-gray-100"
             >
-              <span class="flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-gray-900 rounded-full">𝕏</span>
+              <span
+                class="flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-gray-900 rounded-full"
+                >𝕏</span
+              >
               <span>X</span>
             </button>
             <button
@@ -350,7 +369,12 @@
               (click)="copyLink(); $event.stopPropagation()"
               class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors border-t border-gray-100"
             >
-              <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                class="w-5 h-5 text-gray-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -362,31 +386,13 @@
             </button>
           </div>
 
-          <h1 class="pr-12 mb-2 text-lg font-bold text-gray-900 md:text-xl">{{ product.name }}</h1>
-          <div class="p-3 mb-4 border border-green-100 rounded-lg bg-green-50/60 lg:hidden">
-            <div class="flex items-center gap-3">
-              <img
-                [src]="shopProfile.logo || '/shirt.jpg'"
-                [alt]="shopProfile.name"
-                class="object-cover w-10 h-10 border border-green-200 rounded-full"
-              />
-              <div class="min-w-0 flex-1">
-                <h3 class="text-sm font-semibold text-gray-900 truncate">{{ shopProfile.name }}</h3>
-                <p class="text-xs text-gray-600">
-                  {{ shopProfile.totalProducts || '0' }} Products
-                </p>
-              </div>
-              <button
-                type="button"
-                (click)="onShop()"
-                class="px-3 py-1.5 text-xs font-semibold text-green-700 bg-white border border-green-300 rounded-full hover:bg-green-100"
-              >
-                View shop
-              </button>
-            </div>
-          </div>
-          <span class="inline-flex items-center gap-2 text-sm text-gray-600">
-            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <span class="inline-flex items-center gap-2 pb-2 text-sm text-gray-600">
+            <svg
+              class="w-4 h-4 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -397,29 +403,94 @@
             <span class="font-medium">Brand:</span>
             <span>{{ product.brand }}</span>
           </span>
+          <h1 class="pr-12 mb-2 text-lg font-bold text-gray-900 md:text-xl">{{ product.name }}</h1>
+          <div class="flex items-center justify-between gap-2 p-2.5 mb-4 border border-gray-200 rounded-lg bg-white lg:hidden">
+            <div class="flex items-center flex-1 min-w-0 gap-2.5">
+              <img
+                [src]="shopProfile.logo || '/store.jpg'"
+                [alt]="shopProfile.name"
+                class="object-cover w-10 h-10 border border-gray-200 rounded-md"
+              />
+              <div class="min-w-0">
+                <p class="flex items-center gap-1.5 text-sm font-semibold leading-tight text-gray-900">
+                  <span class="truncate">{{ shopProfile.name }}</span>
+                  <svg class="w-3.5 h-3.5 text-black" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fill-rule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.707a1 1 0 00-1.414-1.414L9 10.172 7.707 8.879a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </p>
+                <p class="text-xs leading-tight text-gray-500">official store</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button
+                type="button"
+                (click)="onShop()"
+                class="px-2.5 py-1 text-xs font-medium text-gray-700 transition border border-gray-300 rounded-md bg-gray-50 hover:bg-gray-100"
+              >
+                View
+              </button>
+              <button
+                type="button"
+                class="px-2.5 py-1 text-xs font-medium text-gray-700 transition border border-gray-300 rounded-md bg-gray-50 hover:bg-gray-100"
+              >
+                Follow
+              </button>
+            </div>
+          </div>
+          <!-- <span class="inline-flex items-center gap-2 text-sm text-gray-600">
+            <svg
+              class="w-4 h-4 text-green-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M7 7h.01M3 11l8.586 8.586a2 2 0 002.828 0l6.172-6.172a2 2 0 000-2.828L12 2H6a2 2 0 00-2 2v7z"
+              />
+            </svg>
+            <span class="font-medium">Brand:</span>
+            <span>{{ product.brand }}</span>
+          </span> -->
           <div class="flex flex-wrap items-center gap-2 mt-2 mb-4">
             <span
               *ngIf="product.originalPrice && product.originalPrice > (product.price ?? 0)"
               class="text-xl font-medium text-gray-400 line-through"
               >${{ product.originalPrice.toFixed(2) }}</span
             >
-            <span class="text-3xl font-bold text-gray-900">${{ (product.price ?? 0).toFixed(2) }}</span>
+            <span class="text-3xl font-bold text-gray-900"
+              >${{ (product.price ?? 0).toFixed(2) }}</span
+            >
             <span
               *ngIf="product.originalPrice && product.originalPrice > (product.price ?? 0)"
               class="px-2 py-1 text-xs font-semibold text-green-700 uppercase bg-green-100 rounded-md"
             >
               {{
-                (((product.originalPrice - (product.price ?? 0)) / product.originalPrice) * 100).toFixed(0)
+                (
+                  ((product.originalPrice - (product.price ?? 0)) / product.originalPrice) *
+                  100
+                ).toFixed(0)
               }}% OFF
             </span>
             <span
-              *ngIf="product.stock !== undefined && product.stock !== null && product.stock > 0 && product.stock <= 5"
+              *ngIf="
+                product.stock !== undefined &&
+                product.stock !== null &&
+                product.stock > 0 &&
+                product.stock <= 5
+              "
               class="px-2 py-1 text-xs font-semibold text-orange-700 uppercase rounded-md bg-orange-50"
             >
               Only {{ product.stock }} left
             </span>
           </div>
-          <div class="py-3 space-y-2 border-gray-200 border-y md:py-4 md:space-y-3">
+          <div class="py-3 space-y-2 border-t border-b border-gray-200 md:py-4 md:space-y-3 lg:border-b-0">
             <div *ngIf="colorGroup" class="space-y-2">
               <div class="flex items-center gap-2">
                 <span class="text-sm font-medium text-gray-600">Color:</span>
@@ -436,15 +507,26 @@
                 <button
                   *ngFor="let valueId of colorGroup.values"
                   (click)="onAttributeSelect(colorGroup.attributeId, valueId)"
-                  class="p-1 transition border rounded-lg hover:border-green-500 bg-gray-50"
-                  [class.border-green-600]="isAttributeValueSelected(colorGroup.attributeId, valueId)"
-                  [class.border-gray-300]="!isAttributeValueSelected(colorGroup.attributeId, valueId)"
+                  class="flex flex-col items-center w-20 gap-1 p-1 transition border rounded-lg hover:border-green-500 bg-gray-50"
+                  [disabled]="!isAttributeValueAvailable(colorGroup.attributeId, valueId)"
+                  [class.opacity-40]="!isAttributeValueAvailable(colorGroup.attributeId, valueId)"
+                  [class.cursor-not-allowed]="!isAttributeValueAvailable(colorGroup.attributeId, valueId)"
+                  [class.hover\:border-green-500]="isAttributeValueAvailable(colorGroup.attributeId, valueId)"
+                  [class.border-green-600]="
+                    isAttributeValueSelected(colorGroup.attributeId, valueId)
+                  "
+                  [class.border-gray-300]="
+                    !isAttributeValueSelected(colorGroup.attributeId, valueId)
+                  "
                 >
                   <img
                     [src]="getColorOptionImage(valueId)"
                     [alt]="getValueDisplayLabel(valueId)"
                     class="object-cover w-12 h-12 rounded-md"
                   />
+                  <span class="text-[11px] font-medium text-gray-700 truncate">
+                    {{ getValueDisplayLabel(valueId) }}
+                  </span>
                 </button>
               </div>
             </div>
@@ -456,11 +538,19 @@
                   *ngFor="let valueId of sizeGroup.values"
                   (click)="onAttributeSelect(sizeGroup.attributeId, valueId)"
                   class="px-3 py-1.5 text-sm font-medium transition border rounded-md hover:border-green-500"
+                  [disabled]="!isAttributeValueAvailable(sizeGroup.attributeId, valueId)"
+                  [class.opacity-40]="!isAttributeValueAvailable(sizeGroup.attributeId, valueId)"
+                  [class.cursor-not-allowed]="!isAttributeValueAvailable(sizeGroup.attributeId, valueId)"
+                  [class.hover\:border-green-500]="isAttributeValueAvailable(sizeGroup.attributeId, valueId)"
                   [class.text-white]="isAttributeValueSelected(sizeGroup.attributeId, valueId)"
                   [class.bg-green-600]="isAttributeValueSelected(sizeGroup.attributeId, valueId)"
-                  [class.border-green-600]="isAttributeValueSelected(sizeGroup.attributeId, valueId)"
+                  [class.border-green-600]="
+                    isAttributeValueSelected(sizeGroup.attributeId, valueId)
+                  "
                   [class.text-gray-800]="!isAttributeValueSelected(sizeGroup.attributeId, valueId)"
-                  [class.border-gray-300]="!isAttributeValueSelected(sizeGroup.attributeId, valueId)"
+                  [class.border-gray-300]="
+                    !isAttributeValueSelected(sizeGroup.attributeId, valueId)
+                  "
                 >
                   {{ getValueDisplayLabel(valueId) }}
                 </button>
@@ -475,41 +565,105 @@
               >
                 <option *ngFor="let qty of qtyOptions" [ngValue]="qty">{{ qty }}</option>
               </select>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  (click)="addToCart($event)"
+                  aria-label="Add to cart"
+                  class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 md:gap-2 md:px-5 text-sm font-semibold text-white transition bg-green-600 rounded-lg hover:bg-green-700"
+                >
+                  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17"
+                    />
+                  </svg>
+                  <span class="md:hidden">Cart</span>
+                  <span class="hidden md:inline">Add to cart</span>
+                </button>
+                <button
+                  type="button"
+                  (click)="toggleFavorite($event)"
+                  [attr.aria-label]="isFavoriteProduct() ? 'Remove from favorites' : 'Add to favorite'"
+                  class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 md:gap-2 md:px-4 text-sm font-semibold transition border rounded-lg"
+                  [class.text-red-500]="isFavoriteProduct()"
+                  [class.border-red-300]="isFavoriteProduct()"
+                  [class.bg-red-50]="isFavoriteProduct()"
+                  [class.text-gray-700]="!isFavoriteProduct()"
+                  [class.border-gray-300]="!isFavoriteProduct()"
+                  [class.hover:border-red-300]="!isFavoriteProduct()"
+                  [class.hover:text-red-500]="!isFavoriteProduct()"
+                >
+                  <svg class="w-4 h-4 shrink-0" [attr.fill]="isFavoriteProduct() ? 'currentColor' : 'none'" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    />
+                  </svg>
+                  <span class="md:hidden">{{ isFavoriteProduct() ? 'Saved' : 'Favorite' }}</span>
+                  <span class="hidden md:inline">{{ isFavoriteProduct() ? 'Saved' : 'Add to Favorite' }}</span>
+                </button>
+              </div>
+  
             </div>
 
-            <div>
-              <button
-                type="button"
-                (click)="addToCart()"
-                class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white transition bg-green-600 rounded-lg hover:bg-green-700"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17"
-                  />
-                </svg>
-                Add to cart
-              </button>
-            </div>
-
+           
             <div *ngIf="product.aboutItems && product.aboutItems.length > 0">
               <div class="flex gap-2 mb-2">
                 <span class="text-sm text-gray-600 min-w-16">Details</span>
               </div>
               <ul class="pl-5 space-y-1 list-disc">
-                <li *ngFor="let item of product.aboutItems" class="text-sm text-gray-700">
+                <li *ngFor="let item of product.aboutItems" class="text-sm text-gray-700 break-words">
                   {{ item }}
                 </li>
               </ul>
             </div>
           </div>
 
+          <!-- Desktop store: below Qty, above Description -->
+          <div class="hidden border-t border-b border-gray-200 py-4 lg:block">
+            <div
+              class="flex items-center justify-between gap-3 p-2.5 border border-gray-200 rounded-lg bg-gray-50/50"
+            >
+              <div class="flex items-center flex-1 min-w-0 gap-3">
+                <img
+                  [src]="shopProfile.logo || '/store.jpg'"
+                  [alt]="shopProfile.name"
+                  class="object-cover w-10 h-10 border border-gray-200 rounded-md shrink-0"
+                />
+                <p class="text-sm leading-snug text-gray-900 min-w-0">
+                  Visit the
+                  <span class="font-semibold text-green-700">{{ shopProfile.name }}</span>
+                  Store
+                </p>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  (click)="onShop()"
+                  class="px-3 py-1.5 text-xs font-medium text-gray-700 transition border border-gray-300 rounded-md bg-white hover:bg-gray-100"
+                >
+                  View
+                </button>
+                <button
+                  type="button"
+                  class="px-3 py-1.5 text-xs font-medium text-gray-700 transition border border-gray-300 rounded-md bg-white hover:bg-gray-100"
+                >
+                  Follow
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div class="pt-5 mt-6 border-t border-gray-200 product-left-stack lg:hidden">
             <div class="flex flex-wrap items-center gap-3 mb-4">
-              <span class="text-2xl font-semibold text-gray-900">{{ productReviews.length }} review</span>
+              <span class="text-2xl font-semibold text-gray-900"
+                >{{ productReviews.length }} review</span
+              >
               <span class="text-2xl text-gray-300">|</span>
               <span class="text-2xl font-semibold text-gray-900">{{ product.rating }}</span>
               <div class="flex items-center gap-1">
@@ -526,9 +680,16 @@
                   />
                 </svg>
               </div>
-              <span class="inline-flex items-center gap-2 px-2 py-1 ml-auto text-sm font-semibold text-green-700 rounded bg-green-50">
+              <span
+                class="inline-flex items-center gap-2 px-2 py-1 ml-auto text-sm font-semibold text-green-700 rounded bg-green-50"
+              >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l8 4v6c0 5-3.5 8-8 8s-8-3-8-8V7l8-4z" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 3l8 4v6c0 5-3.5 8-8 8s-8-3-8-8V7l8-4z"
+                  />
                 </svg>
                 All reviews are from verified purchases
               </span>
@@ -550,7 +711,9 @@
                   <span class="font-medium">{{ review.user }}</span>
                   <span>in {{ review.country }}</span>
                   <span class="text-gray-400">on {{ review.date }}</span>
-                  <span *ngIf="review.purchasedCount > 0" class="ml-auto text-orange-500">Purchased {{ review.purchasedCount }} times</span>
+                  <span *ngIf="review.purchasedCount > 0" class="ml-auto text-orange-500"
+                    >Purchased {{ review.purchasedCount }} times</span
+                  >
                 </div>
                 <div class="flex items-center gap-1 mt-2">
                   <svg
@@ -567,117 +730,26 @@
                   </svg>
                 </div>
                 <p class="mt-2 text-sm text-gray-800">{{ review.text }}</p>
-                <div *ngIf="review.relatedText" class="p-2 mt-2 text-sm text-gray-700 border border-gray-300 rounded">
+                <div
+                  *ngIf="review.relatedText"
+                  class="p-2 mt-2 text-sm text-gray-700 border border-gray-300 rounded"
+                >
                   {{ review.relatedText }}
                 </div>
               </div>
             </div>
           </div>
-
-          <div class="mt-6 md:mt-8 product-tabs-panel">
-            <div class="product-tabs-header">
-              <nav class="grid grid-cols-3">
-                <button
-                  (click)="setTab('description')"
-                  class="product-tab-btn"
-                  [class.product-tab-btn-active]="activeTab === 'description'"
-                >
-                  Description
-                </button>
-                <button
-                  (click)="setTab('product-info')"
-                  class="product-tab-btn"
-                  [class.product-tab-btn-active]="activeTab === 'product-info'"
-                >
-                  Product information
-                </button>
-                <button
-                  (click)="setTab('reviews')"
-                  class="product-tab-btn"
-                  [class.product-tab-btn-active]="activeTab === 'reviews'"
-                >
-                  Reviews
-                </button>
-              </nav>
-            </div>
-            <div class="product-tabs-content">
-              <div *ngIf="activeTab === 'description'" class="prose max-w-none">
-                <div
-                  *ngIf="product.descriptionHtml"
-                  [innerHTML]="product.descriptionHtml"
-                  class="leading-relaxed text-gray-700"
-                ></div>
-                <p *ngIf="!product.descriptionHtml" class="leading-relaxed text-gray-700">
-                  {{ product.description }}
-                </p>
-              </div>
-              <div *ngIf="activeTab === 'product-info'" class="space-y-4">
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div class="flex items-center gap-4 py-3 border-b border-gray-200">
-                    <span class="w-32 text-sm text-gray-600">Dimensions:</span>
-                    <span class="text-sm font-medium text-gray-900">{{
-                      product.productInfo.dimensions
-                    }}</span>
-                  </div>
-                  <div
-                    *ngIf="product.productInfo.memoryStorage"
-                    class="flex items-center gap-4 py-3 border-b border-gray-200"
-                  >
-                    <span class="w-32 text-sm text-gray-600">Memory Storage:</span>
-                    <span class="text-sm font-medium text-gray-900">{{
-                      product.productInfo.memoryStorage
-                    }}</span>
-                  </div>
-                  <div
-                    *ngIf="product.productInfo.weight"
-                    class="flex items-center gap-4 py-3 border-b border-gray-200"
-                  >
-                    <span class="w-32 text-sm text-gray-600">Weight:</span>
-                    <span class="text-sm font-medium text-gray-900">{{ product.productInfo.weight }}</span>
-                  </div>
-                  <div
-                    *ngIf="product.productInfo.warranty"
-                    class="flex items-center gap-4 py-3 border-b border-gray-200"
-                  >
-                    <span class="w-32 text-sm text-gray-600">Warranty:</span>
-                    <span class="text-sm font-medium text-gray-900">{{
-                      product.productInfo.warranty
-                    }}</span>
-                  </div>
-                  <div
-                    *ngIf="product.productInfo.manufacturer"
-                    class="flex items-center gap-4 py-3 border-b border-gray-200"
-                  >
-                    <span class="w-32 text-sm text-gray-600">Manufacturer:</span>
-                    <span class="text-sm font-medium text-gray-900">{{
-                      product.productInfo.manufacturer
-                    }}</span>
-                  </div>
-                </div>
-              </div>
-              <div *ngIf="activeTab === 'reviews'" class="space-y-6">
-                <div class="flex items-center gap-4 mb-6">
-                  <div class="flex items-center gap-1">
-                    <div class="flex">
-                      <svg
-                        *ngFor="let i of [1, 2, 3, 4, 5]"
-                        class="w-6 h-6"
-                        [class.text-yellow-400]="i <= product.rating"
-                        [class.text-gray-300]="i > product.rating"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
-                        />
-                      </svg>
-                    </div>
-                    <span class="ml-2 text-xl font-bold text-gray-900">{{ product.rating }}</span>
-                  </div>
-                  <span class="text-gray-600">Based on {{ product.reviews }} reviews</span>
-                </div>
-                <p class="text-gray-600">Customer reviews will be displayed here.</p>
-              </div>
+          <div class="mt-6 md:mt-8 lg:mt-0 lg:pt-6">
+            <h2 class="mb-4 text-xl font-bold text-gray-900">Description</h2>
+            <div class="prose max-w-none">
+              <div
+                *ngIf="product.descriptionHtml"
+                [innerHTML]="product.descriptionHtml"
+                class="max-w-full overflow-hidden leading-relaxed text-gray-700 break-words"
+              ></div>
+              <p *ngIf="!product.descriptionHtml" class="leading-relaxed text-gray-700 break-words">
+                {{ product.description }}
+              </p>
             </div>
           </div>
         </div>
@@ -686,49 +758,83 @@
   </div>
 </section>
 
-<section *ngIf="!isLoading" class="py-12 border-t border-gray-200 bg-gray-50">
-  <div class="container px-6 mx-auto">
-    <h2 class="mb-8 text-2xl font-bold text-gray-900">Similar Products</h2>
-    <div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-      <div
-        *ngFor="let similarProduct of similarProducts"
-        class="flex flex-col h-full overflow-hidden transition bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer hover:shadow-md"
-      >
-        <div class="overflow-hidden bg-gray-100 h-44 md:h-48">
-          <img
-            [src]="similarProduct.image"
-            [alt]="similarProduct.name"
-            class="object-cover w-full h-full transition hover:scale-105"
-          />
-        </div>
-        <div class="flex flex-col flex-1 p-4">
-          <h3 class="mb-2 text-sm font-semibold text-gray-900 line-clamp-2 min-h-10">
-            {{ similarProduct.name }}
-          </h3>
-          <div class="flex items-center gap-1 mb-2">
-            <svg
-              *ngFor="let i of [1, 2, 3, 4, 5]"
-              class="w-4 h-4"
-              [class.text-yellow-400]="i <= similarProduct.rating"
-              [class.text-gray-300]="i > similarProduct.rating"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
+<section *ngIf="!isLoading && recentlyViewed.length > 0" class="py-5 border-t border-gray-200 bg-gray-50 md:py-8">
+  <div class="container px-4 mx-auto sm:px-5 lg:px-6">
+    <div>
+      <div class="flex items-center justify-between mb-4 md:mb-8">
+        <h2 class="text-xl font-bold text-gray-900 md:text-3xl">
+          <span class="text-green-600">Recently </span><span class="text-gray-700"> Viewed</span>
+        </h2>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            (click)="scrollRecentlyViewed('left')"
+            class="flex items-center justify-center w-10 h-10 transition border border-gray-300 rounded-full hover:bg-green-600 hover:text-white hover:border-green-600"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
-                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 19l-7-7 7-7"
               />
             </svg>
-            <span class="ml-1 text-xs text-gray-600">({{ similarProduct.reviews }})</span>
+          </button>
+          <button
+            type="button"
+            (click)="scrollRecentlyViewed('right')"
+            class="flex items-center justify-center w-10 h-10 transition border border-gray-300 rounded-full hover:bg-green-600 hover:text-white hover:border-green-600"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="relative">
+        <div
+          #recentlyViewedCarousel
+          class="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth md:gap-6"
+          style="scroll-behavior: smooth"
+        >
+          <div
+            *ngFor="let product of recentlyViewed"
+            (click)="onRecentlyViewedProductClick(product)"
+            class="flex-shrink-0 overflow-hidden transition-all duration-300 bg-white border border-gray-200 rounded-lg cursor-pointer w-44 md:w-64 group hover:shadow-xl"
+          >
+            <div class="relative overflow-hidden bg-gray-100 aspect-square">
+              <img
+                [src]="product.image"
+                [alt]="product.name"
+                class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+              />
+            </div>
+
+            <div class="p-4">
+              <span class="text-xs tracking-wide text-gray-500 uppercase">{{ product.category }}</span>
+              <h3
+                class="text-sm font-semibold text-gray-900 mt-2 mb-3 line-clamp-2 min-h-[2.5rem] group-hover:text-green-600 transition"
+              >
+                {{ product.name }}
+              </h3>
+              <div class="flex items-center">
+                <span class="text-lg font-bold text-gray-900"
+                  >${{
+                    product.price.toLocaleString('en-US', {
+                      minimumFractionDigits: 3,
+                      maximumFractionDigits: 3,
+                    })
+                  }}</span
+                >
+              </div>
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="text-lg font-bold text-gray-900"
-              >${{ similarProduct.price.toFixed(2) }}</span
-            >
-            <span *ngIf="similarProduct.originalPrice" class="text-sm text-gray-400 line-through"
-              >${{ similarProduct.originalPrice.toFixed(2) }}</span
-            >
-          </div>
-          <div class="mt-2 text-xs text-gray-600">{{ similarProduct.sold }} sold</div>
         </div>
       </div>
     </div>
