@@ -87,3 +87,32 @@
     background-position: -200% 0;
   }
 }
+
+.product-list-ad {
+  display: block;
+  background: #f3f4f6;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.product-list-ad:hover {
+  border-color: #bbf7d0;
+  box-shadow: 0 4px 16px rgba(22, 163, 74, 0.1);
+}
+
+.product-list-ad-desktop {
+  height: 542px;
+}
+
+.product-list-ad-mobile {
+  height: 160px;
+}
+
+.product-list-ad-media {
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s ease;
+  will-change: opacity, transform;
+}
+
+.product-list-ad-fading .product-list-ad-media {
+  opacity: 0;
+  transform: scale(1.02);
+}

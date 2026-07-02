@@ -4,7 +4,10 @@ import { Header } from '../../../../shared/components/header/header';
 import { Footer } from '../../../../shared/components/footer/footer';
 import { Router } from '@angular/router';
 import { BackendapiServices } from '../../../../core/services/backendapi.services/backendapi.services';
-import { AllCategoryModel } from '../../../../core/models/all-category-model/all-category-model';
+import { RegionService } from '../../../../core/services/region.service/region.service';
+import { MarketplaceShopService } from '../../../../core/services/marketplace-shop.service/marketplace-shop.service';
+import { ShopNameLink } from '../../../../shared/components/shop-name-link/shop-name-link';
+import { resolveStoreRegionFromProduct } from '../../../../core/utils/marketplace-shop.util';
 
 export interface HomeProductCard {
   id: string;
@@ -13,7 +16,12 @@ export interface HomeProductCard {
   price: number;
   originalPrice: number;
   image: string;
+  rating?: number;
   store_id?: string;
+  store_name?: string;
+  shop_atoll?: string;
+  shop_city?: string;
+  shop_location?: string;
   category_id?: string;
   sub_category_id?: string;
   sub_sub_category_id?: string;
@@ -23,22 +31,17 @@ export interface HomeProductCard {
 
 @Component({
   selector: 'app-home',
-  imports: [CommonModule, Header, Footer, AllCategoryModel],
+  imports: [CommonModule, Header, Footer, ShopNameLink],
   templateUrl: './home.html',
-  styleUrl: './home.css',
+  host: { class: 'block max-w-full overflow-x-hidden' },
 })
 export class Home implements OnInit, OnDestroy {
   @ViewChild('recentlyViewedCarousel') recentlyViewedCarousel?: ElementRef<HTMLElement>;
   @ViewChild('interestCarousel') interestCarousel?: ElementRef<HTMLElement>;
-  @ViewChild('newArrivalsCarousel') newArrivalsCarousel?: ElementRef<HTMLElement>;
 
-  activeTab: string = 'feature';
-  activeProductTab: string = 'top20';
-  categories: any[] = [];
   categoryTree: any[] = [];
-  allCategoryTree: any[] = []; // Full category tree for modal
+  allCategoryTree: any[] = []; // Full category tree
   activeChildMap: Map<string, any> = new Map(); // Track active child for each parent category
-  isAllCategoryModalOpen: boolean = false;
   mobileTopCategoryFallback: Array<{ category_name: string }> = [
     { category_name: 'Books & Stationery' },
     { category_name: 'Sports & Outdoors' },
@@ -46,30 +49,6 @@ export class Home implements OnInit, OnDestroy {
     { category_name: 'Home Products' },
     { category_name: 'Electronics' },
   ];
-  mobileShopTypes: Array<{ label: string; value: string }> = [
-    { label: 'All', value: 'all' },
-    { label: 'Men', value: 'men' },
-    { label: 'Sports', value: 'sports' },
-    { label: 'Women', value: 'women' },
-    { label: 'Bags', value: 'bags' },
-    { label: 'Jewelry', value: 'jewelry' },
-    { label: 'Toy', value: 'toy' },
-    { label: 'Home', value: 'home' },
-    { label: 'Kids', value: 'kids' },
-    { label: 'Industrial', value: 'industrial' },
-    { label: 'Electronics', value: 'electronics' },
-    { label: 'Crafts', value: 'crafts' },
-    { label: 'Beauty', value: 'beauty' },
-    { label: 'Baby', value: 'baby' },
-    { label: 'Health', value: 'health' },
-    { label: 'Household', value: 'household' },
-    { label: 'Pets', value: 'pets' },
-    { label: 'Musical', value: 'musical' },
-    { label: 'Appliances', value: 'appliances' },
-    { label: 'Food', value: 'food' },
-    { label: 'Books', value: 'books' },
-  ];
-  activeMobileShopType: string = 'all';
   activeMobileSecondCategoryId: string = 'all';
   readonly mobileAllCategoryOption = { category_id: 'all', category_name: 'All' };
   private readonly categoryChipImages: Record<string, string> = {
@@ -94,31 +73,91 @@ export class Home implements OnInit, OnDestroy {
     toy: '/Categories11.jpg',
     automotive: '/Categories12.jpg',
   };
-  heroCategoryImages: string[] = Array.from({ length: 12 }, (_, idx) => `/Categories${idx + 1}.jpg`);
+  heroAds: Array<{
+    image: string;
+    badge: string;
+    title: string;
+    subtitle: string;
+    cta: string;
+    discount?: string;
+    queryParams?: Record<string, string>;
+  }> = [
+    {
+      image: '/chair.jpg',
+      badge: 'Home & Living',
+      title: 'Elevate Your Space',
+      subtitle: 'Premium furniture & decor — crafted for modern living',
+      cta: 'Shop Furniture',
+      discount: '30% OFF',
+      queryParams: { mode: 'browse', type: 'home' },
+    },
+    {
+      image: '/adverticement.jpg',
+      badge: 'Mega Sale',
+      title: 'Deals You’ll Love',
+      subtitle: 'Save big across electronics, fashion, and more',
+      cta: 'View All Deals',
+      discount: 'UP TO 50%',
+      queryParams: { mode: 'browse' },
+    },
+    {
+      image: '/Categories1.jpg',
+      badge: 'Electronics',
+      title: 'Next-Gen Tech',
+      subtitle: 'Phones, laptops & gadgets at unbeatable prices',
+      cta: 'Shop Electronics',
+      discount: 'NEW IN',
+      queryParams: { mode: 'browse', type: 'electronics' },
+    },
+    {
+      image: '/shirt.jpg',
+      badge: 'Fashion',
+      title: 'Style That Stands Out',
+      subtitle: 'Fresh arrivals in clothing & accessories',
+      cta: 'Shop Fashion',
+      discount: '25% OFF',
+      queryParams: { mode: 'browse', type: 'fashion' },
+    },
+  ];
   activeHeroImageIndex: number = 0;
   nextHeroImageIndex: number = 1;
   isHeroImageTransitioning: boolean = false;
+  isHeroPaused: boolean = false;
+  heroSlideDirection: 'next' | 'prev' = 'next';
+  readonly heroTransitionMs = 750;
   private heroImageIntervalId: ReturnType<typeof setInterval> | null = null;
   private heroImageTransitionTimeoutId: ReturnType<typeof setTimeout> | null = null;
   private readonly recentlyViewedStorageKey = 'recently_viewed_products';
   private readonly recentSearchesStorageKey = 'recent_searches';
   private allCategoriesFlat: any[] = [];
   private allMarketplaceCards: HomeProductCard[] = [];
+  private readonly regionUpdatedHandler = () => this.loadMarketplaceProducts();
 
   newArrivals: HomeProductCard[] = [];
   featuredProducts: HomeProductCard[] = [];
   discoverProductsForYou: HomeProductCard[] = [];
   recentlyViewed: HomeProductCard[] = [];
 
-  constructor(private router: Router, private api: BackendapiServices) {}
+  constructor(
+    private router: Router,
+    private api: BackendapiServices,
+    private regionService: RegionService,
+    private shopService: MarketplaceShopService
+  ) {}
 
   ngOnInit(): void {
     this.loadCategory();
     this.loadMarketplaceProducts();
     this.startHeroImageRotation();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('region-updated', this.regionUpdatedHandler);
+    }
   }
 
   ngOnDestroy(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('region-updated', this.regionUpdatedHandler);
+    }
     if (this.heroImageIntervalId) {
       clearInterval(this.heroImageIntervalId);
       this.heroImageIntervalId = null;
@@ -144,30 +183,30 @@ export class Home implements OnInit, OnDestroy {
       // Build recursive tree for all categories
       const allCategoryTree = parents.map((parent: any) => this.buildCategoryTree(parent, allCategories));
 
-      // Store full tree for modal
+      // Store full tree for interest carousel and mobile chips
       this.allCategoryTree = allCategoryTree;
 
       // Limit to 9 categories for home page
       this.categoryTree = allCategoryTree.slice(0, 9);
-
-      // Transform to match the expected format for home page
-      this.categories = this.categoryTree.map((parent: any) => ({
-        name: parent.category_name,
-        iconType: this.getIconType(parent.category_name),
-        submenu: this.flattenChildren(parent.children),
-      }));
-
-      console.log('Home Category Tree:', this.categoryTree);
       this.refreshProductSections();
     });
   }
 
   private loadMarketplaceProducts(): void {
-    this.api.getMarketplaceProducts().subscribe({
+    this.api.getMarketplaceProductsWithFallback(this.regionService.getProductRequestParams()).subscribe({
       next: (res: any) => {
-        const rawList = this.extractProductList(res);
-        this.allMarketplaceCards = rawList.map((product: any) => this.mapApiProductToCard(product));
-        this.refreshProductSections();
+        const rawList = this.api.extractProductsFromResponse(res);
+        const cards = rawList.map((product: any) => this.mapApiProductToCard(product));
+        this.shopService.enrichWithShopNames(cards).subscribe({
+          next: (enriched) => {
+            this.allMarketplaceCards = enriched;
+            this.refreshProductSections();
+          },
+          error: () => {
+            this.allMarketplaceCards = cards;
+            this.refreshProductSections();
+          },
+        });
       },
       error: () => {
         this.allMarketplaceCards = [];
@@ -180,10 +219,7 @@ export class Home implements OnInit, OnDestroy {
   }
 
   private extractProductList(res: any): any[] {
-    const rawPayload = res?.data ?? res;
-    if (Array.isArray(rawPayload)) return rawPayload;
-    if (rawPayload && typeof rawPayload === 'object') return [rawPayload];
-    return [];
+    return this.api.extractProductsFromResponse(res);
   }
 
   private mapApiProductToCard(product: any): HomeProductCard {
@@ -200,6 +236,9 @@ export class Home implements OnInit, OnDestroy {
     const categoryId = this.normalizeId(product?.category_id);
     const subCategoryId = this.normalizeId(product?.sub_category_id);
     const subSubCategoryId = this.normalizeId(product?.sub_sub_category_id);
+    const { atoll, city } = resolveStoreRegionFromProduct(product);
+    const apiRating = Number(product?.rating ?? product?.average_rating ?? 0);
+    const rating = apiRating > 0 ? apiRating : Math.round((4 + Math.random()) * 10) / 10;
 
     return {
       id: this.normalizeId(product?.product_id ?? product?.id),
@@ -208,7 +247,10 @@ export class Home implements OnInit, OnDestroy {
       price: basePrice,
       originalPrice: basePrice > 0 ? Math.round(basePrice * 1.2 * 100) / 100 : 0,
       image: imageUrl,
+      rating,
       store_id: this.resolveStoreId(product, variant),
+      shop_atoll: atoll,
+      shop_city: city,
       category_id: categoryId,
       sub_category_id: subCategoryId,
       sub_sub_category_id: subSubCategoryId,
@@ -306,11 +348,21 @@ export class Home implements OnInit, OnDestroy {
           originalPrice: Number(entry.originalPrice) || 0,
           image: entry.image,
           store_id: entry.store_id ? String(entry.store_id) : undefined,
+          store_name: entry.store_name ? String(entry.store_name) : undefined,
+          shop_location: entry.shop_location ? String(entry.shop_location) : undefined,
         });
       }
     });
 
-    this.recentlyViewed = resolved.slice(0, 12);
+    const limited = resolved.slice(0, 12);
+    this.shopService.enrichWithShopNames(limited).subscribe({
+      next: (enriched) => {
+        this.recentlyViewed = enriched;
+      },
+      error: () => {
+        this.recentlyViewed = limited;
+      },
+    });
   }
 
   private getLatestSearchTerm(): string {
@@ -409,11 +461,7 @@ export class Home implements OnInit, OnDestroy {
   }
 
   onViewAllCategories() {
-    this.isAllCategoryModalOpen = true;
-  }
-
-  onCloseAllCategoryModal() {
-    this.isAllCategoryModalOpen = false;
+    this.router.navigate(['/categories']);
   }
 
   // Recursive function to build category tree
@@ -426,49 +474,6 @@ export class Home implements OnInit, OnDestroy {
       ...parent,
       children: children.map((child: any) => this.buildCategoryTree(child, allCategories)),
     };
-  }
-
-  // Flatten children recursively to get all submenu items
-  flattenChildren(children: any[]): string[] {
-    if (!children || children.length === 0) return [];
-    
-    const result: string[] = [];
-    children.forEach((child: any) => {
-      result.push(child.category_name);
-      if (child.children && child.children.length > 0) {
-        result.push(...this.flattenChildren(child.children));
-      }
-    });
-    return result;
-  }
-
-  // Map category names to icon types
-  getIconType(categoryName: string): string {
-    const name = categoryName.toLowerCase();
-
-    if (name.includes('apparel') || name.includes('clothing') || name.includes('fashion') || name.includes('wear')) {
-      return 'tshirt';
-    } else if (name.includes('automotive') || name.includes('car') || name.includes('vehicle')) {
-      return 'car';
-    } else if (name.includes('beauty') || name.includes('personal care') || name.includes('cosmetic') || name.includes('health & beauty')) {
-      return 'beauty';
-    } else if (name.includes('electronic') || name.includes('device') || name.includes('tech') || name.includes('it')) {
-      return 'electronics';
-    } else if (name.includes('furniture')) {
-      return 'furniture';
-    } else if (name.includes('home') || name.includes('house') || name.includes('living')) {
-      return 'home';
-    } else if (name.includes('machinery') || name.includes('machine')) {
-      return 'machinery';
-    } else if (name.includes('jewelry') || name.includes('jewellery') || name.includes('watch') || name.includes('eyewear')) {
-      return 'jewelry';
-    } else if (name.includes('tool') || name.includes('hardware') || name.includes('improvement')) {
-      return 'tool';
-    } else if (name.includes('bestseller') || name.includes('best seller') || name.includes('popular')) {
-      return 'bestseller';
-    }
-
-    return 'bestseller';
   }
 
   setActiveChild(parentId: string, child: any) {
@@ -484,11 +489,17 @@ export class Home implements OnInit, OnDestroy {
   }
 
   onCategoryClick(category: any) {
-    console.log('Selected category:', category);
-    // Example:
-    // this.router.navigate(['/shop'], {
-    //   queryParams: { categoryId: category.category_id }
-    // });
+    if (!category?.category_id) {
+      return;
+    }
+
+    this.router.navigate(['/product-list'], {
+      queryParams: {
+        categoryId: category.category_id,
+        category_id: category.category_id,
+        categoryName: category.category_name,
+      },
+    });
   }
 
   onInterestCategoryClick(category: any) {
@@ -654,65 +665,6 @@ export class Home implements OnInit, OnDestroy {
     return dynamic.length ? dynamic : this.mobileTopCategoryFallback;
   }
 
-  onMobileShopTypeClick(type: { label: string; value: string }) {
-    this.activeMobileShopType = type.value;
-
-    if (type.value === 'all') {
-      this.router.navigate(['/product-list'], {
-        queryParams: {
-          mode: 'browse',
-        },
-      });
-      return;
-    }
-
-    const matchedCategory = this.findCategoryForMobileShopType(type.value);
-    if (matchedCategory?.category_id) {
-      this.router.navigate(['/product-list'], {
-        queryParams: {
-          categoryId: matchedCategory.category_id,
-          category_id: matchedCategory.category_id,
-          categoryName: matchedCategory.category_name,
-          mode: 'browse',
-          type: type.value,
-        },
-      });
-      return;
-    }
-
-    this.router.navigate(['/product-list'], {
-      queryParams: {
-        mode: 'browse',
-        type: type.value,
-      },
-    });
-  }
-
-  isMobileShopTypeActive(value: string): boolean {
-    return this.activeMobileShopType === value;
-  }
-
-  private findCategoryForMobileShopType(typeValue: string): any | null {
-    const normalizedType = String(typeValue || '').toLowerCase().trim();
-    if (!normalizedType || !this.allCategoriesFlat.length) {
-      return null;
-    }
-
-    const categoryMatches = this.allCategoriesFlat.filter((category: any) => {
-      const categoryName = String(category?.category_name || '').toLowerCase();
-      return categoryName.includes(normalizedType);
-    });
-
-    if (!categoryMatches.length) {
-      return null;
-    }
-
-    const parentMatch = categoryMatches.find(
-      (category: any) => category?.parent_id == null
-    );
-    return parentMatch || categoryMatches[0];
-  }
-
   getCategoryChipImage(category: any): string {
     const name = String(category?.category_name || '').toLowerCase();
     for (const key of Object.keys(this.categoryChipImages)) {
@@ -723,166 +675,168 @@ export class Home implements OnInit, OnDestroy {
     return '/Categories1.jpg';
   }
 
+  getCategorySidebarIconKey(category: any): string {
+    const name = String(category?.category_name || '').toLowerCase();
+    if (name.includes('book') || name.includes('stationery')) return 'book';
+    if (name.includes('sport') || name.includes('outdoor')) return 'sport';
+    if (name.includes('travel') || name.includes('luggage')) return 'travel';
+    if (name.includes('home') || name.includes('living')) return 'home';
+    if (name.includes('automotive') || name.includes('auto')) return 'automotive';
+    if (name.includes('music') || name.includes('instrument')) return 'music';
+    if (name.includes('electronic') || name.includes('& it')) return 'electronics';
+    if (name.includes('gift') || name.includes('occasion')) return 'gift';
+    if (name.includes('pet')) return 'pets';
+    return 'default';
+  }
+
   private startHeroImageRotation() {
-    if (this.heroCategoryImages.length <= 1 || this.heroImageIntervalId) {
+    if (this.heroAds.length <= 1 || this.heroImageIntervalId) {
       return;
     }
 
     this.heroImageIntervalId = setInterval(() => {
-      this.transitionHeroImage();
-    }, 1000);
+      if (!this.isHeroPaused && !this.isHeroImageTransitioning) {
+        const next = (this.activeHeroImageIndex + 1) % this.heroAds.length;
+        this.beginHeroTransition(next);
+      }
+    }, 5000);
   }
 
-  private transitionHeroImage() {
-    if (this.isHeroImageTransitioning || this.heroCategoryImages.length <= 1) {
+  getHeroSlideState(index: number): 'visible' | 'entering' | 'leaving' | 'hidden' {
+    if (!this.isHeroImageTransitioning) {
+      return index === this.activeHeroImageIndex ? 'visible' : 'hidden';
+    }
+    if (index === this.nextHeroImageIndex) {
+      return 'entering';
+    }
+    if (index === this.activeHeroImageIndex) {
+      return 'leaving';
+    }
+    return 'hidden';
+  }
+
+  getHeroSlideClasses(index: number): string {
+    const state = this.getHeroSlideState(index);
+    const base =
+      'absolute inset-0 transition-opacity duration-700 ease-in-out will-change-[opacity]';
+
+    switch (state) {
+      case 'visible':
+        return `${base} z-[1] opacity-100 visible`;
+      case 'entering':
+        return `${base} z-[2] opacity-100 visible`;
+      case 'leaving':
+        return `${base} z-[1] opacity-0 visible`;
+      default:
+        return `${base} z-0 opacity-0 invisible`;
+    }
+  }
+
+  getHeroBgClasses(index: number): string {
+    const base = 'absolute inset-0 bg-center bg-cover';
+    return this.getHeroSlideState(index) === 'visible'
+      ? `${base} scale-110 transition-transform duration-[9000ms] ease-linear`
+      : `${base} scale-100`;
+  }
+
+  getHeroCopyClasses(index: number): string {
+    const state = this.getHeroSlideState(index);
+    const base =
+      'absolute inset-0 flex flex-col justify-center max-w-xl px-4 py-5 md:px-10 md:py-8 transition-[opacity,transform] ease-out';
+    const isPrev = this.heroSlideDirection === 'prev';
+
+    switch (state) {
+      case 'visible':
+      case 'entering':
+        return `${base} z-[2] opacity-100 translate-x-0 visible pointer-events-auto duration-[600ms]`;
+      case 'leaving':
+        return `${base} z-[1] opacity-0 visible pointer-events-none duration-[450ms] ${isPrev ? 'translate-x-6' : '-translate-x-6'}`;
+      default:
+        return `${base} z-0 opacity-0 invisible pointer-events-none duration-[600ms] ${isPrev ? '-translate-x-8' : 'translate-x-8'}`;
+    }
+  }
+
+  private beginHeroTransition(targetIndex: number): void {
+    if (
+      targetIndex < 0 ||
+      targetIndex >= this.heroAds.length ||
+      targetIndex === this.activeHeroImageIndex ||
+      this.isHeroImageTransitioning
+    ) {
       return;
     }
 
-    this.nextHeroImageIndex = (this.activeHeroImageIndex + 1) % this.heroCategoryImages.length;
+    if (this.heroImageTransitionTimeoutId) {
+      clearTimeout(this.heroImageTransitionTimeoutId);
+      this.heroImageTransitionTimeoutId = null;
+    }
+
+    const total = this.heroAds.length;
+    const current = this.activeHeroImageIndex;
+    const forwardSteps = (targetIndex - current + total) % total;
+    const backwardSteps = (current - targetIndex + total) % total;
+    this.heroSlideDirection = forwardSteps <= backwardSteps ? 'next' : 'prev';
+
+    this.nextHeroImageIndex = targetIndex;
     this.isHeroImageTransitioning = true;
 
     this.heroImageTransitionTimeoutId = setTimeout(() => {
-      this.activeHeroImageIndex = this.nextHeroImageIndex;
-      this.isHeroImageTransitioning = false;
+      this.completeHeroTransition();
+    }, this.heroTransitionMs + 80);
+  }
+
+  private completeHeroTransition(): void {
+    if (!this.isHeroImageTransitioning) {
+      return;
+    }
+
+    if (this.heroImageTransitionTimeoutId) {
+      clearTimeout(this.heroImageTransitionTimeoutId);
       this.heroImageTransitionTimeoutId = null;
-    }, 420);
+    }
+
+    this.activeHeroImageIndex = this.nextHeroImageIndex;
+    this.isHeroImageTransitioning = false;
   }
 
-  dealOfTheDay = [
-    {
-      id: 1,
-      title: 'Smart Thermostat',
-      price: 79.99,
-      originalPrice: 129.99,
-      discount: 20,
-      image: 'https://via.placeholder.com/200',
-      timeLeft: '02:15:30',
-    },
-    {
-      id: 2,
-      title: 'Digital Camera',
-      price: 299.99,
-      originalPrice: 399.99,
-      discount: 25,
-      image: 'https://via.placeholder.com/200',
-      timeLeft: '05:30:45',
-    },
-    {
-      id: 3,
-      title: 'Smartphone Pro',
-      price: 599.99,
-      originalPrice: 799.99,
-      discount: 25,
-      image: 'https://via.placeholder.com/200',
-      timeLeft: '01:20:15',
-    },
-    {
-      id: 4,
-      title: 'Game Controller',
-      price: 49.99,
-      originalPrice: 69.99,
-      discount: 29,
-      image: 'https://via.placeholder.com/200',
-      timeLeft: '03:45:20',
-    },
-  ];
+  onHeroSlideTransitionEnd(event: TransitionEvent): void {
+    if (!this.isHeroImageTransitioning || event.propertyName !== 'opacity') {
+      return;
+    }
 
-  mainFeaturedProduct = {
-    title: 'Professional Drone Camera',
-    price: 103999,
-    originalPrice: 129999,
-    discount: 20,
-    image: 'https://via.placeholder.com/400',
-    thumbnails: [
-      'https://via.placeholder.com/80',
-      'https://via.placeholder.com/80',
-      'https://via.placeholder.com/80',
-      'https://via.placeholder.com/80',
-    ],
-  };
+    const target = event.target as HTMLElement;
+    if (!target.hasAttribute('data-hero-slide')) {
+      return;
+    }
 
-  promotionalBanners = [
-    { title: 'CATCH BIG DEALS', category: 'Headphones', image: 'https://via.placeholder.com/250' },
-    { title: 'CATCH BIG DEALS', category: 'Cameras', image: 'https://via.placeholder.com/250' },
-    { title: 'CATCH BIG DEALS', category: 'Phones', image: 'https://via.placeholder.com/250' },
-    { title: 'CATCH BIG DEALS', category: 'Watches', image: 'https://via.placeholder.com/250' },
-  ];
+    const slideIndex = Number(target.dataset['slideIndex']);
+    if (slideIndex !== this.nextHeroImageIndex) {
+      return;
+    }
 
-  bestSellers = [
-    { id: 1, title: 'Laptop Pro 16"', price: 1299.99, image: 'https://via.placeholder.com/200' },
-    { id: 2, title: 'Smartphone X', price: 799.99, image: 'https://via.placeholder.com/200' },
-    { id: 3, title: 'Portable Speaker', price: 89.99, image: 'https://via.placeholder.com/200' },
-    { id: 4, title: 'USB Hub 7-in-1', price: 39.99, image: 'https://via.placeholder.com/200' },
-    { id: 5, title: 'Smart Watch', price: 249.99, image: 'https://via.placeholder.com/200' },
-    { id: 6, title: 'Smart Speaker', price: 99.99, image: 'https://via.placeholder.com/200' },
-    { id: 7, title: 'Wireless Earbuds', price: 149.99, image: 'https://via.placeholder.com/200' },
-    { id: 8, title: 'Wireless Mouse', price: 49.99, image: 'https://via.placeholder.com/200' },
-  ];
-
-  topProducts = [
-    {
-      id: 1,
-      title: 'Wireless Headphones',
-      price: 199.99,
-      originalPrice: 299.99,
-      discount: 33,
-      image: 'https://via.placeholder.com/200',
-    },
-    {
-      id: 2,
-      title: 'Game Controller',
-      price: 59.99,
-      originalPrice: 79.99,
-      discount: 25,
-      image: 'https://via.placeholder.com/200',
-    },
-    {
-      id: 3,
-      title: 'Smartphone Ultra',
-      price: 899.99,
-      originalPrice: 1099.99,
-      discount: 18,
-      image: 'https://via.placeholder.com/200',
-    },
-    {
-      id: 4,
-      title: 'Laptop Air',
-      price: 999.99,
-      originalPrice: 1299.99,
-      discount: 23,
-      image: 'https://via.placeholder.com/200',
-    },
-  ];
-
-  products = [
-    {
-      title: 'iPhone 15 Pro',
-      price: 999,
-      image: 'https://via.placeholder.com/300',
-    },
-    {
-      title: 'MacBook Air',
-      price: 1299,
-      image: 'https://via.placeholder.com/300',
-    },
-    {
-      title: 'Headphones',
-      price: 199,
-      image: 'https://via.placeholder.com/300',
-    },
-    {
-      title: 'Smart Watch',
-      price: 249,
-      image: 'https://via.placeholder.com/300',
-    },
-  ];
-
-  setTab(tab: string) {
-    this.activeTab = tab;
+    this.completeHeroTransition();
   }
 
-  setProductTab(tab: string) {
-    this.activeProductTab = tab;
+  goToHeroSlide(index: number) {
+    this.beginHeroTransition(index);
+  }
+
+  previousHeroSlide() {
+    const prev =
+      (this.activeHeroImageIndex - 1 + this.heroAds.length) % this.heroAds.length;
+    this.beginHeroTransition(prev);
+  }
+
+  nextHeroSlide() {
+    const next = (this.activeHeroImageIndex + 1) % this.heroAds.length;
+    this.beginHeroTransition(next);
+  }
+
+  onHeroAdClick(ad?: (typeof this.heroAds)[number]) {
+    const target = ad ?? this.heroAds[this.activeHeroImageIndex];
+    this.router.navigate(['/product-list'], {
+      queryParams: target?.queryParams ?? { mode: 'browse' },
+    });
   }
 
   scrollRecentlyViewed(direction: 'left' | 'right') {
@@ -902,16 +856,6 @@ export class Home implements OnInit, OnDestroy {
       const newScroll =
         direction === 'left' ? currentScroll - scrollAmount : currentScroll + scrollAmount;
       this.interestCarousel.nativeElement.scrollTo({ left: newScroll, behavior: 'smooth' });
-    }
-  }
-
-  scrollNewArrivals(direction: 'left' | 'right') {
-    if (this.newArrivalsCarousel?.nativeElement) {
-      const scrollAmount = 240;
-      const currentScroll = this.newArrivalsCarousel.nativeElement.scrollLeft;
-      const newScroll =
-        direction === 'left' ? currentScroll - scrollAmount : currentScroll + scrollAmount;
-      this.newArrivalsCarousel.nativeElement.scrollTo({ left: newScroll, behavior: 'smooth' });
     }
   }
 

@@ -1,6 +1,7 @@
 <app-header></app-header>
 
-<section class="categories-page md:hidden">
+<!-- Mobile layout -->
+<section class="categories-page categories-mobile">
   <div class="top-strip">
     <p class="top-strip-title">Shop by Category</p>
     <p class="top-strip-subtitle">Find products from your favorite collections</p>
@@ -57,4 +58,247 @@
       </main>
     </div>
   </ng-template>
+</section>
+
+<!-- Desktop layout -->
+<section class="categories-desktop min-h-screen bg-gray-50 py-4 md:py-6">
+  <div class="container px-4 mx-auto md:px-6">
+    <div class="flex gap-4 lg:gap-8">
+      <!-- Category sidebar -->
+      <aside class="hidden w-72 flex-shrink-0 md:block">
+        <div class="sticky top-4 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div class="border-b border-gray-200 bg-gray-50/80 p-4">
+            <h2 class="text-lg font-semibold tracking-tight text-gray-900">
+              <span class="text-green-600">All</span><span class="text-gray-700"> Categories</span>
+            </h2>
+            <p class="mt-1 text-xs text-gray-500">{{ categoryTree.length }} departments</p>
+          </div>
+
+          <div *ngIf="isLoading" class="space-y-3 p-4">
+            <div *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="h-4 w-full rounded skeleton-pulse"></div>
+          </div>
+
+          <nav *ngIf="!isLoading" class="category-sidebar-nav max-h-[calc(100vh-220px)] overflow-y-auto p-2.5">
+            <button
+              type="button"
+              (click)="onDesktopSelectAllProducts()"
+              class="category-link category-link-parent mb-1 w-full"
+              [class.category-link-active]="isDesktopAllProductsActive()"
+            >
+              <span>All Products</span>
+              <span class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700">
+                {{ products.length }}
+              </span>
+            </button>
+
+            <div class="my-2 border-t border-gray-100"></div>
+
+            <ng-container *ngFor="let category of categoryTree">
+              <div class="relative mb-1">
+                <button
+                  type="button"
+                  (click)="onDesktopSelectCategory(category)"
+                  class="category-link category-link-parent w-full"
+                  [class.category-link-active]="isCategorySelected(category)"
+                >
+                  <span>{{ category.category_name }}</span>
+                  <svg
+                    *ngIf="category.children.length > 0"
+                    class="h-4 w-4 text-gray-400"
+                    [class.text-green-600]="isCategorySelected(category)"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+
+                <div *ngIf="category.children.length > 0" class="my-1 ml-4 border-l border-gray-200/80 pl-3">
+                  <ng-container *ngFor="let child of category.children">
+                    <button
+                      type="button"
+                      (click)="onDesktopSelectCategory(child)"
+                      class="category-link category-link-child w-full"
+                      [class.category-link-active]="isCategorySelected(child)"
+                    >
+                      <span>{{ child.category_name }}</span>
+                      <svg
+                        *ngIf="child.children.length > 0"
+                        class="h-3 w-3 text-gray-400"
+                        [class.text-green-600]="isCategorySelected(child)"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+
+                    <div *ngIf="child.children.length > 0" class="my-1 ml-4 border-l border-gray-200/70 pl-3">
+                      <button
+                        *ngFor="let grandchild of child.children"
+                        type="button"
+                        (click)="onDesktopSelectCategory(grandchild)"
+                        class="category-link category-link-grandchild w-full text-left"
+                        [class.category-link-active]="isCategorySelected(grandchild)"
+                      >
+                        {{ grandchild.category_name }}
+                      </button>
+                    </div>
+                  </ng-container>
+                </div>
+              </div>
+            </ng-container>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- Products -->
+      <main class="min-w-0 flex-1">
+        <div class="mb-4 flex items-center justify-between">
+          <div>
+            <h1 class="text-xl font-bold text-gray-900 md:text-2xl">
+              <span class="text-green-600">{{ getDesktopResultsLabel() }}</span>
+            </h1>
+            <p class="mt-1 text-sm text-gray-500">{{ filteredProducts.length }} products found</p>
+          </div>
+        </div>
+
+        <div *ngIf="isLoading" class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+          <div *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="overflow-hidden rounded-xl border border-gray-200 bg-white">
+            <div class="aspect-square skeleton-pulse"></div>
+            <div class="space-y-2 p-4">
+              <div class="h-3 w-full rounded skeleton-pulse"></div>
+              <div class="h-3 w-2/3 rounded skeleton-pulse"></div>
+            </div>
+          </div>
+        </div>
+
+        <ng-container *ngIf="!isLoading">
+          <div
+            *ngIf="paginatedProducts.length > 0; else emptyProducts"
+            class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
+          >
+            <article
+              *ngFor="let product of paginatedProducts; trackBy: trackByProductId"
+              class="group overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-300 hover:shadow-xl"
+            >
+              <button type="button" class="w-full text-left" (click)="onProductClick(product)">
+                <div class="relative aspect-square overflow-hidden bg-gray-100">
+                  <img
+                    [src]="product.image"
+                    [alt]="product.name"
+                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    (error)="onImageError($event)"
+                  />
+                </div>
+                <div class="p-3 md:p-4">
+                  <span class="text-[10px] uppercase tracking-wide text-gray-500 md:text-xs">
+                    {{ product.category }}
+                  </span>
+                  <h3
+                    class="mt-1 mb-2 line-clamp-2 min-h-[2.5rem] text-sm font-semibold text-gray-900 transition group-hover:text-green-600"
+                  >
+                    {{ product.name }}
+                  </h3>
+                  <app-shop-name-link
+                    class="mb-2 block"
+                    [storeId]="product.store_id"
+                    [storeName]="product.store_name"
+                    [shopLocation]="product.shop_location"
+                  ></app-shop-name-link>
+                  <div class="mb-3 flex items-center gap-1">
+                    <span class="text-sm font-semibold text-gray-900">{{ formatRating(product.rating) }}</span>
+                    <svg class="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path
+                        d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+                      />
+                    </svg>
+                    <span class="text-xs text-gray-500">({{ product.reviews.toLocaleString() }})</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-base font-bold text-gray-900 md:text-lg">
+                      ${{ product.price.toLocaleString() }}
+                    </span>
+                    <span
+                      *ngIf="product.originalPrice > product.price"
+                      class="text-xs text-gray-400 line-through md:text-sm"
+                    >
+                      ${{ product.originalPrice.toLocaleString() }}
+                    </span>
+                  </div>
+                </div>
+              </button>
+              <div class="grid grid-cols-2 gap-2 border-t border-gray-100 p-3 md:p-4">
+                <button
+                  type="button"
+                  (click)="onAddToCart(product, $event)"
+                  class="rounded-lg border border-green-600 px-2 py-2 text-xs font-semibold text-green-600 transition hover:bg-green-50 md:text-sm"
+                >
+                  Add to Cart
+                </button>
+                <button
+                  type="button"
+                  (click)="onBuyNow(product, $event)"
+                  class="rounded-lg bg-green-600 px-2 py-2 text-xs font-semibold text-white transition hover:bg-green-700 md:text-sm"
+                >
+                  Buy Now
+                </button>
+              </div>
+            </article>
+          </div>
+
+          <ng-template #emptyProducts>
+            <div class="rounded-xl border border-gray-200 bg-white py-16 text-center text-gray-500">
+              No products found for this category.
+            </div>
+          </ng-template>
+
+          <div *ngIf="filteredProducts.length > 0" class="mt-8 flex items-center justify-between">
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition hover:text-green-600 disabled:opacity-40"
+              [disabled]="currentPage === 1"
+              (click)="onPreviousPage()"
+            >
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              Previous
+            </button>
+
+            <div class="flex items-center gap-1">
+              <ng-container *ngFor="let page of pageNumbers; let i = index">
+                <span *ngIf="showPageEllipsis && i > 0 && page - pageNumbers[i - 1] > 1" class="px-1 text-gray-400">...</span>
+                <button
+                  type="button"
+                  class="min-w-[2.25rem] rounded-lg px-2 py-1.5 text-sm font-medium transition"
+                  [class.bg-green-50]="page === currentPage"
+                  [class.text-green-700]="page === currentPage"
+                  [class.text-gray-600]="page !== currentPage"
+                  [class.hover:bg-gray-100]="page !== currentPage"
+                  (click)="goToPage(page)"
+                >
+                  {{ page }}
+                </button>
+              </ng-container>
+            </div>
+
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 transition hover:text-green-600 disabled:opacity-40"
+              [disabled]="currentPage === totalPages"
+              (click)="onNextPage()"
+            >
+              Next
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </ng-container>
+      </main>
+    </div>
+  </div>
 </section>

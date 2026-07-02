@@ -7,12 +7,14 @@ import {
   FavoriteProduct as FavoriteProductItem,
   FavoritesService,
 } from '../../../core/services/favorites.service/favorites.service';
+import { MarketplaceShopService } from '../../../core/services/marketplace-shop.service/marketplace-shop.service';
+import { ShopNameLink } from '../../../shared/components/shop-name-link/shop-name-link';
 import { ActionFeedbackService } from '../../../core/services/action-feedback.service/action-feedback.service';
 import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-favorite-product',
-  imports: [CommonModule, RouterModule, Header, Footer],
+  imports: [CommonModule, RouterModule, Header, Footer, ShopNameLink],
   templateUrl: './favorite-product.html',
   styleUrl: './favorite-product.css',
 })
@@ -25,13 +27,26 @@ export class FavoriteProduct implements OnInit, OnDestroy {
   constructor(
     private favoritesService: FavoritesService,
     private router: Router,
-    private actionFeedback: ActionFeedbackService
+    private actionFeedback: ActionFeedbackService,
+    private shopService: MarketplaceShopService
   ) {}
 
   ngOnInit(): void {
-    this.favoriteProducts = this.favoritesService.getFavorites();
-    this.favoritesSub = this.favoritesService.favorites$.subscribe((items) => {
-      this.favoriteProducts = items;
+    this.refreshFavorites();
+    this.favoritesSub = this.favoritesService.favorites$.subscribe(() => {
+      this.refreshFavorites();
+    });
+  }
+
+  private refreshFavorites(): void {
+    const items = this.favoritesService.getFavorites();
+    this.shopService.enrichWithShopNames(items as any[]).subscribe({
+      next: (enriched) => {
+        this.favoriteProducts = enriched as FavoriteProductItem[];
+      },
+      error: () => {
+        this.favoriteProducts = items;
+      },
     });
   }
 
@@ -84,6 +99,9 @@ export class FavoriteProduct implements OnInit, OnDestroy {
       existingItems[existingIndex].image = product?.image || '/mobile.jpg';
       existingItems[existingIndex].name = product?.name || 'Untitled Product';
       existingItems[existingIndex].inStock = product?.inStock !== false;
+      existingItems[existingIndex].store_id = product?.store_id || '';
+      existingItems[existingIndex].store_name = product?.store_name || '';
+      existingItems[existingIndex].shop_location = product?.shop_location || '';
     } else {
       existingItems.push({
         id: productId,
@@ -93,6 +111,9 @@ export class FavoriteProduct implements OnInit, OnDestroy {
         image: product?.image || '/mobile.jpg',
         quantity: 1,
         inStock: product?.inStock !== false,
+        store_id: product?.store_id || '',
+        store_name: product?.store_name || '',
+        shop_location: product?.shop_location || '',
       });
     }
 

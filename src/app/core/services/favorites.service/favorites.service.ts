@@ -9,6 +9,8 @@ export interface FavoriteProduct {
   image: string;
   inStock: boolean;
   store_id?: string;
+  store_name?: string;
+  shop_location?: string;
   rating?: number;
   reviews?: number;
   brand?: string;
@@ -61,6 +63,8 @@ export class FavoritesService {
       image: product.image || '/mobile.jpg',
       inStock: product.inStock !== false,
       store_id: product.store_id ? String(product.store_id) : undefined,
+      store_name: product.store_name ? String(product.store_name) : undefined,
+      shop_location: product.shop_location ? String(product.shop_location) : undefined,
       rating: product.rating,
       reviews: product.reviews,
       brand: product.brand,
@@ -89,6 +93,8 @@ export class FavoritesService {
       image: product?.image || '/mobile.jpg',
       inStock: product?.inStock !== false,
       store_id: product?.store_id ? String(product.store_id) : undefined,
+      store_name: product?.store_name ? String(product.store_name) : undefined,
+      shop_location: product?.shop_location ? String(product.shop_location) : undefined,
       rating: product?.rating,
       reviews: product?.reviews,
       brand: product?.brand,

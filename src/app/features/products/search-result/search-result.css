@@ -6,3 +6,32 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+.search-result-ad {
+  display: block;
+  background: #f3f4f6;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.search-result-ad:hover {
+  border-color: #bbf7d0;
+  box-shadow: 0 4px 16px rgba(22, 163, 74, 0.1);
+}
+
+.search-result-ad-desktop {
+  height: 542px;
+}
+
+.search-result-ad-mobile {
+  height: 160px;
+}
+
+.search-result-ad-media {
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1), transform 0.55s ease;
+  will-change: opacity, transform;
+}
+
+.search-result-ad-fading .search-result-ad-media {
+  opacity: 0;
+  transform: scale(1.02);
+}

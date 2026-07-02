@@ -1,14 +1,20 @@
-import { Component, OnInit, HostListener, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Header } from "../../../../shared/components/header/header";
 import { Footer } from "../../../../shared/components/footer/footer";
 import { BackendapiServices } from "../../../../core/services/backendapi.services/backendapi.services";
+import { RegionService } from '../../../../core/services/region.service/region.service';
 import { FavoritesService } from "../../../../core/services/favorites.service/favorites.service";
 import { ActionFeedbackService } from "../../../../core/services/action-feedback.service/action-feedback.service";
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { HomeProductCard } from '../../../home/pages/home/home';
+import {
+  formatShopLocation,
+  resolveStoreAddressRegion,
+  resolveStoreRegionFromProduct,
+} from '../../../../core/utils/marketplace-shop.util';
 
 @Component({
   selector: 'app-product-details',
@@ -16,13 +22,16 @@ import { HomeProductCard } from '../../../home/pages/home/home';
   templateUrl: './product-details.html',
   styleUrl: './product-details.css',
 })
-export class ProductDetails implements OnInit {
+export class ProductDetails implements OnInit, OnDestroy {
   @ViewChild('recentlyViewedCarousel') recentlyViewedCarousel?: ElementRef<HTMLElement>;
+  @ViewChild('relatedProductsCarousel') relatedProductsCarousel?: ElementRef<HTMLElement>;
 
   private readonly cartStorageKey = 'cart_items';
   private readonly recentlyViewedStorageKey = 'recently_viewed_products';
   private allMarketplaceCards: HomeProductCard[] = [];
+  private allCategoriesFlat: any[] = [];
   recentlyViewed: HomeProductCard[] = [];
+  relatedProducts: HomeProductCard[] = [];
   qtyOptions: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
   
@@ -53,6 +62,9 @@ export class ProductDetails implements OnInit {
     responseTime: '',
     itemsSoldLabel: '',
     followersLabel: '',
+    atoll: '',
+    city: '',
+    location: '',
     isApiData: false,
   };
 
@@ -123,16 +135,71 @@ export class ProductDetails implements OnInit {
   activeTab: string = 'description';
   isLoading: boolean = true;
 
+  productDetailAds = [
+    {
+      image: '/mobile3.jpg',
+      title: 'CYBER MONDAY SALE',
+      description: "Don't miss out on amazing deals!",
+      discount: '75% OFF',
+      buttonText: 'Shop Now',
+    },
+    {
+      image: '/mobile4.jpg',
+      title: 'SUMMER COLLECTION',
+      description: 'New arrivals with exclusive discounts!',
+      discount: '50% OFF',
+      buttonText: 'Explore Now',
+    },
+    {
+      image: '/mobile2.jpg',
+      title: 'FLASH SALE',
+      description: "Limited time offers — shop before they're gone!",
+      discount: '60% OFF',
+      buttonText: 'Buy Now',
+    },
+    {
+      image: '/mobile.jpg',
+      title: 'WEEKEND SPECIAL',
+      description: 'Extra savings on selected items this weekend!',
+      discount: '40% OFF',
+      buttonText: 'Shop Now',
+    },
+  ];
+  currentProductDetailAdIndex = 0;
+  productDetailAdFading = false;
+  private productDetailAdInterval: ReturnType<typeof setInterval> | null = null;
+  private productDetailAdFadeTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly regionUpdatedHandler = () => {
+    if (this.productId) {
+      this.loadProduct(this.productId);
+    }
+  };
+
+  get currentProductDetailAd() {
+    return this.productDetailAds[this.currentProductDetailAdIndex];
+  }
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private api: BackendapiServices,
     private sanitizer: DomSanitizer,
     private favoritesService: FavoritesService,
-    private actionFeedback: ActionFeedbackService
+    private actionFeedback: ActionFeedbackService,
+    private regionService: RegionService
   ) {}
 
   ngOnInit() {
+    this.startProductDetailAdRotation();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('region-updated', this.regionUpdatedHandler);
+    }
+    this.api.getAllCategoryList().subscribe((res: any) => {
+      const allCategories = res?.data || [];
+      this.allCategoriesFlat = Array.isArray(allCategories) ? allCategories : [];
+      this.refreshCardCategoryNames();
+      this.buildRelatedProducts();
+    });
     this.route.queryParams.subscribe(params => {
       this.productId = params['productId'];
       this.currentStoreId = this.resolveStoreIdFromRoute(params);
@@ -145,25 +212,40 @@ export class ProductDetails implements OnInit {
     });
   }
 
-  loadProduct(productId: string) {
-    this.api.getMarketplaceProducts().subscribe({
-      next: (res: any) => {
-        console.log('[ProductDetails] Marketplace API response:', res);
-        const rawPayload = res?.data ?? res;
-        let productList: any[] = [];
+  ngOnDestroy(): void {
+    this.stopProductDetailAdRotation();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('region-updated', this.regionUpdatedHandler);
+    }
+  }
 
-        if (typeof rawPayload === 'string') {
-          try {
-            const parsed = JSON.parse(rawPayload);
-            productList = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
-          } catch {
-            productList = [];
-          }
-        } else if (Array.isArray(rawPayload)) {
-          productList = rawPayload;
-        } else if (rawPayload) {
-          productList = [rawPayload];
-        }
+  private startProductDetailAdRotation(): void {
+    this.stopProductDetailAdRotation();
+    this.productDetailAdInterval = setInterval(() => {
+      this.productDetailAdFading = true;
+      this.productDetailAdFadeTimer = setTimeout(() => {
+        this.currentProductDetailAdIndex =
+          (this.currentProductDetailAdIndex + 1) % this.productDetailAds.length;
+        this.productDetailAdFading = false;
+      }, 550);
+    }, 5200);
+  }
+
+  private stopProductDetailAdRotation(): void {
+    if (this.productDetailAdInterval) {
+      clearInterval(this.productDetailAdInterval);
+      this.productDetailAdInterval = null;
+    }
+    if (this.productDetailAdFadeTimer) {
+      clearTimeout(this.productDetailAdFadeTimer);
+      this.productDetailAdFadeTimer = null;
+    }
+  }
+
+  loadProduct(productId: string) {
+    this.api.getMarketplaceProductsWithFallback(this.regionService.getProductRequestParams()).subscribe({
+      next: (res: any) => {
+        const productList = this.api.extractProductsFromResponse(res);
 
         const matchedProduct = productList.find(
           (product: any) => String(product?.product_id ?? product?.id ?? '') === String(productId)
@@ -180,15 +262,18 @@ export class ProductDetails implements OnInit {
         this.allMarketplaceCards = productList.map((product: any) =>
           this.mapApiProductToCard(product)
         );
+        this.refreshCardCategoryNames();
         this.transformProductData(matchedProduct);
         this.loadShopProfileForProduct(matchedProduct);
         this.buildRecentlyViewed();
+        this.buildRelatedProducts();
         this.isLoading = false;
       },
       error: (err: any) => {
-        console.error('[ProductDetails] getMarketplaceProducts error:', err);
+        console.error('[ProductDetails] getMarketplaceProductsWithFallback error:', err);
         this.allMarketplaceCards = [];
         this.buildRecentlyViewed();
+        this.buildRelatedProducts();
         this.isLoading = false;
       }
     });
@@ -223,7 +308,11 @@ export class ProductDetails implements OnInit {
       id: productId,
       productId,
       name: apiProduct?.title || 'Untitled Product',
-      category: this.getCategoryName(apiProduct?.category_id),
+      category: this.resolveCategoryName(
+        this.normalizeProductId(apiProduct?.category_id),
+        this.normalizeProductId(apiProduct?.sub_category_id),
+        this.normalizeProductId(apiProduct?.sub_sub_category_id)
+      ),
       price: basePrice,
       originalPrice: basePrice > 0 ? Math.round(basePrice * 1.2 * 100) / 100 : 0,
       image: primaryImage,
@@ -282,16 +371,87 @@ export class ProductDetails implements OnInit {
       allImages[0]?.image_url ||
       '/mobile.jpg';
     const basePrice = Number(variant?.base_price ?? product?.fixed_price ?? 0);
+    const categoryId = this.normalizeProductId(product?.category_id);
+    const subCategoryId = this.normalizeProductId(product?.sub_category_id);
+    const subSubCategoryId = this.normalizeProductId(product?.sub_sub_category_id);
 
     return {
       id: this.normalizeProductId(product?.product_id ?? product?.id),
       name: product?.title || 'Untitled Product',
-      category: this.getCategoryName(product?.category_id),
+      category: this.resolveCategoryName(categoryId, subCategoryId, subSubCategoryId),
       price: basePrice,
       originalPrice: basePrice > 0 ? Math.round(basePrice * 1.2 * 100) / 100 : 0,
       image: imageUrl,
       store_id: this.resolveStoreIdFromProduct(product, variant),
+      category_id: categoryId,
+      sub_category_id: subCategoryId,
+      sub_sub_category_id: subSubCategoryId,
     };
+  }
+
+  private refreshCardCategoryNames(): void {
+    if (!this.allCategoriesFlat.length || !this.allMarketplaceCards.length) return;
+
+    this.allMarketplaceCards = this.allMarketplaceCards.map((product) => ({
+      ...product,
+      category: this.resolveCategoryName(
+        product.category_id || '',
+        product.sub_category_id || '',
+        product.sub_sub_category_id || ''
+      ),
+    }));
+  }
+
+  private buildRelatedProducts(): void {
+    const currentId = String(this.productId ?? '').trim();
+    const primaryCategoryId = this.getPrimaryCategoryId(this.apiProductData);
+
+    if (!primaryCategoryId || !this.allMarketplaceCards.length) {
+      this.relatedProducts = [];
+      return;
+    }
+
+    this.relatedProducts = this.allMarketplaceCards
+      .filter(
+        (product) =>
+          product.id !== currentId && this.productSharesCategory(product, primaryCategoryId)
+      )
+      .slice(0, 12);
+  }
+
+  private getPrimaryCategoryId(product: any): string {
+    if (!product) return '';
+    const subSub = this.normalizeProductId(product?.sub_sub_category_id);
+    if (subSub) return subSub;
+    const sub = this.normalizeProductId(product?.sub_category_id);
+    if (sub) return sub;
+    return this.normalizeProductId(product?.category_id);
+  }
+
+  private productSharesCategory(product: HomeProductCard, categoryId: string): boolean {
+    if (!categoryId) return false;
+    return (
+      product.category_id === categoryId ||
+      product.sub_category_id === categoryId ||
+      product.sub_sub_category_id === categoryId
+    );
+  }
+
+  private resolveCategoryName(
+    categoryId: string,
+    subCategoryId: string,
+    subSubCategoryId: string
+  ): string {
+    const ids = [subSubCategoryId, subCategoryId, categoryId].filter(Boolean);
+    for (const id of ids) {
+      const match = this.allCategoriesFlat.find(
+        (cat: any) => this.normalizeProductId(cat?.category_id ?? cat?.id) === id
+      );
+      if (match?.category_name || match?.name) {
+        return match.category_name || match.name;
+      }
+    }
+    return 'Products';
   }
 
   private normalizeProductId(value: any): string {
@@ -299,15 +459,34 @@ export class ProductDetails implements OnInit {
   }
 
   scrollRecentlyViewed(direction: 'left' | 'right'): void {
-    if (!this.recentlyViewedCarousel?.nativeElement) return;
+    this.scrollProductCarousel(this.recentlyViewedCarousel, direction);
+  }
+
+  scrollRelatedProducts(direction: 'left' | 'right'): void {
+    this.scrollProductCarousel(this.relatedProductsCarousel, direction);
+  }
+
+  private scrollProductCarousel(
+    carousel: ElementRef<HTMLElement> | undefined,
+    direction: 'left' | 'right'
+  ): void {
+    if (!carousel?.nativeElement) return;
     const scrollAmount = 280;
-    const currentScroll = this.recentlyViewedCarousel.nativeElement.scrollLeft;
+    const currentScroll = carousel.nativeElement.scrollLeft;
     const newScroll =
       direction === 'left' ? currentScroll - scrollAmount : currentScroll + scrollAmount;
-    this.recentlyViewedCarousel.nativeElement.scrollTo({ left: newScroll, behavior: 'smooth' });
+    carousel.nativeElement.scrollTo({ left: newScroll, behavior: 'smooth' });
   }
 
   onRecentlyViewedProductClick(product: HomeProductCard): void {
+    this.navigateToProduct(product);
+  }
+
+  onRelatedProductClick(product: HomeProductCard): void {
+    this.navigateToProduct(product);
+  }
+
+  private navigateToProduct(product: HomeProductCard): void {
     if (!product?.id) return;
     if (product.store_id && typeof window !== 'undefined') {
       localStorage.setItem('store_id', product.store_id);
@@ -691,7 +870,11 @@ export class ProductDetails implements OnInit {
     this.product = {
       id: apiProduct.product_id,
       name: productName,
-      category: this.getCategoryName(apiProduct.category_id),
+      category: this.resolveCategoryName(
+        this.normalizeProductId(apiProduct.category_id),
+        this.normalizeProductId(apiProduct.sub_category_id),
+        this.normalizeProductId(apiProduct.sub_sub_category_id)
+      ),
       rating: 4.5,
       reviews: Math.floor(Math.random() * 5000) + 100,
       sold: Math.floor(Math.random() * 1000) + 50,
@@ -797,9 +980,11 @@ export class ProductDetails implements OnInit {
   }
 
   getCategoryName(categoryId: string): string {
-    // This would ideally fetch from category list
-    // For now, return a placeholder
-    return 'Product Category';
+    return this.resolveCategoryName(
+      this.normalizeProductId(categoryId),
+      '',
+      ''
+    );
   }
 
   onShop(){
@@ -809,6 +994,10 @@ export class ProductDetails implements OnInit {
         store_id: storeIdForNavigation || undefined,
       },
     });
+  }
+
+  onProductDetailAdClick(): void {
+    this.router.navigate(['/product-list']);
   }
 
   private resolveStoreIdFromRoute(params: any): string {
@@ -864,6 +1053,14 @@ export class ProductDetails implements OnInit {
         const rawStore = res?.data ?? res;
         const storeData = Array.isArray(rawStore) ? rawStore[0] : rawStore;
 
+        const storeRegion = resolveStoreAddressRegion(storeData);
+        const productRegion = resolveStoreRegionFromProduct(productData);
+        const atoll = storeRegion.atoll || productRegion.atoll;
+        const city = storeRegion.city || productRegion.city;
+        const locationLabel =
+          formatShopLocation(atoll, city) ||
+          String(storeData?.store_location || storeData?.location || '').trim();
+
         this.shopProfile = {
           id: String(
             storeData?.store_id ??
@@ -910,10 +1107,14 @@ export class ProductDetails implements OnInit {
             storeData?.follower_count ??
             0
           ),
+          atoll,
+          city,
+          location: locationLabel,
           isApiData: true,
         };
       },
       error: () => {
+        const productRegion = resolveStoreRegionFromProduct(productData);
         this.shopProfile = {
           id: storeIdToLoad,
           name:
@@ -952,6 +1153,9 @@ export class ProductDetails implements OnInit {
             productData?.follower_count ??
             0
           ),
+          atoll: productRegion.atoll,
+          city: productRegion.city,
+          location: formatShopLocation(productRegion.atoll, productRegion.city),
           isApiData: true,
         };
       },
@@ -970,6 +1174,9 @@ export class ProductDetails implements OnInit {
       responseTime: '',
       itemsSoldLabel: '',
       followersLabel: '',
+      atoll: '',
+      city: '',
+      location: '',
       isApiData: false,
     };
   }

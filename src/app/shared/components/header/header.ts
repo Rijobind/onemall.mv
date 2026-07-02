@@ -14,6 +14,12 @@ import { Signin } from '../../../features/products/models/signin/signin';
 import { Signup } from '../../../features/products/models/signup/signup';
 import { BackendapiServices } from '../../../core/services/backendapi.services/backendapi.services';
 import { FavoritesService } from '../../../core/services/favorites.service/favorites.service';
+import {
+  MarketplaceCity,
+  MarketplaceRegion,
+  RegionSelection,
+  RegionService,
+} from '../../../core/services/region.service/region.service';
 import { filter, Subscription } from 'rxjs';
 
 type SearchSuggestionType = 'autocomplete' | 'category';
@@ -38,6 +44,7 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
   private categoryCloseTimeout: ReturnType<typeof setTimeout> | null = null;
   private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private routerEventsSub: Subscription | null = null;
+  private regionSub: Subscription | null = null;
   cartCount = 0;
   wishlistCount = 0;
   notificationCount = 4;
@@ -100,17 +107,28 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
   selectedSearchIndex: number = -1;
   recentSearches: Array<{ query: string; image: string }> = [];
 
+  isRegionModalOpen = false;
+  regionList: MarketplaceRegion[] = [];
+  cityList: MarketplaceCity[] = [];
+  modalRegionId = '';
+  modalCity = '';
+  isCitiesLoading = false;
+
   constructor(
     private router: Router,
     private cdr: ChangeDetectorRef,
     private api: BackendapiServices,
-    private favoritesService: FavoritesService
+    private favoritesService: FavoritesService,
+    private regionService: RegionService
   ) {}
 
   ngOnInit() {
     this.startAdRotation();
     this.loadCategory();
-    this.loadProductList();
+    this.loadRegions();
+    this.regionSub = this.regionService.selection$.subscribe(() => {
+      this.loadProductList();
+    });
     this.loadCartCount();
     this.loadWishlistCount();
     this.loadRecentSearches();
@@ -124,10 +142,98 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
       });
   }
 
+  get regionDisplayLabel(): string {
+    return this.regionService.displayLabel;
+  }
+
+  loadRegions(): void {
+    this.regionService.loadRegions().subscribe({
+      next: () => {
+        this.regionList = this.regionService.regions;
+      },
+      error: () => {
+        this.regionList = [];
+      },
+    });
+  }
+
+  openRegionModal(): void {
+    const current = this.regionService.getEffectiveSelection();
+    this.modalRegionId = current.countryRegionId;
+    this.modalCity = current.city;
+    this.isRegionModalOpen = true;
+    this.closeSearchDropdown();
+    this.closeCategoryDropdown();
+
+    if (this.modalRegionId) {
+      this.loadCitiesForModal(this.modalRegionId);
+      return;
+    }
+
+    const kaafuRegion = this.regionList.find(
+      (region) => region.region_name?.toLowerCase() === 'kaafu'
+    );
+    if (kaafuRegion) {
+      this.modalRegionId = kaafuRegion.country_region_id;
+      this.modalCity = this.modalCity || 'Male';
+      this.loadCitiesForModal(this.modalRegionId);
+    }
+  }
+
+  closeRegionModal(): void {
+    this.isRegionModalOpen = false;
+  }
+
+  onModalRegionChange(countryRegionId: string): void {
+    this.modalRegionId = countryRegionId;
+    this.modalCity = '';
+    this.loadCitiesForModal(countryRegionId);
+  }
+
+  onModalCityChange(city: string): void {
+    this.modalCity = city;
+  }
+
+  private loadCitiesForModal(countryRegionId: string): void {
+    if (!countryRegionId) {
+      this.cityList = [];
+      return;
+    }
+
+    this.isCitiesLoading = true;
+    this.regionService.loadCities(countryRegionId).subscribe({
+      next: () => {
+        this.cityList = this.regionService.cities;
+        this.isCitiesLoading = false;
+      },
+      error: () => {
+        this.cityList = [];
+        this.isCitiesLoading = false;
+      },
+    });
+  }
+
+  applyRegionSelection(): void {
+    const selectedRegion = this.regionList.find(
+      (region) => region.country_region_id === this.modalRegionId
+    );
+    if (!selectedRegion) {
+      return;
+    }
+
+    const selection: RegionSelection = {
+      countryRegionId: selectedRegion.country_region_id,
+      regionName: selectedRegion.region_name,
+      city: this.modalCity,
+    };
+    this.regionService.applySelection(selection);
+    this.closeRegionModal();
+  }
+
   loadProductList() {
-    this.api.getMarketplaceProducts().subscribe({
+    this.api.getMarketplaceProductsWithFallback(this.regionService.getProductRequestParams()).subscribe({
       next: (res: any) => {
-        this.ProductList = res.data || [];
+        this.ProductList = this.api.extractProductsFromResponse(res);
       },
       error: () => {
         this.ProductList = [];
@@ -197,6 +303,10 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
     if (this.routerEventsSub) {
       this.routerEventsSub.unsubscribe();
       this.routerEventsSub = null;
+    }
+    if (this.regionSub) {
+      this.regionSub.unsubscribe();
+      this.regionSub = null;
     }
     if (this.categoryCloseTimeout) {
       clearTimeout(this.categoryCloseTimeout);

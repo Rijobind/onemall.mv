@@ -126,6 +126,7 @@
         </div>
       </aside>
 
+      <div class="flex flex-1 min-w-0 gap-4">
       <div class="flex-1 min-w-0">
         <!-- Main content skeleton -->
         <div *ngIf="isLoading">
@@ -285,8 +286,8 @@
 
           <!-- Product List (Mobile like search-result) -->
           <div class="grid grid-cols-2 gap-2 md:hidden">
+            <ng-container *ngFor="let product of filteredProducts; let i = index">
             <button
-              *ngFor="let product of filteredProducts"
               (click)="onProductClick(product)"
               class="overflow-hidden text-left transition-all bg-white border border-gray-200 rounded-lg group hover:shadow-md hover:border-green-300"
             >
@@ -309,6 +310,12 @@
                 <h3 class="text-xs font-semibold leading-tight text-gray-900 transition line-clamp-2 group-hover:text-green-600">
                   {{ product.name }}
                 </h3>
+                <app-shop-name-link
+                  class="mt-1 block"
+                  [storeId]="product.store_id"
+                  [storeName]="product.store_name"
+                  [shopLocation]="product.shop_location"
+                ></app-shop-name-link>
                 <p class="mt-1 text-[10px] leading-tight text-gray-600 line-clamp-1">
                   <span class="font-semibold text-green-600">Top Rated</span> in {{ product.brand || 'Products' }}
                 </p>
@@ -356,6 +363,23 @@
                 </div>
               </div>
             </button>
+
+            <div *ngIf="i === 3" class="col-span-2">
+              <button
+                type="button"
+                (click)="onProductListAdClick()"
+                class="product-list-ad product-list-ad-mobile w-full overflow-hidden rounded-xl border border-gray-200"
+                [class.product-list-ad-fading]="productListAdFading"
+                aria-label="Advertisement"
+              >
+                <img
+                  [src]="currentProductListAdImage"
+                  alt="Advertisement"
+                  class="product-list-ad-media h-full w-full object-cover"
+                />
+              </button>
+            </div>
+            </ng-container>
           </div>
 
           <!-- Product List (Desktop existing style) -->
@@ -393,9 +417,15 @@
               <!-- Product Details -->
               <div class="flex-1 min-w-0">
                 <div *ngIf="product.sponsored" class="mb-1 text-xs text-gray-500">Sponsored</div>
-                <h3 class="mb-2 text-lg font-medium text-gray-900 line-clamp-2 hover:text-green-600">
+                <h3 class="mb-1 text-lg font-medium text-gray-900 line-clamp-2 hover:text-green-600">
                   {{ product.name }}
                 </h3>
+                <app-shop-name-link
+                  class="mb-2 block"
+                  [storeId]="product.store_id"
+                  [storeName]="product.store_name"
+                  [shopLocation]="product.shop_location"
+                ></app-shop-name-link>
 
                 <!-- Rating -->
                 <div class="flex items-center gap-1 mb-2">
@@ -442,14 +472,8 @@
                   </p>
                 </div>
 
-                <!-- Add to Cart & Favorite -->
+                <!-- Add to Favorite & Cart -->
                 <div class="flex items-center gap-2">
-                  <button
-                    (click)="onAddToCart(product, $event)"
-                    class="px-6 py-2 text-sm font-medium text-white transition bg-green-600 rounded-lg hover:bg-green-700"
-                  >
-                    Add to Cart
-                  </button>
                   <button
                     (click)="onToggleFavorite(product, $event)"
                     class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition border rounded-lg"
@@ -470,6 +494,12 @@
                       />
                     </svg>
                     {{ isProductFavorite(product) ? 'Saved' : 'Add to Favorite' }}
+                  </button>
+                  <button
+                    (click)="onAddToCart(product, $event)"
+                    class="px-6 py-2 text-sm font-medium text-white transition bg-green-600 rounded-lg hover:bg-green-700"
+                  >
+                    Add to Cart
                   </button>
                 </div>
               </div>
@@ -495,6 +525,26 @@
           <p class="text-sm text-gray-600">Try selecting a different category</p>
           </div>
         </div>
+      </div>
+
+      <!-- Desktop advertisement sidebar -->
+      <aside *ngIf="!isLoading" class="hidden flex-shrink-0 w-56 xl:block">
+        <div class="sticky top-24">
+          <button
+            type="button"
+            (click)="onProductListAdClick()"
+            class="product-list-ad product-list-ad-desktop w-full overflow-hidden rounded-xl border border-gray-200"
+            [class.product-list-ad-fading]="productListAdFading"
+            aria-label="Advertisement"
+          >
+            <img
+              [src]="currentProductListAdImage"
+              alt="Advertisement"
+              class="product-list-ad-media h-full w-full object-cover"
+            />
+          </button>
+        </div>
+      </aside>
       </div>
     </div>
   </div>

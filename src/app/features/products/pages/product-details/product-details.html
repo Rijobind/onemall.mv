@@ -51,7 +51,8 @@
 
       </div>
       <div class="lg:col-span-1">
-        <div class="sticky top-24 min-h-[520px]">
+        <div class="lg:flex lg:items-start lg:gap-6">
+          <div class="sticky top-24 min-h-[520px] flex-1 min-w-0">
           <div class="w-4/5 h-8 mb-3 rounded skeleton-pulse"></div>
           <div class="w-32 h-4 mb-4 rounded skeleton-pulse"></div>
           <div class="flex gap-3 mb-5">
@@ -89,6 +90,21 @@
               <div class="w-3/4 h-4 rounded skeleton-pulse"></div>
             </div>
           </div>
+          </div>
+
+          <aside class="hidden flex-shrink-0 w-56 lg:block">
+            <div class="sticky top-24">
+              <div class="product-detail-promo product-detail-promo-desktop product-detail-promo-skeleton">
+                <div class="product-detail-promo-visual skeleton-pulse"></div>
+                <div class="product-detail-promo-body space-y-2">
+                  <div class="w-16 h-3 rounded skeleton-pulse"></div>
+                  <div class="w-full h-4 rounded skeleton-pulse"></div>
+                  <div class="w-4/5 h-3 rounded skeleton-pulse"></div>
+                  <div class="w-24 h-3 mt-2 rounded skeleton-pulse"></div>
+                </div>
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
     </div>
@@ -135,7 +151,7 @@
                 <video
                   *ngIf="isVideoMedia(product.images[selectedImageIndex]); else imageMediaTemplate"
                   [src]="product.images[selectedImageIndex]"
-                  class=" w-full h-full  bg-[#f2f2f2]"
+                  class="w-full h-full object-contain bg-[#f2f2f2]"
                   controls
                   playsinline
                   preload="metadata"
@@ -144,7 +160,7 @@
                   <img
                     [src]="product.images[selectedImageIndex]"
                     [alt]="product.name"
-                    class=" w-full h-full  bg-[#f2f2f2]"
+                    class="w-full h-full object-contain bg-[#f2f2f2]"
                   />
                 </ng-template>
               </ng-container>
@@ -273,7 +289,8 @@
       </div>
       <!-- Center: Title, Details, Variants -->
       <div class="min-w-0 overflow-hidden lg:col-span-1">
-        <div class="relative min-h-[520px]  lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+        <div class="lg:flex lg:items-start lg:gap-6">
+          <div class="relative flex-1 min-w-0 min-h-[520px] lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
           <button
             type="button"
             (click)="toggleShareMenu(); $event.stopPropagation()"
@@ -422,7 +439,17 @@
                     />
                   </svg>
                 </p>
-                <p class="text-xs leading-tight text-gray-500">official store</p>
+                <p
+                  *ngIf="shopProfile.location"
+                  class="flex items-center gap-1 text-xs leading-tight text-gray-500 truncate"
+                >
+                  <svg class="w-3 h-3 flex-shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span class="truncate">{{ shopProfile.location }}</span>
+                </p>
+                <p *ngIf="!shopProfile.location" class="text-xs leading-tight text-gray-500">official store</p>
               </div>
             </div>
             <div class="flex items-center gap-1.5">
@@ -635,11 +662,23 @@
                   [alt]="shopProfile.name"
                   class="object-cover w-10 h-10 border border-gray-200 rounded-md shrink-0"
                 />
-                <p class="text-sm leading-snug text-gray-900 min-w-0">
-                  Visit the
-                  <span class="font-semibold text-green-700">{{ shopProfile.name }}</span>
-                  Store
-                </p>
+                <div class="min-w-0">
+                  <p class="text-sm leading-snug text-gray-900">
+                    Visit the
+                    <span class="font-semibold text-green-700">{{ shopProfile.name }}</span>
+                    Store
+                  </p>
+                  <p
+                    *ngIf="shopProfile.location"
+                    class="flex items-center gap-1 mt-0.5 text-xs text-gray-500 truncate"
+                  >
+                    <svg class="w-3.5 h-3.5 flex-shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span class="truncate">{{ shopProfile.location }}</span>
+                  </p>
+                </div>
               </div>
               <div class="flex items-center gap-2 shrink-0">
                 <button
@@ -752,6 +791,85 @@
               </p>
             </div>
           </div>
+
+          <!-- Mobile advertisement: after Description -->
+          <div class="mt-6 lg:hidden">
+            <button
+              type="button"
+              (click)="onProductDetailAdClick()"
+              class="product-detail-promo product-detail-promo-mobile w-full text-left group"
+              [class.product-detail-ad-fading]="productDetailAdFading"
+            >
+              <div class="product-detail-promo-visual">
+                <img
+                  [src]="currentProductDetailAd.image"
+                  [alt]="currentProductDetailAd.title"
+                  class="product-detail-ad-media h-full w-full object-cover"
+                />
+                <span class="product-detail-promo-badge">{{ currentProductDetailAd.discount }}</span>
+              </div>
+              <div class="product-detail-promo-body product-detail-ad-media">
+                <p class="product-detail-promo-eyebrow">Special offer</p>
+                <h3 class="product-detail-promo-title">{{ currentProductDetailAd.title }}</h3>
+                <p class="product-detail-promo-desc">{{ currentProductDetailAd.description }}</p>
+                <span class="product-detail-promo-cta">
+                  {{ currentProductDetailAd.buttonText }}
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </span>
+              </div>
+            </button>
+
+            <div class="product-detail-promo-dots">
+              <span
+                *ngFor="let ad of productDetailAds; let i = index"
+                class="product-detail-promo-dot"
+                [class.product-detail-promo-dot-active]="currentProductDetailAdIndex === i"
+              ></span>
+            </div>
+          </div>
+          </div>
+
+          <!-- Desktop advertisement sidebar -->
+          <aside class="hidden flex-shrink-0 w-56 lg:block">
+            <div class="sticky top-24">
+              <button
+                type="button"
+                (click)="onProductDetailAdClick()"
+                class="product-detail-promo product-detail-promo-desktop w-full text-left group"
+                [class.product-detail-ad-fading]="productDetailAdFading"
+              >
+                <div class="product-detail-promo-visual">
+                  <img
+                    [src]="currentProductDetailAd.image"
+                    [alt]="currentProductDetailAd.title"
+                    class="product-detail-ad-media h-full w-full object-cover"
+                  />
+                  <span class="product-detail-promo-badge">{{ currentProductDetailAd.discount }}</span>
+                </div>
+                <div class="product-detail-promo-body product-detail-ad-media">
+                  <p class="product-detail-promo-eyebrow">Special offer</p>
+                  <h3 class="product-detail-promo-title">{{ currentProductDetailAd.title }}</h3>
+                  <p class="product-detail-promo-desc">{{ currentProductDetailAd.description }}</p>
+                  <span class="product-detail-promo-cta">
+                    {{ currentProductDetailAd.buttonText }}
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                </div>
+              </button>
+
+              <div class="product-detail-promo-dots">
+                <span
+                  *ngFor="let ad of productDetailAds; let i = index"
+                  class="product-detail-promo-dot"
+                  [class.product-detail-promo-dot-active]="currentProductDetailAdIndex === i"
+                ></span>
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
     </div>
@@ -806,6 +924,89 @@
           <div
             *ngFor="let product of recentlyViewed"
             (click)="onRecentlyViewedProductClick(product)"
+            class="flex-shrink-0 overflow-hidden transition-all duration-300 bg-white border border-gray-200 rounded-lg cursor-pointer w-44 md:w-64 group hover:shadow-xl"
+          >
+            <div class="relative overflow-hidden bg-gray-100 aspect-square">
+              <img
+                [src]="product.image"
+                [alt]="product.name"
+                class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+              />
+            </div>
+
+            <div class="p-4">
+              <span class="text-xs tracking-wide text-gray-500 uppercase">{{ product.category }}</span>
+              <h3
+                class="text-sm font-semibold text-gray-900 mt-2 mb-3 line-clamp-2 min-h-[2.5rem] group-hover:text-green-600 transition"
+              >
+                {{ product.name }}
+              </h3>
+              <div class="flex items-center">
+                <span class="text-lg font-bold text-gray-900"
+                  >${{
+                    product.price.toLocaleString('en-US', {
+                      minimumFractionDigits: 3,
+                      maximumFractionDigits: 3,
+                    })
+                  }}</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section *ngIf="!isLoading && relatedProducts.length > 0" class="py-5 border-t border-gray-200 bg-white md:py-8">
+  <div class="container px-4 mx-auto sm:px-5 lg:px-6">
+    <div>
+      <div class="flex items-center justify-between mb-4 md:mb-8">
+        <h2 class="text-xl font-bold text-gray-900 md:text-3xl">
+          <span class="text-green-600">Explore </span><span class="text-gray-700">related items</span>
+        </h2>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            (click)="scrollRelatedProducts('left')"
+            class="flex items-center justify-center w-10 h-10 transition border border-gray-300 rounded-full hover:bg-green-600 hover:text-white hover:border-green-600"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            (click)="scrollRelatedProducts('right')"
+            class="flex items-center justify-center w-10 h-10 transition border border-gray-300 rounded-full hover:bg-green-600 hover:text-white hover:border-green-600"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="relative">
+        <div
+          #relatedProductsCarousel
+          class="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth md:gap-6"
+          style="scroll-behavior: smooth"
+        >
+          <div
+            *ngFor="let product of relatedProducts"
+            (click)="onRelatedProductClick(product)"
             class="flex-shrink-0 overflow-hidden transition-all duration-300 bg-white border border-gray-200 rounded-lg cursor-pointer w-44 md:w-64 group hover:shadow-xl"
           >
             <div class="relative overflow-hidden bg-gray-100 aspect-square">

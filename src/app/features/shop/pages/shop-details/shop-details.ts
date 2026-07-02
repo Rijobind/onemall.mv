@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -6,6 +6,8 @@ import { Header } from "../../../../shared/components/header/header";
 import { Footer } from "../../../../shared/components/footer/footer";
 import { ShopProducts } from "../shop-products/shop-products";
 import { BackendapiServices } from '../../../../core/services/backendapi.services/backendapi.services';
+import { RegionService } from '../../../../core/services/region.service/region.service';
+import { formatShopLocation, resolveStoreAddressRegion } from '../../../../core/utils/marketplace-shop.util';
 import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
@@ -14,7 +16,7 @@ import { ActivatedRoute, Router } from '@angular/router';
   templateUrl: './shop-details.html',
   styleUrl: './shop-details.css',
 })
-export class ShopDetails implements OnInit {
+export class ShopDetails implements OnInit, OnDestroy {
   private readonly fallbackShop = {
     id: '1',
     name: 'Premium Electronics',
@@ -28,7 +30,9 @@ export class ShopDetails implements OnInit {
     itemsSold: 15200,
     followers: 8500,
     joinedDate: 'January 2020',
-    location: 'New York, USA',
+    location: 'Malé, Kaafu',
+    atoll: 'Kaafu',
+    city: 'Malé',
     verified: true
   };
   private allApiProducts: any[] = [];
@@ -86,10 +90,13 @@ export class ShopDetails implements OnInit {
     );
   }
 
+  private readonly regionUpdatedHandler = () => this.loadApiDataInConsole();
+
   constructor(
     private backendapiServices: BackendapiServices,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private regionService: RegionService
   ) {}
 
   onProductClick(product: any): void {
@@ -112,6 +119,15 @@ export class ShopDetails implements OnInit {
     this.isStoreLoaded = false;
     this.isProductsLoaded = false;
     this.loadCategoryMapAndData();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('region-updated', this.regionUpdatedHandler);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('region-updated', this.regionUpdatedHandler);
+    }
   }
 
   selectCategory(categoryId: string) {
@@ -133,11 +149,14 @@ export class ShopDetails implements OnInit {
 
   private loadApiDataInConsole() {
     this.loadStoreDetails();
-    this.backendapiServices.getMarketplaceProducts().subscribe({
+    this.backendapiServices
+      .getMarketplaceProductsWithFallback(this.regionService.getProductRequestParams())
+      .subscribe({
       next: (response: any) => {
-        const apiProducts = response?.data || [];
+        const apiProducts = this.backendapiServices.extractProductsFromResponse(response);
         this.allApiProducts = Array.isArray(apiProducts) ? apiProducts : [];
         this.populateProductsAndCategories();
+        this.applyShopRegionFromProducts();
         this.isProductsLoaded = true;
         this.updateLoadingState();
       },
@@ -164,6 +183,12 @@ export class ShopDetails implements OnInit {
         const payload = response?.data ?? response ?? {};
         const store = Array.isArray(payload) ? payload[0] : payload;
 
+        const { atoll, city } = resolveStoreAddressRegion(store);
+        const locationLabel =
+          formatShopLocation(atoll, city) ||
+          String(store?.store_location || store?.location || store?.address || '').trim() ||
+          this.fallbackShop.location;
+
         this.isShopDataFromApi = true;
         this.shop = {
           ...this.fallbackShop,
@@ -178,7 +203,9 @@ export class ShopDetails implements OnInit {
           itemsSold: Number(store?.items_sold || store?.total_sold || store?.sold_count || this.fallbackShop.itemsSold),
           followers: Number(store?.followers || store?.follower_count || this.fallbackShop.followers),
           joinedDate: store?.joined_date || store?.created_at || this.fallbackShop.joinedDate,
-          location: store?.location || store?.address || this.fallbackShop.location,
+          atoll: atoll || this.fallbackShop.atoll,
+          city: city || this.fallbackShop.city,
+          location: locationLabel,
           verified: store?.verified === undefined ? this.fallbackShop.verified : !!store.verified,
         };
         this.isStoreLoaded = true;
@@ -191,6 +218,25 @@ export class ShopDetails implements OnInit {
         this.updateLoadingState();
       },
     });
+  }
+
+  private applyShopRegionFromProducts(): void {
+    if (!this.allApiProducts.length) return;
+
+    const productWithRegion = this.allApiProducts.find((product: any) => product?.store_region);
+    if (!productWithRegion?.store_region) return;
+
+    const atoll = String(productWithRegion.store_region.region_name || '').trim();
+    const city = String(productWithRegion.store_region.city || '').trim();
+    const locationLabel = formatShopLocation(atoll, city);
+    if (!locationLabel) return;
+
+    this.shop = {
+      ...this.shop,
+      atoll: this.shop.atoll || atoll,
+      city: this.shop.city || city,
+      location: this.shop.location || locationLabel,
+    };
   }
 
   private getStoreIdForApi(): string {

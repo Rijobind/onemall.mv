@@ -3,7 +3,7 @@
 <section class="py-4 bg-gray-50 md:py-6">
   <div class="container px-4 mx-auto sm:px-5 lg:px-6 md:mb-10">
     <div class="w-full mb-3 md:hidden">
-      <div class="flex items-center gap-5 px-1 overflow-x-auto border-gray-200 scrollbar-hide">
+      <div class="flex items-center gap-5 px-1 overflow-x-auto border-gray-200 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <button
           *ngFor="let category of getMobileSecondCategories()"
           (click)="onMobileSecondCategoryClick(category)"
@@ -19,10 +19,10 @@
         </button>
       </div>
     </div>
-    <div class="flex gap-3 md:gap-6 lg:gap-8">
-      <aside class="flex-shrink-0 hidden w-64 lg:block">
+    <div class="flex gap-3 md:gap-6 lg:gap-8 lg:items-start">
+      <aside class="hidden w-64 flex-shrink-0 lg:flex lg:h-[543px] lg:flex-col">
         <button
-          class="flex items-center justify-center w-full gap-2 px-4 py-3 mb-4 font-semibold text-white transition bg-green-600 rounded-lg hover:bg-green-700"
+          class="mb-3 flex shrink-0 items-center justify-center w-full gap-2 px-4 py-2.5 font-semibold text-white transition bg-green-600 rounded-lg hover:bg-green-700"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -34,18 +34,170 @@
           </svg>
           All departments
         </button>
-        <div class="relative overflow-visible bg-white border border-gray-200 rounded-lg shadow-sm">
-          <nav class="py-2">
-            <div *ngFor="let category of categoryTree" class="relative group">
+        <div class="relative flex flex-col flex-1 min-h-0 overflow-visible bg-white border border-gray-200 rounded-lg shadow-sm">
+          <nav class="flex flex-col flex-1 min-h-0 py-1">
+            <div *ngFor="let category of categoryTree" class="relative flex flex-1 min-h-0 group">
               <a
-                class="flex items-center justify-between px-4 py-3 text-gray-700 transition border-l-4 border-transparent hover:bg-green-50 hover:text-green-600 hover:border-green-600 hover:translate-x-1"
+                class="flex items-center justify-between flex-1 px-3 py-1 text-gray-700 transition border-l-4 border-transparent hover:bg-green-50 hover:text-green-600 hover:border-green-600 hover:translate-x-1"
               >
-                <div class="flex items-center gap-3">
-                  <span class="text-sm">{{ category.category_name }}</span>
+                <div class="flex items-center min-w-0 gap-2.5">
+                  <span
+                    class="flex items-center justify-center flex-shrink-0 w-8 h-8 text-green-600 transition-colors rounded-lg bg-green-50 group-hover:bg-green-100 group-hover:text-green-700"
+                  >
+                    <ng-container [ngSwitch]="getCategorySidebarIconKey(category)">
+                      <svg
+                        *ngSwitchCase="'book'"
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                        />
+                      </svg>
+                      <svg
+                        *ngSwitchCase="'sport'"
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                        />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <svg
+                        *ngSwitchCase="'travel'"
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                        />
+                      </svg>
+                      <svg
+                        *ngSwitchCase="'home'"
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                        />
+                      </svg>
+                      <svg
+                        *ngSwitchCase="'automotive'"
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M8 7h8M5 11h14l-1.5 5H6.5L5 11zm3 8a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm8 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"
+                        />
+                      </svg>
+                      <svg
+                        *ngSwitchCase="'music'"
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+                        />
+                      </svg>
+                      <svg
+                        *ngSwitchCase="'electronics'"
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <svg
+                        *ngSwitchCase="'gift'"
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
+                        />
+                      </svg>
+                      <svg
+                        *ngSwitchCase="'pets'"
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9.75 9.75a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm8.25 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.75 14.25a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm10.5 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM12 18c-2.5 0-4.5-1.5-4.5-3.5S9.5 11 12 11s4.5 1.5 4.5 3.5S14.5 18 12 18z"
+                        />
+                      </svg>
+                      <svg
+                        *ngSwitchDefault
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                        />
+                      </svg>
+                    </ng-container>
+                  </span>
+                  <span class="text-sm leading-tight line-clamp-2">{{ category.category_name }}</span>
                 </div>
                 <svg
                   *ngIf="category.children.length > 0"
-                  class="w-4 h-4 text-gray-400 transition-colors group-hover:text-green-600"
+                  class="flex-shrink-0 w-4 h-4 ml-1 text-gray-400 transition-colors group-hover:text-green-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -118,10 +270,10 @@
             </div>
           </nav>
           <!-- View All Categories Button -->
-          <div class="p-4 border-t border-gray-200">
+          <div class="p-3 border-t border-gray-200 shrink-0">
             <button
               (click)="onViewAllCategories()"
-              class="flex items-center justify-center w-full gap-2 px-4 py-3 text-sm font-semibold text-green-600 transition rounded-lg bg-green-50 hover:bg-green-100 hover:text-green-700"
+              class="flex items-center justify-center w-full gap-2 px-3 py-2 text-sm font-semibold text-green-600 transition rounded-lg bg-green-50 hover:bg-green-100 hover:text-green-700"
             >
               <span>View All Categories</span>
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -140,70 +292,127 @@
         <div class="grid grid-cols-1 gap-2 md:gap-6 lg:grid-cols-3">
           <div
             class="lg:col-span-2 relative rounded-2xl overflow-hidden h-[200px] md:h-[543px] group"
-            style="
-              background-image: url('/chair.jpg');
-              background-size: cover;
-              background-position: center;
-              background-repeat: no-repeat;
-            "
+            (mouseenter)="isHeroPaused = true"
+            (mouseleave)="isHeroPaused = false"
           >
-            <div class="absolute inset-0 bg-black/30"></div>
-            <div class="absolute inset-0 flex items-center p-4 md:p-12 bg-black/30">
-              <div class="z-10 max-w-[250px] text-white sm:max-w-sm md:max-w-2xl">
-                <h2
-                  class="mb-2 text-lg font-bold leading-tight hero-text-slide-left sm:text-2xl md:mb-4 md:text-4xl lg:text-5xl"
+            <!-- Background slides -->
+            <div
+              *ngFor="let ad of heroAds; let i = index"
+              data-hero-slide
+              [attr.data-slide-index]="i"
+              [class]="getHeroSlideClasses(i)"
+              (transitionend)="onHeroSlideTransitionEnd($event)"
+            >
+              <div
+                [class]="getHeroBgClasses(i)"
+                [style.background-image]="'url(' + ad.image + ')'"
+              ></div>
+              <div
+                class="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/10 md:from-black/70 md:via-black/35 md:to-transparent"
+              ></div>
+            </div>
+
+            <!-- Promo content -->
+            <div class="relative z-10 h-full pointer-events-none">
+              <div
+                *ngFor="let ad of heroAds; let i = index"
+                [class]="getHeroCopyClasses(i)"
+              >
+                <span
+                  *ngIf="ad.discount"
+                  class="inline-flex items-center self-start px-2.5 py-1 mb-2 text-[10px] font-bold tracking-wider text-white uppercase rounded-full md:px-3 md:py-1.5 md:mb-3 md:text-xs bg-green-600/90"
                 >
-                  Everything You Need,<br />
-                  All in One Mall
+                  {{ ad.discount }}
+                </span>
+                <p
+                  class="mb-1 text-[10px] font-semibold tracking-[0.2em] text-green-300 uppercase md:mb-2 md:text-xs"
+                >
+                  {{ ad.badge }}
+                </p>
+                <h2
+                  class="mb-1.5 text-xl font-bold leading-tight text-white md:mb-3 md:text-4xl lg:text-5xl"
+                >
+                  {{ ad.title }}
                 </h2>
                 <p
-                  class="hero-text-slide-left-delay mb-3 text-[11px] leading-relaxed text-gray-100 sm:text-sm md:mb-6 md:text-lg lg:text-2xl"
+                  class="mb-3 text-xs leading-relaxed text-white/85 md:mb-6 md:text-base md:max-w-md"
                 >
-                  Shop from trusted sellers, discover great deals<br class="md:hidden" />
-                  and get the products you love.
+                  {{ ad.subtitle }}
                 </p>
-                <div class="flex items-center gap-2 md:gap-3">
-                  <button
-                    class="px-3 py-1.5 text-[11px] font-semibold text-white transition bg-green-600 rounded-lg shadow-lg sm:px-4 sm:text-xs md:px-8 md:py-3 md:text-base hover:bg-green-700"
-                  >
-                    Shop Now
-                  </button>
-                  <button
-                    class="px-3 py-1.5 text-[11px] font-semibold text-white transition border rounded-lg border-white/60 bg-white/10 backdrop-blur-sm sm:px-4 sm:text-xs md:px-8 md:py-3 md:text-base hover:bg-white/20"
-                  >
-                    Explore Products
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  (click)="onHeroAdClick(ad)"
+                  class="inline-flex items-center self-start gap-2 px-4 py-2 text-xs font-semibold text-green-900 transition rounded-lg pointer-events-auto md:px-6 md:py-3 md:text-sm bg-white hover:bg-green-50 hover:shadow-lg active:scale-[0.98]"
+                >
+                  {{ ad.cta }}
+                  <svg class="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
               </div>
             </div>
 
+            <!-- Shine overlay on hover -->
             <div
-              class="absolute top-0 bottom-0 right-0 flex items-end justify-end w-[40%] pr-1 pb-1 md:items-center md:justify-center md:w-1/2 md:pr-0 md:pb-0"
+              class="absolute inset-0 z-[2] pointer-events-none overflow-hidden opacity-0 transition-opacity duration-300 group-hover:opacity-100"
             >
               <div
-                class="absolute inset-0 overflow-hidden transition-transform duration-500 ease-out border-4 border-green-700 bg-gradient-to-br from-green-600/20 to-emerald-600/20 rounded-3xl backdrop-blur-sm"
-                style="
-                  transform: perspective(1000px) rotateY(-15deg) rotateX(5deg);
-                  border-radius: 50px 20px 50px 20px;
-                "
-              >
-                <img
-                  [src]="heroCategoryImages[activeHeroImageIndex]"
-                  alt="Camera"
-                  class="absolute inset-0 object-cover w-full h-full transition-opacity duration-500 ease-linear rounded-3xl"
-                  [class.opacity-0]="isHeroImageTransitioning"
-                  style="border-radius: 50px 20px 50px 20px"
-                />
-                <img
-                  [src]="heroCategoryImages[nextHeroImageIndex]"
-                  alt="Camera"
-                  class="absolute inset-0 object-cover w-full h-full transition-opacity duration-500 ease-linear rounded-3xl"
-                  [class.opacity-0]="!isHeroImageTransitioning"
-                  [class.opacity-100]="isHeroImageTransitioning"
-                  style="border-radius: 50px 20px 50px 20px"
-                />
-              </div>
+                class="absolute top-0 -left-full w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shine"
+              ></div>
             </div>
+
+            <!-- Navigation arrows -->
+            <button
+              type="button"
+              (click)="previousHeroSlide()"
+              class="absolute left-2 z-20 flex items-center justify-center w-8 h-8 text-white transition -translate-y-1/2 rounded-full top-1/2 md:left-4 md:w-10 md:h-10 bg-black/30 backdrop-blur-sm hover:bg-black/50 opacity-0 group-hover:opacity-100"
+              aria-label="Previous advertisement"
+            >
+              <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              (click)="nextHeroSlide()"
+              class="absolute right-2 z-20 flex items-center justify-center w-8 h-8 text-white transition -translate-y-1/2 rounded-full top-1/2 md:right-4 md:w-10 md:h-10 bg-black/30 backdrop-blur-sm hover:bg-black/50 opacity-0 group-hover:opacity-100"
+              aria-label="Next advertisement"
+            >
+              <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+
+            <!-- Slide indicators -->
+            <div
+              class="absolute bottom-3 left-1/2 z-20 flex gap-1.5 -translate-x-1/2 md:bottom-5 md:gap-2"
+            >
+              <button
+                *ngFor="let ad of heroAds; let i = index"
+                type="button"
+                (click)="goToHeroSlide(i)"
+                class="h-1.5 rounded-full transition-all duration-300 md:h-2"
+                [class.w-6]="activeHeroImageIndex === i"
+                [class.md:w-8]="activeHeroImageIndex === i"
+                [class.w-1.5]="activeHeroImageIndex !== i"
+                [class.md:w-2]="activeHeroImageIndex !== i"
+                [class.bg-white]="activeHeroImageIndex === i"
+                [class.bg-white/50]="activeHeroImageIndex !== i"
+                [attr.aria-label]="'Go to slide ' + (i + 1)"
+              ></button>
+            </div>
+
+            <!-- Sponsored label -->
+            <span
+              class="absolute top-3 right-3 z-20 px-2 py-0.5 text-[9px] font-medium tracking-wide text-white/70 uppercase rounded md:top-4 md:right-4 md:text-[10px] bg-black/25 backdrop-blur-sm"
+            >
+              Sponsored
+            </span>
           </div>
 
           <div class="grid grid-cols-2 gap-2 md:flex md:flex-col md:gap-6">
@@ -315,7 +524,7 @@
       ></div>
       <div
         #interestCarousel
-        class="flex items-center gap-3 px-12 py-3 overflow-x-auto scrollbar-hide md:gap-4"
+        class="flex items-center gap-3 px-12 py-3 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:gap-4"
       >
         <button
           *ngFor="let category of allCategoryTree"
@@ -335,7 +544,7 @@
       <span class="text-green-600">Shop by </span><span class="text-gray-700"> Category</span>
     </h2>
     <div class="w-full mb-3 md:hidden">
-      <div class="flex items-center gap-2 overflow-x-auto scrollbar-hide">
+      <div class="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <button
           *ngFor="let category of getMobileTopCategories()"
           (click)="onInterestCategoryClick(category)"
@@ -372,8 +581,7 @@
       </div>
 
       <div
-        #newArrivalsCarousel
-        class="flex w-full max-w-full gap-2 overflow-x-auto scrollbar-hide scroll-smooth md:hidden"
+        class="flex w-full max-w-full gap-2 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:hidden"
         style="scroll-behavior: smooth"
       >
         <div
@@ -388,15 +596,30 @@
               class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
             />
           </div>
-          <div class="p-2 md:p-4">
-            <span class="text-[10px] tracking-wide text-gray-500 uppercase md:text-xs">{{
-              product.category
-            }}</span>
+          <div class="flex flex-col gap-1 p-2 md:gap-1.5 md:p-4">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[10px] tracking-wide text-gray-500 uppercase truncate md:text-xs">{{
+                product.category
+              }}</span>
+              <span class="flex items-center gap-0.5 flex-shrink-0 text-[10px] font-semibold text-gray-700 md:text-xs">
+                <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                {{ (product.rating || 0).toFixed(1) }}
+              </span>
+            </div>
             <h3
-              class="mt-1 mb-1.5 text-xs font-semibold text-gray-900 line-clamp-2 min-h-[1.75rem] md:mt-2 md:mb-3 md:text-sm md:min-h-[2.5rem] group-hover:text-green-600 transition"
+              class="text-xs font-semibold text-gray-900 line-clamp-2 min-h-[1.75rem] md:text-sm md:min-h-[2.5rem] group-hover:text-green-600 transition"
             >
               {{ product.name }}
             </h3>
+            <app-shop-name-link
+              *ngIf="product.store_id"
+              class="block"
+              [storeId]="product.store_id || ''"
+              [storeName]="product.store_name || ''"
+              [shopLocation]="product.shop_location || ''"
+            ></app-shop-name-link>
             <div class="flex items-center gap-2">
               <span class="text-base font-bold text-gray-900 md:text-lg"
                 >${{ product.price.toLocaleString() }}</span
@@ -422,15 +645,30 @@
               class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
             />
           </div>
-          <div class="p-2 md:p-4">
-            <span class="text-[10px] tracking-wide text-gray-500 uppercase md:text-xs">{{
-              product.category
-            }}</span>
+          <div class="flex flex-col gap-1 p-2 md:gap-1.5 md:p-4">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[10px] tracking-wide text-gray-500 uppercase truncate md:text-xs">{{
+                product.category
+              }}</span>
+              <span class="flex items-center gap-0.5 flex-shrink-0 text-[10px] font-semibold text-gray-700 md:text-xs">
+                <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                {{ (product.rating || 0).toFixed(1) }}
+              </span>
+            </div>
             <h3
-              class="mt-1 mb-1.5 text-xs font-semibold text-gray-900 line-clamp-2 min-h-[1.75rem] md:mt-2 md:mb-3 md:text-sm md:min-h-[2.5rem] group-hover:text-green-600 transition"
+              class="text-xs font-semibold text-gray-900 line-clamp-2 min-h-[1.75rem] md:text-sm md:min-h-[2.5rem] group-hover:text-green-600 transition"
             >
               {{ product.name }}
             </h3>
+            <app-shop-name-link
+              *ngIf="product.store_id"
+              class="block"
+              [storeId]="product.store_id || ''"
+              [storeName]="product.store_name || ''"
+              [shopLocation]="product.shop_location || ''"
+            ></app-shop-name-link>
             <div class="flex items-center gap-2">
               <span class="text-base font-bold text-gray-900 md:text-lg"
                 >${{ product.price.toLocaleString() }}</span
@@ -474,15 +712,30 @@
                 class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
               />
             </div>
-            <div class="p-2 md:p-4">
-              <span class="text-[10px] tracking-wide text-gray-500 uppercase md:text-xs">{{
-                product.category
-              }}</span>
+            <div class="flex flex-col gap-1 p-2 md:gap-1.5 md:p-4">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[10px] tracking-wide text-gray-500 uppercase truncate md:text-xs">{{
+                  product.category
+                }}</span>
+                <span class="flex items-center gap-0.5 flex-shrink-0 text-[10px] font-semibold text-gray-700 md:text-xs">
+                  <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                  {{ (product.rating || 0).toFixed(1) }}
+                </span>
+              </div>
               <h3
-                class="mt-1 mb-1.5 text-xs font-semibold text-gray-900 transition line-clamp-2 min-h-[1.75rem] md:mt-2 md:mb-3 md:text-sm md:min-h-[2.5rem] group-hover:text-green-600"
+                class="text-xs font-semibold text-gray-900 transition line-clamp-2 min-h-[1.75rem] md:text-sm md:min-h-[2.5rem] group-hover:text-green-600"
               >
                 {{ product.name }}
               </h3>
+              <app-shop-name-link
+                *ngIf="product.store_id"
+                class="block"
+                [storeId]="product.store_id || ''"
+                [storeName]="product.store_name || ''"
+                [shopLocation]="product.shop_location || ''"
+              ></app-shop-name-link>
               <div class="flex items-center gap-2">
                 <span class="text-base font-bold text-gray-900 md:text-lg"
                   >${{ product.price.toLocaleString() }}</span
@@ -507,15 +760,30 @@
                 class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
               />
             </div>
-            <div class="p-2 md:p-4">
-              <span class="text-[10px] tracking-wide text-gray-500 uppercase md:text-xs">{{
-                product.category
-              }}</span>
+            <div class="flex flex-col gap-1 p-2 md:gap-1.5 md:p-4">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[10px] tracking-wide text-gray-500 uppercase truncate md:text-xs">{{
+                  product.category
+                }}</span>
+                <span class="flex items-center gap-0.5 flex-shrink-0 text-[10px] font-semibold text-gray-700 md:text-xs">
+                  <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                  {{ (product.rating || 0).toFixed(1) }}
+                </span>
+              </div>
               <h3
-                class="mt-1 mb-1.5 text-xs font-semibold text-gray-900 transition line-clamp-2 min-h-[1.75rem] md:mt-2 md:mb-3 md:text-sm md:min-h-[2.5rem] group-hover:text-green-600"
+                class="text-xs font-semibold text-gray-900 transition line-clamp-2 min-h-[1.75rem] md:text-sm md:min-h-[2.5rem] group-hover:text-green-600"
               >
                 {{ product.name }}
               </h3>
+              <app-shop-name-link
+                *ngIf="product.store_id"
+                class="block"
+                [storeId]="product.store_id || ''"
+                [storeName]="product.store_name || ''"
+                [shopLocation]="product.shop_location || ''"
+              ></app-shop-name-link>
               <div class="flex items-center gap-2">
                 <span class="text-base font-bold text-gray-900 md:text-lg"
                   >${{ product.price.toLocaleString() }}</span
@@ -563,7 +831,7 @@
           </div>
         </div>
       </div>
-      <div class="relative hidden md:block h-[200px] rounded-2xl overflow-hidden group">
+      <div class="relative hidden h-[150px] overflow-hidden rounded-xl group md:block md:h-[200px] md:rounded-2xl">
         <img
           src="/shoe2.jpg"
           alt="Banner"
@@ -572,20 +840,20 @@
 
         <div class="absolute inset-0 bg-black/30"></div>
         <div
-          class="absolute z-20 flex items-center justify-center text-xs font-bold text-white bg-green-600 rounded-full top-4 left-4 w-14 h-14"
+          class="absolute z-20 flex items-center justify-center text-[10px] md:text-xs font-bold text-white bg-green-600 rounded-full top-3 left-3 md:top-4 md:left-4 w-10 h-10 md:w-14 md:h-14"
         >
           SALE<br />10%
         </div>
-        <div class="relative z-10 flex items-center h-full px-6">
+        <div class="relative z-10 flex items-center h-full px-4 md:px-6">
           <div class="w-1/2 text-white"></div>
           <div class="flex justify-end w-1/2">
             <div class="w-1/2 text-white">
-              <p class="text-xs tracking-widest text-green-300 uppercase">Hot deal</p>
-              <h2 class="text-2xl font-extrabold leading-tight">New Arrivals</h2>
-              <p class="mt-1 text-xs opacity-90">Best price guaranteed</p>
+              <p class="text-[10px] tracking-widest text-green-300 uppercase md:text-xs">Hot deal</p>
+              <h2 class="text-lg font-extrabold leading-tight md:text-2xl">New Arrivals</h2>
+              <p class="mt-1 text-[10px] md:text-xs opacity-90">Best price guaranteed</p>
 
               <a
-                class="inline-flex items-center px-4 py-1.5 mt-3 text-xs font-semibold text-white bg-white/20 rounded-full backdrop-blur hover:bg-white/30 transition"
+                class="inline-flex items-center px-3 md:px-4 py-1 md:py-1.5 mt-2 md:mt-3 text-[10px] md:text-xs font-semibold text-white bg-white/20 rounded-full backdrop-blur hover:bg-white/30 transition"
               >
                 Shop now
               </a>
@@ -624,15 +892,30 @@
             class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
           />
         </div>
-        <div class="p-2 md:p-4">
-          <span class="text-[10px] tracking-wide text-gray-500 uppercase md:text-xs">{{
-            product.category
-          }}</span>
+        <div class="flex flex-col gap-1 p-2 md:gap-1.5 md:p-4">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[10px] tracking-wide text-gray-500 uppercase truncate md:text-xs">{{
+              product.category
+            }}</span>
+            <span class="flex items-center gap-0.5 flex-shrink-0 text-[10px] font-semibold text-gray-700 md:text-xs">
+              <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              {{ (product.rating || 0).toFixed(1) }}
+            </span>
+          </div>
           <h3
-            class="mt-1 mb-1.5 text-xs font-semibold text-gray-900 transition line-clamp-2 min-h-[1.75rem] md:mt-2 md:mb-3 md:text-sm md:min-h-[2.5rem] group-hover:text-green-600"
+            class="text-xs font-semibold text-gray-900 transition line-clamp-2 min-h-[1.75rem] md:text-sm md:min-h-[2.5rem] group-hover:text-green-600"
           >
             {{ product.name }}
           </h3>
+          <app-shop-name-link
+            *ngIf="product.store_id"
+            class="block"
+            [storeId]="product.store_id || ''"
+            [storeName]="product.store_name || ''"
+            [shopLocation]="product.shop_location || ''"
+          ></app-shop-name-link>
           <div class="flex items-center gap-2">
             <span class="text-base font-bold text-gray-900 md:text-lg"
               >${{ product.price.toLocaleString() }}</span
@@ -658,15 +941,30 @@
             class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
           />
         </div>
-        <div class="p-2 md:p-4">
-          <span class="text-[10px] tracking-wide text-gray-500 uppercase md:text-xs">{{
-            product.category
-          }}</span>
+        <div class="flex flex-col gap-1 p-2 md:gap-1.5 md:p-4">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[10px] tracking-wide text-gray-500 uppercase truncate md:text-xs">{{
+              product.category
+            }}</span>
+            <span class="flex items-center gap-0.5 flex-shrink-0 text-[10px] font-semibold text-gray-700 md:text-xs">
+              <svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              {{ (product.rating || 0).toFixed(1) }}
+            </span>
+          </div>
           <h3
-            class="mt-1 mb-1.5 text-xs font-semibold text-gray-900 transition line-clamp-2 min-h-[1.75rem] md:mt-2 md:mb-3 md:text-sm md:min-h-[2.5rem] group-hover:text-green-600"
+            class="text-xs font-semibold text-gray-900 transition line-clamp-2 min-h-[1.75rem] md:text-sm md:min-h-[2.5rem] group-hover:text-green-600"
           >
             {{ product.name }}
           </h3>
+          <app-shop-name-link
+            *ngIf="product.store_id"
+            class="block"
+            [storeId]="product.store_id || ''"
+            [storeName]="product.store_name || ''"
+            [shopLocation]="product.shop_location || ''"
+          ></app-shop-name-link>
           <div class="flex items-center gap-2">
             <span class="text-base font-bold text-gray-900 md:text-lg"
               >${{ product.price.toLocaleString() }}</span
@@ -674,6 +972,36 @@
             <span class="text-xs text-gray-400 line-through md:text-sm"
               >${{ product.originalPrice.toLocaleString() }}</span
             >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile: second shoe ad after Discover products -->
+    <div class="relative mt-4 h-[150px] overflow-hidden rounded-xl group md:hidden">
+      <img
+        src="/shoe2.jpg"
+        alt="Banner"
+        class="absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-in-out group-hover:scale-105"
+      />
+      <div class="absolute inset-0 bg-black/30"></div>
+      <div
+        class="absolute z-20 flex items-center justify-center text-[10px] font-bold text-white bg-green-600 rounded-full top-3 left-3 w-10 h-10"
+      >
+        SALE<br />10%
+      </div>
+      <div class="relative z-10 flex items-center h-full px-4">
+        <div class="w-1/2 text-white"></div>
+        <div class="flex justify-end w-1/2">
+          <div class="w-1/2 text-white">
+            <p class="text-[10px] tracking-widest text-green-300 uppercase">Hot deal</p>
+            <h2 class="text-lg font-extrabold leading-tight">New Arrivals</h2>
+            <p class="mt-1 text-[10px] opacity-90">Best price guaranteed</p>
+            <a
+              class="inline-flex items-center px-3 py-1 mt-2 text-[10px] font-semibold text-white bg-white/20 rounded-full backdrop-blur hover:bg-white/30 transition"
+            >
+              Shop now
+            </a>
           </div>
         </div>
       </div>
@@ -688,14 +1016,14 @@
         We partner with industry leaders worldwide
       </p>
     </div>
-    <div class="relative overflow-x-auto md:overflow-hidden scrollbar-hide">
+    <div class="relative overflow-x-auto md:overflow-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
       <div
         class="absolute top-0 bottom-0 left-0 z-10 w-8 pointer-events-none md:w-20 bg-gradient-to-r from-white to-transparent"
       ></div>
       <div
         class="absolute top-0 bottom-0 right-0 z-10 w-8 pointer-events-none md:w-20 bg-gradient-to-l from-white to-transparent"
       ></div>
-      <div class="flex animate-scroll">
+      <div class="flex w-fit animate-brand-scroll pointer-events-none max-md:pointer-events-auto hover:[animation-play-state:paused]">
         <div class="flex items-center flex-shrink-0 gap-6 px-2 md:gap-16 md:px-4">
           <div
             class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
@@ -840,7 +1168,7 @@
       <div class="relative">
         <div
           #recentlyViewedCarousel
-          class="flex gap-3 overflow-x-auto scrollbar-hide scroll-smooth md:gap-6"
+          class="flex gap-3 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:gap-6"
           style="scroll-behavior: smooth"
         >
           <div
@@ -919,15 +1247,30 @@
               </div>
             </div>
 
-            <div class="p-4">
-              <span class="text-xs tracking-wide text-gray-500 uppercase">{{
-                product.category
-              }}</span>
+            <div class="flex flex-col gap-1.5 p-4">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs tracking-wide text-gray-500 uppercase truncate">{{
+                  product.category
+                }}</span>
+                <span class="flex items-center gap-0.5 flex-shrink-0 text-xs font-semibold text-gray-700">
+                  <svg class="w-3.5 h-3.5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                  </svg>
+                  {{ (product.rating || 0).toFixed(1) }}
+                </span>
+              </div>
               <h3
-                class="text-sm font-semibold text-gray-900 mt-2 mb-3 line-clamp-2 min-h-[2.5rem] group-hover:text-green-600 transition"
+                class="text-sm font-semibold text-gray-900 line-clamp-2 min-h-[2.5rem] group-hover:text-green-600 transition"
               >
                 {{ product.name }}
               </h3>
+              <app-shop-name-link
+                *ngIf="product.store_id"
+                class="block"
+                [storeId]="product.store_id || ''"
+                [storeName]="product.store_name || ''"
+                [shopLocation]="product.shop_location || ''"
+              ></app-shop-name-link>
               <div class="flex items-center">
                 <span class="text-lg font-bold text-gray-900"
                   >${{
@@ -947,10 +1290,3 @@
 </section>
 
 <app-footer></app-footer>
-
-<!-- All Categories Modal -->
-<app-all-category-model
-  [isOpen]="isAllCategoryModalOpen"
-  [categoryTree]="allCategoryTree"
-  (closeModal)="onCloseAllCategoryModal()"
-></app-all-category-model>

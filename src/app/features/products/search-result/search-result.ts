@@ -1,7 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { BackendapiServices } from '../../../core/services/backendapi.services/backendapi.services';
+import { RegionService } from '../../../core/services/region.service/region.service';
+import { MarketplaceShopService } from '../../../core/services/marketplace-shop.service/marketplace-shop.service';
+import { ShopNameLink } from '../../../shared/components/shop-name-link/shop-name-link';
 import { FavoritesService } from '../../../core/services/favorites.service/favorites.service';
 import { ActionFeedbackService } from '../../../core/services/action-feedback.service/action-feedback.service';
 import { Header } from '../../../shared/components/header/header';
@@ -9,11 +12,11 @@ import { MobileCart } from '../../../core/models/mobile-cart/mobile-cart';
 
 @Component({
   selector: 'app-search-result',
-  imports: [CommonModule, Header, MobileCart],
+  imports: [CommonModule, Header, MobileCart, ShopNameLink],
   templateUrl: './search-result.html',
   styleUrl: './search-result.css',
 })
-export class SearchResult implements OnInit {
+export class SearchResult implements OnInit, OnDestroy {
   private readonly cartStorageKey = 'cart_items';
   searchQuery: string = '';
   allProducts: any[] = [];
@@ -45,28 +48,79 @@ export class SearchResult implements OnInit {
     { label: 'Newest Arrivals', value: 'newest' },
   ];
 
+  searchResultAdImages = ['/mobile3.jpg', '/mobile4.jpg', '/mobile2.jpg', '/mobile.jpg'];
+  currentSearchResultAdIndex = 0;
+  searchResultAdFading = false;
+  private searchResultAdInterval: ReturnType<typeof setInterval> | null = null;
+  private searchResultAdFadeTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly regionUpdatedHandler = () => this.loadProducts();
+
+  get currentSearchResultAdImage(): string {
+    return this.searchResultAdImages[this.currentSearchResultAdIndex];
+  }
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private api: BackendapiServices,
     private favoritesService: FavoritesService,
-    private actionFeedback: ActionFeedbackService
+    private actionFeedback: ActionFeedbackService,
+    private regionService: RegionService,
+    private shopService: MarketplaceShopService
   ) {}
 
   ngOnInit(): void {
+    this.startSearchResultAdRotation();
+    this.loadProducts();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('region-updated', this.regionUpdatedHandler);
+    }
     this.route.queryParams.subscribe((params) => {
       this.searchQuery = String(params['search'] || '').trim();
       this.filterProducts();
     });
-    this.loadProducts();
+  }
+
+  ngOnDestroy(): void {
+    this.stopSearchResultAdRotation();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('region-updated', this.regionUpdatedHandler);
+    }
+  }
+
+  private startSearchResultAdRotation(): void {
+    this.stopSearchResultAdRotation();
+    this.searchResultAdInterval = setInterval(() => {
+      this.searchResultAdFading = true;
+      this.searchResultAdFadeTimer = setTimeout(() => {
+        this.currentSearchResultAdIndex =
+          (this.currentSearchResultAdIndex + 1) % this.searchResultAdImages.length;
+        this.searchResultAdFading = false;
+      }, 550);
+    }, 5200);
+  }
+
+  private stopSearchResultAdRotation(): void {
+    if (this.searchResultAdInterval) {
+      clearInterval(this.searchResultAdInterval);
+      this.searchResultAdInterval = null;
+    }
+    if (this.searchResultAdFadeTimer) {
+      clearTimeout(this.searchResultAdFadeTimer);
+      this.searchResultAdFadeTimer = null;
+    }
+  }
+
+  onSearchResultAdClick(): void {
+    this.router.navigate(['/product-list']);
   }
 
   private loadProducts(): void {
     this.isLoading = true;
-    this.api.getMarketplaceProducts().subscribe({
+    this.api.getMarketplaceProductsWithFallback(this.regionService.getProductRequestParams()).subscribe({
       next: (res: any) => {
-        const apiProducts = res.data || [];
-        this.allProducts = apiProducts.map((product: any) => {
+        const apiProducts = this.api.extractProductsFromResponse(res);
+        const mapped = apiProducts.map((product: any) => {
           const variant = product?.im_ProductVariants?.[0];
           const images = variant?.im_ProductImages || [];
           const imageUrl =
@@ -79,11 +133,7 @@ export class SearchResult implements OnInit {
           const reviews = Math.floor(Math.random() * 1000) + 120;
           const rating = Math.floor(Math.random() * 2) + 4;
           const soldCount = `${(Math.random() * 18 + 2).toFixed(1)}K+ sold`;
-          const storeId =
-            product?.store_id ||
-            variant?.store_id ||
-            variant?.im_StoreVariantInventory?.[0]?.store_id ||
-            '';
+          const shopFields = this.shopService.mapApiProductShopFields(product, variant);
 
           return {
             id: product?.product_id,
@@ -96,13 +146,32 @@ export class SearchResult implements OnInit {
             soldLabel: soldCount,
             reviews,
             rating,
-            storeName: `${(product?.brand || 'Brand').toUpperCase()} STORE`,
-            storeId: String(storeId || ''),
+            storeName: shopFields.store_name,
+            storeId: shopFields.store_id,
+            store_id: shopFields.store_id,
+            store_name: shopFields.store_name,
+            shop_atoll: shopFields.shop_atoll,
+            shop_city: shopFields.shop_city,
+            shop_location: shopFields.shop_location,
           };
         });
-        this.filterProducts();
-        this.applySort();
-        this.isLoading = false;
+        this.shopService.enrichWithShopNames(mapped).subscribe({
+          next: (enriched) => {
+            this.allProducts = enriched.map((product: any) => ({
+              ...product,
+              storeName: product.store_name || product.storeName,
+            }));
+            this.filterProducts();
+            this.applySort();
+            this.isLoading = false;
+          },
+          error: () => {
+            this.allProducts = mapped;
+            this.filterProducts();
+            this.applySort();
+            this.isLoading = false;
+          },
+        });
       },
       error: () => {
         this.allProducts = [];
@@ -222,6 +291,9 @@ export class SearchResult implements OnInit {
       existingItems[existingIndex].price = Number(product?.price) || 0;
       existingItems[existingIndex].image = product?.image || '/mobile.jpg';
       existingItems[existingIndex].name = product?.title || 'Untitled Product';
+      existingItems[existingIndex].store_id = String(product?.store_id || product?.storeId || '').trim();
+      existingItems[existingIndex].store_name = product?.store_name || product?.storeName || '';
+      existingItems[existingIndex].shop_location = product?.shop_location || '';
     } else {
       existingItems.push({
         id: productId,
@@ -230,6 +302,9 @@ export class SearchResult implements OnInit {
         image: product?.image || '/mobile.jpg',
         quantity: 1,
         inStock: true,
+        store_id: String(product?.store_id || product?.storeId || '').trim(),
+        store_name: product?.store_name || product?.storeName || '',
+        shop_location: product?.shop_location || '',
       });
     }
 

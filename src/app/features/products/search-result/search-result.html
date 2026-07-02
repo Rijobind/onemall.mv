@@ -32,7 +32,8 @@
           </div>
         </div>
 
-        <div *ngIf="!isLoading">
+        <div *ngIf="!isLoading" class="flex gap-4">
+          <div class="flex-1 min-w-0">
           <div class="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
             <div class="text-sm text-gray-600">
               <span class="font-semibold text-gray-900">{{ filteredProducts.length }}</span> results
@@ -132,16 +133,14 @@
 
                 <div class="mb-3 space-y-1">
                   <p class="text-sm text-gray-600">Brand: {{ product.brand }}</p>
-                  <p class="text-sm text-gray-600">Store: {{ product.storeName }}</p>
+                  <app-shop-name-link
+                    [storeId]="product.store_id || product.storeId"
+                    [storeName]="product.store_name || product.storeName"
+                    [shopLocation]="product.shop_location"
+                  ></app-shop-name-link>
                 </div>
 
                 <div class="flex items-center gap-2">
-                  <button
-                    (click)="onAddToCart(product, $event)"
-                    class="px-6 py-2 text-sm font-medium text-white transition bg-green-600 rounded-lg hover:bg-green-700"
-                  >
-                    Add to Cart
-                  </button>
                   <button
                     (click)="onToggleFavorite(product, $event)"
                     class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition border rounded-lg"
@@ -162,6 +161,12 @@
                       />
                     </svg>
                     {{ isProductFavorite(product) ? 'Saved' : 'Add to Favorite' }}
+                  </button>
+                  <button
+                    (click)="onAddToCart(product, $event)"
+                    class="px-6 py-2 text-sm font-medium text-white transition bg-green-600 rounded-lg hover:bg-green-700"
+                  >
+                    Add to Cart
                   </button>
                 </div>
               </div>
@@ -185,6 +190,26 @@
             <p class="text-lg font-semibold text-gray-900">No products found</p>
             <p class="text-sm text-gray-600">Try selecting a different category</p>
           </div>
+          </div>
+
+          <!-- Desktop advertisement sidebar -->
+          <aside class="hidden flex-shrink-0 w-56 lg:block">
+            <div class="sticky top-24">
+              <button
+                type="button"
+                (click)="onSearchResultAdClick()"
+                class="search-result-ad search-result-ad-desktop w-full overflow-hidden rounded-xl border border-gray-200"
+                [class.search-result-ad-fading]="searchResultAdFading"
+                aria-label="Advertisement"
+              >
+                <img
+                  [src]="currentSearchResultAdImage"
+                  alt="Advertisement"
+                  class="search-result-ad-media h-full w-full object-cover"
+                />
+              </button>
+            </div>
+          </aside>
         </div>
       </div>
     </section>
@@ -276,9 +301,9 @@
       </div>
     </div>
     <!-- Product Grid -->
-    <div *ngIf="!isLoading; else loadingCards" class="grid grid-cols-2 gap-2 px-2 pb-4 md:grid-cols-3 lg:grid-cols-4">
+    <div *ngIf="!isLoading; else loadingCards" class="grid grid-cols-2 gap-2 px-2 pb-4">
+        <ng-container *ngFor="let product of filteredProducts; let i = index; trackBy: trackByProductId">
         <button
-          *ngFor="let product of filteredProducts; trackBy: trackByProductId"
           (click)="onProductClick(product)"
           class="overflow-hidden text-left transition-all bg-white border border-gray-200 rounded-lg group hover:shadow-md hover:border-green-300"
         >
@@ -294,11 +319,13 @@
               <span class="text-xs leading-none text-green-600">{{ getStarDisplay(product.rating) }}</span>
               <span class="text-[10px] leading-none text-gray-500">{{ product.reviews }}</span>
             </div>
-            <p
-              class="px-1 py-0.5 mt-1 text-[10px] leading-tight font-semibold text-green-700 bg-green-50 border border-green-100 rounded line-clamp-1"
-            >
-              Brand Official Store: {{ product.storeName }}
-            </p>
+            <div class="mt-1">
+              <app-shop-name-link
+                [storeId]="product.store_id || product.storeId"
+                [storeName]="product.store_name || product.storeName"
+                [shopLocation]="product.shop_location"
+              ></app-shop-name-link>
+            </div>
             <div class="flex items-end justify-between mt-2">
               <div>
                 <p class="text-base font-bold leading-none text-gray-900">${{ product.price.toFixed(2) }}</p>
@@ -339,10 +366,27 @@
             </div>
           </div>
         </button>
+
+        <div *ngIf="i === 3" class="col-span-2">
+          <button
+            type="button"
+            (click)="onSearchResultAdClick()"
+            class="search-result-ad search-result-ad-mobile w-full overflow-hidden rounded-xl border border-gray-200"
+            [class.search-result-ad-fading]="searchResultAdFading"
+            aria-label="Advertisement"
+          >
+            <img
+              [src]="currentSearchResultAdImage"
+              alt="Advertisement"
+              class="search-result-ad-media h-full w-full object-cover"
+            />
+          </button>
+        </div>
+        </ng-container>
     </div>
 
     <ng-template #loadingCards>
-      <div class="grid grid-cols-2 gap-2 px-2 pb-4 md:grid-cols-3 lg:grid-cols-4">
+      <div class="grid grid-cols-2 gap-2 px-2 pb-4">
         <div *ngFor="let i of [1,2,3,4,5,6]" class="w-full overflow-hidden bg-white border border-gray-200 rounded-lg">
           <div class="w-full h-40 bg-gray-100 animate-pulse"></div>
           <div class="p-2 space-y-2">

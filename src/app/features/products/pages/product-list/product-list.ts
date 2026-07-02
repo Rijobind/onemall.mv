@@ -1,19 +1,22 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnDestroy, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Header } from '../../../../shared/components/header/header';
 import { Footer } from '../../../../shared/components/footer/footer';
 import { BackendapiServices } from '../../../../core/services/backendapi.services/backendapi.services';
+import { RegionService } from '../../../../core/services/region.service/region.service';
+import { MarketplaceShopService } from '../../../../core/services/marketplace-shop.service/marketplace-shop.service';
+import { ShopNameLink } from '../../../../shared/components/shop-name-link/shop-name-link';
 import { FavoritesService } from '../../../../core/services/favorites.service/favorites.service';
 import { ActionFeedbackService } from '../../../../core/services/action-feedback.service/action-feedback.service';
 
 @Component({
   selector: 'app-product-list',
-  imports: [CommonModule, Header, Footer],
+  imports: [CommonModule, Header, Footer, ShopNameLink],
   templateUrl: './product-list.html',
   styleUrl: './product-list.css',
 })
-export class ProductList implements OnInit {
+export class ProductList implements OnInit, OnDestroy {
   private readonly cartStorageKey = 'cart_items';
   categoryTree: any[] = [];
   allCategories: any[] = [];
@@ -67,15 +70,29 @@ export class ProductList implements OnInit {
     { label: 'Newest Arrivals', value: 'newest' },
   ];
 
+  productListAdImages = ['/mobile3.jpg', '/mobile4.jpg', '/mobile2.jpg', '/mobile.jpg'];
+  currentProductListAdIndex = 0;
+  productListAdFading = false;
+  private productListAdInterval: ReturnType<typeof setInterval> | null = null;
+  private productListAdFadeTimer: ReturnType<typeof setTimeout> | null = null;
+  private readonly regionUpdatedHandler = () => this.loadProducts();
+
+  get currentProductListAdImage(): string {
+    return this.productListAdImages[this.currentProductListAdIndex];
+  }
+
   constructor(
     private api: BackendapiServices,
     private router: Router,
     private route: ActivatedRoute,
     private favoritesService: FavoritesService,
-    private actionFeedback: ActionFeedbackService
+    private actionFeedback: ActionFeedbackService,
+    private regionService: RegionService,
+    private shopService: MarketplaceShopService
   ) {}
 
   ngOnInit(): void {
+    this.startProductListAdRotation();
     this.route.queryParams.subscribe((params) => {
       const categoryId = params['categoryId'] || params['category_id'];
       const requestedMode = String(params['mode'] || '').toLowerCase();
@@ -101,10 +118,47 @@ export class ProductList implements OnInit {
     this.loadCategory();
     this.loadProducts();
     this.logMarketplaceProductsResponse();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('region-updated', this.regionUpdatedHandler);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.stopProductListAdRotation();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('region-updated', this.regionUpdatedHandler);
+    }
+  }
+
+  private startProductListAdRotation(): void {
+    this.stopProductListAdRotation();
+    this.productListAdInterval = setInterval(() => {
+      this.productListAdFading = true;
+      this.productListAdFadeTimer = setTimeout(() => {
+        this.currentProductListAdIndex =
+          (this.currentProductListAdIndex + 1) % this.productListAdImages.length;
+        this.productListAdFading = false;
+      }, 550);
+    }, 5200);
+  }
+
+  private stopProductListAdRotation(): void {
+    if (this.productListAdInterval) {
+      clearInterval(this.productListAdInterval);
+      this.productListAdInterval = null;
+    }
+    if (this.productListAdFadeTimer) {
+      clearTimeout(this.productListAdFadeTimer);
+      this.productListAdFadeTimer = null;
+    }
+  }
+
+  onProductListAdClick(): void {
+    this.router.navigate(['/']);
   }
 
   private logMarketplaceProductsResponse(): void {
-    this.api.getMarketplaceProducts().subscribe({
+    this.api.getMarketplaceProductsWithFallback(this.regionService.getProductRequestParams()).subscribe({
       next: (res: any) => {
         console.log('Marketplace products API response:', res);
       },
@@ -162,12 +216,12 @@ export class ProductList implements OnInit {
   }
 
   loadProducts() {
-    this.api.getMarketplaceProducts().subscribe(
+    this.api.getMarketplaceProductsWithFallback(this.regionService.getProductRequestParams()).subscribe(
       (res: any) => {
-        const apiProducts = res.data || [];
+        const apiProducts = this.api.extractProductsFromResponse(res);
         
         // Transform API product data to match template structure
-        this.products = apiProducts.map((product: any) => {
+        const mapped = apiProducts.map((product: any) => {
           const variant = product.im_ProductVariants?.[0];
           const images = variant?.im_ProductImages || [];
           const mediaUrls = images
@@ -178,7 +232,7 @@ export class ProductList implements OnInit {
           const inventory = variant?.im_StoreVariantInventory?.[0];
           const onHandQty = this.toSafeNumber(inventory?.on_hand_quantity, 0);
           const basePrice = this.toSafeNumber(variant?.base_price, 0);
-          const storeId = this.resolveStoreIdFromProduct(product, variant);
+          const shopFields = this.shopService.mapApiProductShopFields(product, variant);
           
           return {
             id: product.product_id,
@@ -187,14 +241,18 @@ export class ProductList implements OnInit {
             originalPrice: basePrice > 0 
               ? Math.round(basePrice * 1.2 * 100) / 100 
               : 0,
-            rating: 4.5, // Default rating - update when API provides
-            reviews: Math.floor(Math.random() * 5000) + 100, // Mock reviews - update when API provides
+            rating: 4.5,
+            reviews: Math.floor(Math.random() * 5000) + 100,
             image: product.thumbnail_url || firstImage || firstVideo || '/mobile.jpg',
             video: firstVideo,
             category_id: this.normalizeId(product.category_id),
             sub_category_id: this.normalizeId(product.sub_category_id),
             sub_sub_category_id: this.normalizeId(product.sub_sub_category_id),
-            store_id: storeId,
+            store_id: shopFields.store_id,
+            store_name: shopFields.store_name,
+            shop_atoll: shopFields.shop_atoll,
+            shop_city: shopFields.shop_city,
+            shop_location: shopFields.shop_location,
             description: product.description,
             brand: product.brand,
             created_at: product?.created_at || '',
@@ -208,16 +266,17 @@ export class ProductList implements OnInit {
             featured_item: String(product?.featured_item ?? '').trim(),
           };
         });
-        
-        if (this.selectedCategory) {
-          this.applyFiltersFromState();
-        } else {
-          this.applyFiltersFromState();
-        }
 
-        this.tryApplyPendingCategoryFilter();
-        this.isLoading = false;
-        this.refreshMobileSecondCategories();
+        this.shopService.enrichWithShopNames(mapped).subscribe({
+          next: (enriched) => {
+            this.products = enriched;
+            this.finishProductsLoad();
+          },
+          error: () => {
+            this.products = mapped;
+            this.finishProductsLoad();
+          },
+        });
       },
       (error) => {
         console.error('Error loading products:', error);
@@ -227,6 +286,18 @@ export class ProductList implements OnInit {
         this.refreshMobileSecondCategories();
       }
     );
+  }
+
+  private finishProductsLoad(): void {
+    if (this.selectedCategory) {
+      this.applyFiltersFromState();
+    } else {
+      this.applyFiltersFromState();
+    }
+
+    this.tryApplyPendingCategoryFilter();
+    this.isLoading = false;
+    this.refreshMobileSecondCategories();
   }
 
   buildCategoryTree(parent: any, allCategories: any[]): any {
@@ -420,6 +491,29 @@ export class ProductList implements OnInit {
     return Array.from(ids);
   }
 
+  // Get the selected category id plus all of its descendant ids ONLY (no ancestors).
+  // Used to detect products that belong specifically to the chosen sub category so
+  // they can be prioritized at the top of the list.
+  private getCategoryAndDescendantIds(category: any): string[] {
+    const selectedId = this.normalizeId(category?.category_id);
+    if (!selectedId) return [];
+
+    const ids = new Set<string>();
+    const addDescendants = (categoryId: string) => {
+      if (!categoryId || ids.has(categoryId)) return;
+      ids.add(categoryId);
+      const children = this.allCategories.filter(
+        (cat: any) => this.normalizeId(cat.parent_id) === categoryId
+      );
+      children.forEach((child: any) =>
+        addDescendants(this.normalizeId(child.category_id))
+      );
+    };
+
+    addDescendants(selectedId);
+    return Array.from(ids);
+  }
+
   isCategorySelected(category: any): boolean {
     if (!this.selectedCategory) return false;
     
@@ -586,12 +680,14 @@ export class ProductList implements OnInit {
 
     if (isSecondLevelSelection && rootParent) {
       const parentCategoryIds = new Set(this.getAllCategoryIds(rootParent));
-      const childCategoryIds = new Set(this.getAllCategoryIds(category));
       const parentProducts = products.filter((product: any) =>
         this.productMatchesCategoryIds(product, parentCategoryIds)
       );
-      const childProducts = parentProducts.filter((product: any) =>
-        this.productMatchesCategoryIds(product, childCategoryIds)
+
+      const childProducts = this.resolvePriorityProducts(
+        category,
+        rootParent,
+        parentProducts
       );
       const childProductIds = new Set(
         childProducts.map((product: any) => this.normalizeId(product.id))
@@ -605,6 +701,73 @@ export class ProductList implements OnInit {
     const categoryIds = new Set(this.getAllCategoryIds(category));
     return products.filter((product: any) =>
       this.productMatchesCategoryIds(product, categoryIds)
+    );
+  }
+
+  // Resolve which products should be prioritized (shown first) for the selected category.
+  // Strategy, starting from the selected category and walking up toward — but never
+  // including — the root parent:
+  //   1. Products whose category ids match the node (or its descendants).
+  //   2. If none match by id, products whose NAME matches the category name. This is
+  //      required because many sub-sub category products are only tagged at the parent
+  //      level (e.g. every Sportswear product carries sub_sub_category_id = Sportswear),
+  //      so "Jersey" vs "Jackets" can only be told apart by the product title.
+  // The first level that yields matches wins, so a leaf selection stays specific and
+  // does not pull in unrelated sibling products.
+  private resolvePriorityProducts(
+    category: any,
+    rootParent: any,
+    scopedProducts: any[]
+  ): any[] {
+    const rootId = this.normalizeId(rootParent?.category_id);
+    let node: any = category;
+
+    while (node && this.normalizeId(node.category_id) !== rootId) {
+      const ids = new Set(this.getCategoryAndDescendantIds(node));
+      const idMatches = scopedProducts.filter((product) =>
+        this.productMatchesCategoryIds(product, ids)
+      );
+      if (idMatches.length) {
+        return idMatches;
+      }
+
+      const nameMatches = scopedProducts.filter((product) =>
+        this.productNameMatchesCategory(product, node)
+      );
+      if (nameMatches.length) {
+        return nameMatches;
+      }
+
+      const parentId = this.normalizeId(node.parent_id);
+      if (!parentId || parentId === rootId) {
+        break;
+      }
+      node = this.allCategories.find(
+        (cat: any) => this.normalizeId(cat.category_id) === parentId
+      );
+    }
+
+    return [];
+  }
+
+  // Does the product name/title reference the given category by name? Handles simple
+  // singular/plural variants (e.g. "Jackets" -> "jacket").
+  private productNameMatchesCategory(product: any, category: any): boolean {
+    const name = String(product?.name || product?.title || '').toLowerCase();
+    const categoryName = String(category?.category_name || '').toLowerCase().trim();
+    if (!name || categoryName.length < 3) {
+      return false;
+    }
+
+    const variants = new Set<string>([categoryName]);
+    if (categoryName.endsWith('s')) {
+      variants.add(categoryName.slice(0, -1));
+    } else {
+      variants.add(`${categoryName}s`);
+    }
+
+    return Array.from(variants).some(
+      (variant) => variant.length >= 3 && name.includes(variant)
     );
   }
 
@@ -778,6 +941,9 @@ export class ProductList implements OnInit {
       existingItems[existingIndex].image = product?.image || '/mobile.jpg';
       existingItems[existingIndex].name = product?.name || 'Untitled Product';
       existingItems[existingIndex].inStock = product?.inStock !== false;
+      existingItems[existingIndex].store_id = this.normalizeId(product?.store_id);
+      existingItems[existingIndex].store_name = product?.store_name || '';
+      existingItems[existingIndex].shop_location = product?.shop_location || '';
     } else {
       existingItems.push({
         id: productId,
@@ -787,6 +953,9 @@ export class ProductList implements OnInit {
         image: product?.image || '/mobile.jpg',
         quantity: 1,
         inStock: product?.inStock !== false,
+        store_id: this.normalizeId(product?.store_id),
+        store_name: product?.store_name || '',
+        shop_location: product?.shop_location || '',
       });
     }
 

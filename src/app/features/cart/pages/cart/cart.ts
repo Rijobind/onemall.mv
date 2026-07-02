@@ -4,28 +4,26 @@ import { Router } from '@angular/router';
 import { RouterModule } from '@angular/router';
 import { Header } from '../../../../shared/components/header/header';
 import { Footer } from '../../../../shared/components/footer/footer';
+import { MarketplaceShopService } from '../../../../core/services/marketplace-shop.service/marketplace-shop.service';
+import { ShopNameLink } from '../../../../shared/components/shop-name-link/shop-name-link';
 
 @Component({
   selector: 'app-cart',
-  imports: [CommonModule, RouterModule, Header, Footer],
+  imports: [CommonModule, RouterModule, Header, Footer, ShopNameLink],
   templateUrl: './cart.html',
   styleUrl: './cart.css',
 })
 export class Cart implements OnInit {
   private readonly cartStorageKey = 'cart_items';
-  private readonly maxSwipeOffset = 72;
-  private activeSwipeItemId: string | null = null;
-  private touchStartX = 0;
-  private touchStartY = 0;
-  private swipeStartOffset = 0;
-  private isHorizontalSwipe = false;
 
   cartItems: any[] = [];
   quantityOptions: number[] = [0, 1, 2, 3, 4, 5, 6, 7];
   openQtyDropdownForId: string | null = null;
-  swipeOffsets: Record<string, number> = {};
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private shopService: MarketplaceShopService
+  ) {}
 
   increaseQuantity(item: any, event?: MouseEvent) {
     if (event) {
@@ -51,7 +49,6 @@ export class Cart implements OnInit {
     }
     const normalizedId = String(id);
     this.cartItems = this.cartItems.filter(item => String(item.id) !== normalizedId);
-    delete this.swipeOffsets[normalizedId];
     this.persistCartItems();
   }
 
@@ -91,59 +88,22 @@ export class Cart implements OnInit {
     try {
       const parsedItems = JSON.parse(savedItems);
       if (Array.isArray(parsedItems)) {
-        this.cartItems = parsedItems;
+        this.shopService.enrichWithShopNames(parsedItems).subscribe({
+          next: (enriched) => {
+            this.cartItems = enriched;
+          },
+          error: () => {
+            this.cartItems = parsedItems;
+          },
+        });
       }
     } catch {
       this.cartItems = [];
     }
   }
 
-  onItemSwipeStart(itemId: string | number, event: TouchEvent): void {
-    const touch = event.touches?.[0];
-    if (!touch) return;
-
-    const normalizedId = String(itemId);
-    this.activeSwipeItemId = normalizedId;
-    this.touchStartX = touch.clientX;
-    this.touchStartY = touch.clientY;
-    this.swipeStartOffset = this.swipeOffsets[normalizedId] || 0;
-    this.isHorizontalSwipe = false;
-  }
-
-  onItemSwipeMove(itemId: string | number, event: TouchEvent): void {
-    if (this.activeSwipeItemId !== String(itemId)) return;
-    const touch = event.touches?.[0];
-    if (!touch) return;
-
-    const deltaX = touch.clientX - this.touchStartX;
-    const deltaY = touch.clientY - this.touchStartY;
-
-    if (!this.isHorizontalSwipe) {
-      if (Math.abs(deltaX) < 8) return;
-      if (Math.abs(deltaX) <= Math.abs(deltaY)) return;
-      this.isHorizontalSwipe = true;
-    }
-
-    event.preventDefault();
-    const normalizedId = String(itemId);
-    const nextOffset = this.swipeStartOffset + deltaX;
-    this.swipeOffsets[normalizedId] = Math.max(0, Math.min(this.maxSwipeOffset, nextOffset));
-  }
-
-  onItemSwipeEnd(itemId: string | number): void {
-    const normalizedId = String(itemId);
-    const offset = this.swipeOffsets[normalizedId] || 0;
-    this.swipeOffsets[normalizedId] = offset > this.maxSwipeOffset / 2 ? this.maxSwipeOffset : 0;
-    this.activeSwipeItemId = null;
-    this.isHorizontalSwipe = false;
-  }
-
-  closeSwipe(itemId: string | number): void {
-    this.swipeOffsets[String(itemId)] = 0;
-  }
-
-  getSwipeOffset(itemId: string | number): number {
-    return this.swipeOffsets[String(itemId)] || 0;
+  onShopClick(item: any, event?: Event): void {
+    this.shopService.navigateToShop(String(item?.store_id || item?.storeId || ''), event);
   }
 
   onCartItemClick(item: any): void {
