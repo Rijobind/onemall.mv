@@ -64,14 +64,12 @@
             [src]="product.image"
             [alt]="product.name"
             class="object-cover w-full h-full transition hover:scale-105"
+            loading="lazy"
           />
           <div
-            *ngIf="product.originalPrice && product.originalPrice > product.price"
-            class="absolute px-2 py-1 text-xs font-semibold text-white bg-red-600 rounded top-2 left-2"
+            *ngIf="!product.inStock"
+            class="absolute inset-0 flex items-center justify-center bg-black/50"
           >
-            {{ ((1 - product.price / product.originalPrice) * 100).toFixed(0) }}% OFF
-          </div>
-          <div *ngIf="!product.inStock" class="absolute inset-0 flex items-center justify-center bg-black/50">
             <span class="px-3 py-1 text-sm font-semibold text-white bg-red-600 rounded">Out of Stock</span>
           </div>
         </div>
@@ -103,12 +101,7 @@
             <span *ngIf="product.reviews" class="ml-1 text-xs text-gray-600">({{ product.reviews }})</span>
           </div>
           <div class="flex items-center gap-2 mb-3">
-            <span class="text-lg font-bold text-gray-900">${{ product.price.toFixed(2) }}</span>
-            <span
-              *ngIf="product.originalPrice && product.originalPrice > product.price"
-              class="text-sm text-gray-400 line-through"
-              >${{ product.originalPrice.toFixed(2) }}</span
-            >
+            <span class="text-lg font-bold text-gray-900">{{ product.store_currency_symbol || '$' }}{{ product.price.toFixed(2) }}</span>
           </div>
           <button
             (click)="addToCart(product, $event)"
@@ -129,7 +122,7 @@
         class="overflow-hidden text-left transition-all bg-white border border-gray-200 rounded-lg group hover:shadow-md hover:border-green-300"
       >
         <div class="relative w-full h-40 overflow-hidden bg-gray-100">
-          <img [src]="product.image" [alt]="product.name" class="object-cover w-full h-full" />
+          <img [src]="product.image" [alt]="product.name" class="object-cover w-full h-full" loading="lazy" />
           <button
             (click)="removeFromFavorites(product.id, $event)"
             class="absolute z-10 p-1.5 text-red-500 bg-white rounded-full shadow top-2 right-2"
@@ -165,7 +158,7 @@
           </div>
           <div class="flex items-end justify-between mt-2">
             <div>
-              <p class="text-base font-bold leading-none text-gray-900">${{ product.price.toFixed(2) }}</p>
+              <p class="text-base font-bold leading-none text-gray-900">{{ product.store_currency_symbol || '$' }}{{ product.price.toFixed(2) }}</p>
               <p class="mt-0.5 text-[10px] leading-none text-gray-500">{{ product.delivery || 'FREE delivery' }}</p>
             </div>
             <button
@@ -208,5 +201,24 @@
     </div>
   </div>
 </section>
+
+<app-confirm-dialog
+  [isOpen]="isConfirmOpen"
+  [title]="confirmTitle"
+  [message]="confirmMessage"
+  confirmLabel="Yes, remove"
+  cancelLabel="Cancel"
+  (confirmed)="onConfirmRemove()"
+  (cancelled)="closeConfirm()"
+></app-confirm-dialog>
+
+<app-cart-model
+  [isOpen]="isCartModalOpen"
+  [apiProduct]="cartModalApiProduct"
+  [mode]="cartModalMode"
+  [storeId]="cartModalStoreId"
+  (closed)="closeCartModal()"
+  (added)="onCartModalAdded()"
+></app-cart-model>
 
 <app-footer></app-footer>

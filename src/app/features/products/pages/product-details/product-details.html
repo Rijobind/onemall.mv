@@ -16,10 +16,27 @@
 </div>
 <section class="py-6 bg-white md:py-12">
   <div class="container px-4 mx-auto md:px-6">
+    <!-- Not found -->
+    <div
+      *ngIf="!isLoading && productNotFound"
+      class="flex flex-col items-center justify-center px-4 py-20 text-center"
+    >
+      <h1 class="mb-2 text-2xl font-bold text-gray-900">Product not found</h1>
+      <p class="mb-6 text-gray-600">
+        This product link is invalid or the product is no longer available.
+      </p>
+      <a
+        routerLink="/"
+        class="px-5 py-2.5 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700"
+      >
+        Back to home
+      </a>
+    </div>
+
     <!-- Skeleton Loader -->
     <div
       *ngIf="isLoading"
-      class="grid grid-cols-1 gap-8 lg:grid-cols-[598px_minmax(0,1fr)] lg:gap-6 xl:gap-8 items-start"
+      class="grid grid-cols-1 gap-8 lg:grid-cols-[468px_minmax(0,1fr)] xl:grid-cols-[514px_minmax(0,1fr)] lg:gap-6 xl:gap-8 items-start"
     >
       <div class="lg:col-span-1">
         <div class="mb-4 product-gallery-layout">
@@ -32,7 +49,9 @@
             <div class="product-thumb-item skeleton-pulse"></div>
           </div>
           <div class="product-main-stage">
-            <div class="product-main-media skeleton-pulse"></div>
+            <div class="product-main-media flex items-center justify-center bg-gray-100 overflow-hidden">
+              <img src="/loader-image.png" alt="" class="object-contain w-full h-full" />
+            </div>
           </div>
         </div>
 
@@ -52,7 +71,7 @@
       </div>
       <div class="lg:col-span-1">
         <div class="lg:flex lg:items-start lg:gap-6">
-          <div class="sticky top-24 min-h-[520px] flex-1 min-w-0">
+          <div class="sticky top-24 min-h-[400px] flex-1 min-w-0">
           <div class="w-4/5 h-8 mb-3 rounded skeleton-pulse"></div>
           <div class="w-32 h-4 mb-4 rounded skeleton-pulse"></div>
           <div class="flex gap-3 mb-5">
@@ -92,7 +111,7 @@
           </div>
           </div>
 
-          <aside class="hidden flex-shrink-0 w-56 lg:block">
+          <aside class="hidden flex-shrink-0 w-48 xl:w-56 lg:block">
             <div class="sticky top-24">
               <div class="product-detail-promo product-detail-promo-desktop product-detail-promo-skeleton">
                 <div class="product-detail-promo-visual skeleton-pulse"></div>
@@ -111,8 +130,8 @@
 
     <!-- Actual Content -->
     <div
-      *ngIf="!isLoading"
-      class="grid grid-cols-1 gap-6 lg:grid-cols-[598px_minmax(0,1fr)] lg:gap-6 xl:gap-8 items-start"
+      *ngIf="!isLoading && !productNotFound"
+      class="grid grid-cols-1 gap-6 lg:grid-cols-[468px_minmax(0,1fr)] xl:grid-cols-[514px_minmax(0,1fr)] lg:gap-6 xl:gap-8 items-start"
     >
       <!-- Left: Images only -->
       <div class="lg:col-span-1">
@@ -127,11 +146,15 @@
             >
               <video
                 *ngIf="isVideoMedia(image); else imageThumbTemplate"
+                #thumbVideo
                 [src]="image"
                 class="object-contain w-full h-full bg-white"
                 muted
+                [muted]="true"
                 playsinline
                 preload="metadata"
+                (loadedmetadata)="muteProductVideo(thumbVideo)"
+                (play)="muteProductVideo(thumbVideo)"
               ></video>
               <ng-template #imageThumbTemplate>
                 <img
@@ -150,11 +173,17 @@
               >
                 <video
                   *ngIf="isVideoMedia(product.images[selectedImageIndex]); else imageMediaTemplate"
+                  #mainProductVideo
                   [src]="product.images[selectedImageIndex]"
                   class="w-full h-full object-contain bg-[#f2f2f2]"
                   controls
+                  muted
+                  [muted]="true"
                   playsinline
                   preload="metadata"
+                  (loadedmetadata)="muteProductVideo(mainProductVideo)"
+                  (play)="muteProductVideo(mainProductVideo)"
+                  (volumechange)="muteProductVideo(mainProductVideo)"
                 ></video>
                 <ng-template #imageMediaTemplate>
                   <img
@@ -290,7 +319,7 @@
       <!-- Center: Title, Details, Variants -->
       <div class="min-w-0 overflow-hidden lg:col-span-1">
         <div class="lg:flex lg:items-start lg:gap-6">
-          <div class="relative flex-1 min-w-0 min-h-[520px] lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
+          <div class="relative flex-1 min-w-0 min-h-[400px] lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
           <button
             type="button"
             (click)="toggleShareMenu(); $event.stopPropagation()"
@@ -462,9 +491,19 @@
               </button>
               <button
                 type="button"
-                class="px-2.5 py-1 text-xs font-medium text-gray-700 transition border border-gray-300 rounded-md bg-gray-50 hover:bg-gray-100"
+                (click)="toggleFollowShop($event)"
+                [disabled]="followActionLoading"
+                class="px-2.5 py-1 text-xs font-medium transition border rounded-md"
+                [class.text-green-700]="isFollowingShop"
+                [class.bg-green-50]="isFollowingShop"
+                [class.border-green-200]="isFollowingShop"
+                [class.text-gray-700]="!isFollowingShop"
+                [class.bg-gray-50]="!isFollowingShop"
+                [class.border-gray-300]="!isFollowingShop"
+                [class.hover:bg-green-100]="isFollowingShop"
+                [class.hover:bg-gray-100]="!isFollowingShop"
               >
-                Follow
+                {{ isFollowingShop ? 'Following' : 'Follow' }}
               </button>
             </div>
           </div>
@@ -486,25 +525,9 @@
             <span>{{ product.brand }}</span>
           </span> -->
           <div class="flex flex-wrap items-center gap-2 mt-2 mb-4">
-            <span
-              *ngIf="product.originalPrice && product.originalPrice > (product.price ?? 0)"
-              class="text-xl font-medium text-gray-400 line-through"
-              >${{ product.originalPrice.toFixed(2) }}</span
-            >
             <span class="text-3xl font-bold text-gray-900"
-              >${{ (product.price ?? 0).toFixed(2) }}</span
+              >{{ priceCurrencySymbol }}{{ (product.price ?? 0).toFixed(2) }}</span
             >
-            <span
-              *ngIf="product.originalPrice && product.originalPrice > (product.price ?? 0)"
-              class="px-2 py-1 text-xs font-semibold text-green-700 uppercase bg-green-100 rounded-md"
-            >
-              {{
-                (
-                  ((product.originalPrice - (product.price ?? 0)) / product.originalPrice) *
-                  100
-                ).toFixed(0)
-              }}% OFF
-            </span>
             <span
               *ngIf="
                 product.stock !== undefined &&
@@ -584,20 +607,22 @@
               </div>
             </div>
 
-            <div class="flex items-center gap-3">
-              <span class="text-sm font-medium text-gray-600 min-w-16">Qty:</span>
-              <select
-                [(ngModel)]="quantity"
-                class="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                <option *ngFor="let qty of qtyOptions" [ngValue]="qty">{{ qty }}</option>
-              </select>
+            <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <div class="flex items-center gap-2">
+                <span class="text-sm font-medium text-gray-600 min-w-16">Qty:</span>
+                <select
+                  [(ngModel)]="quantity"
+                  class="px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option *ngFor="let qty of qtyOptions" [ngValue]="qty">{{ qty }}</option>
+                </select>
+              </div>
+              <div class="flex items-stretch gap-2 flex-1 min-w-[220px]">
                 <button
                   type="button"
                   (click)="addToCart($event)"
                   aria-label="Add to cart"
-                  class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 md:gap-2 md:px-5 text-sm font-semibold text-white transition bg-green-600 rounded-lg hover:bg-green-700"
+                  class="inline-flex items-center justify-center flex-1 gap-1.5 px-3 py-2.5 md:gap-2 md:px-4 text-sm font-semibold text-white transition bg-green-600 rounded-lg hover:bg-green-700 whitespace-nowrap"
                 >
                   <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -614,7 +639,7 @@
                   type="button"
                   (click)="toggleFavorite($event)"
                   [attr.aria-label]="isFavoriteProduct() ? 'Remove from favorites' : 'Add to favorite'"
-                  class="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 md:gap-2 md:px-4 text-sm font-semibold transition border rounded-lg"
+                  class="inline-flex items-center justify-center flex-1 gap-1.5 px-3 py-2.5 md:gap-2 md:px-4 text-sm font-semibold transition border rounded-lg whitespace-nowrap"
                   [class.text-red-500]="isFavoriteProduct()"
                   [class.border-red-300]="isFavoriteProduct()"
                   [class.bg-red-50]="isFavoriteProduct()"
@@ -635,7 +660,6 @@
                   <span class="hidden md:inline">{{ isFavoriteProduct() ? 'Saved' : 'Add to Favorite' }}</span>
                 </button>
               </div>
-  
             </div>
 
            
@@ -690,9 +714,19 @@
                 </button>
                 <button
                   type="button"
-                  class="px-3 py-1.5 text-xs font-medium text-gray-700 transition border border-gray-300 rounded-md bg-white hover:bg-gray-100"
+                  (click)="toggleFollowShop($event)"
+                  [disabled]="followActionLoading"
+                  class="px-3 py-1.5 text-xs font-medium transition border rounded-md"
+                  [class.text-green-700]="isFollowingShop"
+                  [class.bg-green-50]="isFollowingShop"
+                  [class.border-green-300]="isFollowingShop"
+                  [class.hover:bg-green-100]="isFollowingShop"
+                  [class.text-gray-700]="!isFollowingShop"
+                  [class.bg-white]="!isFollowingShop"
+                  [class.border-gray-300]="!isFollowingShop"
+                  [class.hover:bg-gray-100]="!isFollowingShop"
                 >
-                  Follow
+                  {{ isFollowingShop ? 'Following' : 'Follow' }}
                 </button>
               </div>
             </div>
@@ -832,7 +866,7 @@
           </div>
 
           <!-- Desktop advertisement sidebar -->
-          <aside class="hidden flex-shrink-0 w-56 lg:block">
+          <aside class="hidden flex-shrink-0 w-48 xl:w-56 lg:block">
             <div class="sticky top-24">
               <button
                 type="button"
@@ -931,6 +965,7 @@
                 [src]="product.image"
                 [alt]="product.name"
                 class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+                loading="lazy"
               />
             </div>
 
@@ -943,7 +978,7 @@
               </h3>
               <div class="flex items-center">
                 <span class="text-lg font-bold text-gray-900"
-                  >${{
+                  >{{ product.store_currency_symbol || '$' }}{{
                     product.price.toLocaleString('en-US', {
                       minimumFractionDigits: 3,
                       maximumFractionDigits: 3,
@@ -1014,6 +1049,7 @@
                 [src]="product.image"
                 [alt]="product.name"
                 class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+                loading="lazy"
               />
             </div>
 
@@ -1026,7 +1062,7 @@
               </h3>
               <div class="flex items-center">
                 <span class="text-lg font-bold text-gray-900"
-                  >${{
+                  >{{ product.store_currency_symbol || '$' }}{{
                     product.price.toLocaleString('en-US', {
                       minimumFractionDigits: 3,
                       maximumFractionDigits: 3,
@@ -1041,5 +1077,16 @@
     </div>
   </div>
 </section>
+
+<app-cart-model
+  [isOpen]="isCartModalOpen"
+  [apiProduct]="apiProductData"
+  [mode]="cartModalMode"
+  [initialAttributes]="cartModalInitialAttributes"
+  [initialQuantity]="quantity"
+  [storeId]="currentStoreId"
+  (closed)="closeCartModal()"
+  (added)="onCartModalAdded()"
+></app-cart-model>
 
 <app-footer></app-footer>

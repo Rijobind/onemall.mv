@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -7,12 +7,21 @@ import { Footer } from "../../../../shared/components/footer/footer";
 import { ShopProducts } from "../shop-products/shop-products";
 import { BackendapiServices } from '../../../../core/services/backendapi.services/backendapi.services';
 import { RegionService } from '../../../../core/services/region.service/region.service';
-import { formatShopLocation, resolveStoreAddressRegion } from '../../../../core/utils/marketplace-shop.util';
+import { CurrencyService } from '../../../../core/services/currency.service/currency.service';
+import {
+  formatShopLocation,
+  resolveCurrencySymbol,
+  resolveStoreAddressRegion,
+} from '../../../../core/utils/marketplace-shop.util';
+import { resolveVariantDisplayPrice } from '../../../../core/utils/marketplace-price.util';
+import { buildProductCommands } from '../../../../core/utils/product-url.util';
+import { ProductCardSkeleton } from '../../../../shared/components/product-card-skeleton/product-card-skeleton';
 import { ActivatedRoute, Router } from '@angular/router';
+import { FollowService } from '../../../../core/services/follow.service/follow.service';
 
 @Component({
   selector: 'app-shop-details',
-  imports: [CommonModule, RouterModule, FormsModule, Header, Footer, ShopProducts],
+  imports: [CommonModule, RouterModule, FormsModule, Header, Footer, ShopProducts, ProductCardSkeleton],
   templateUrl: './shop-details.html',
   styleUrl: './shop-details.css',
 })
@@ -41,11 +50,15 @@ export class ShopDetails implements OnInit, OnDestroy {
   sortBy: string = 'newest';
   currentStoreId: string = '';
   isShopDataFromApi: boolean = false;
+  shopCurrencyCode: string = '';
+  shopCurrencySymbol: string = '$';
   isLoading: boolean = true;
   activeMobileTab: 'items' | 'categories' | 'reviews' = 'items';
   shopSearchQuery: string = '';
   private isStoreLoaded: boolean = false;
   private isProductsLoaded: boolean = false;
+  isFollowing = false;
+  followActionLoading = false;
 
   shop = { ...this.fallbackShop };
 
@@ -90,27 +103,38 @@ export class ShopDetails implements OnInit, OnDestroy {
     );
   }
 
+  get desktopFilteredProducts() {
+    const term = this.shopSearchQuery.trim().toLowerCase();
+    if (!term) return this.filteredProducts;
+    return this.filteredProducts.filter((product: any) =>
+      String(product?.name || '').toLowerCase().includes(term)
+    );
+  }
+
   private readonly regionUpdatedHandler = () => this.loadApiDataInConsole();
+  private readonly currencyUpdatedHandler = (event: Event) => {
+    const detail = (event as CustomEvent)?.detail;
+    this.loadApiDataInConsole(detail?.currency_code);
+  };
 
   constructor(
     private backendapiServices: BackendapiServices,
     private route: ActivatedRoute,
     private router: Router,
-    private regionService: RegionService
+    private regionService: RegionService,
+    private currencyService: CurrencyService,
+    private followService: FollowService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   onProductClick(product: any): void {
-    if (!product?.id) return;
+    if (!product?.id && !product?.slug) return;
     const storeId = this.normalizeId(product?.store_id || this.currentStoreId);
     if (storeId && typeof window !== 'undefined') {
       localStorage.setItem('store_id', storeId);
     }
-    this.router.navigate(['/product-details'], {
-      queryParams: {
-        productId: product.id,
-        store_id: storeId || undefined,
-      },
-    });
+    const link = buildProductCommands({ ...product, store_id: storeId });
+    this.router.navigate(link.commands, { queryParams: link.queryParams });
   }
 
   ngOnInit() {
@@ -121,12 +145,14 @@ export class ShopDetails implements OnInit, OnDestroy {
     this.loadCategoryMapAndData();
     if (typeof window !== 'undefined') {
       window.addEventListener('region-updated', this.regionUpdatedHandler);
+      window.addEventListener('currency-updated', this.currencyUpdatedHandler);
     }
   }
 
   ngOnDestroy(): void {
     if (typeof window !== 'undefined') {
       window.removeEventListener('region-updated', this.regionUpdatedHandler);
+      window.removeEventListener('currency-updated', this.currencyUpdatedHandler);
     }
   }
 
@@ -147,20 +173,29 @@ export class ShopDetails implements OnInit, OnDestroy {
     this.sortBy = sortValue;
   }
 
-  private loadApiDataInConsole() {
+  private loadApiDataInConsole(currencyOverride?: string) {
+    const generation = this.currencyService.fetchGeneration;
+    const requestParams = this.currencyService.enrichProductParams(
+      this.regionService.getProductRequestParams(),
+      currencyOverride
+    );
+
     this.loadStoreDetails();
     this.backendapiServices
-      .getMarketplaceProductsWithFallback(this.regionService.getProductRequestParams())
+      .getMarketplaceProductsWithFallback(requestParams)
       .subscribe({
       next: (response: any) => {
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
         const apiProducts = this.backendapiServices.extractProductsFromResponse(response);
         this.allApiProducts = Array.isArray(apiProducts) ? apiProducts : [];
+
         this.populateProductsAndCategories();
         this.applyShopRegionFromProducts();
         this.isProductsLoaded = true;
         this.updateLoadingState();
       },
       error: () => {
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
         this.allProducts = [];
         this.categories = [];
         this.isProductsLoaded = true;
@@ -208,14 +243,58 @@ export class ShopDetails implements OnInit, OnDestroy {
           location: locationLabel,
           verified: store?.verified === undefined ? this.fallbackShop.verified : !!store.verified,
         };
+        this.shopCurrencyCode = String(store?.default_currency || '').trim().toUpperCase();
+        this.shopCurrencySymbol = resolveCurrencySymbol(this.shopCurrencyCode);
         this.isStoreLoaded = true;
         this.updateLoadingState();
+        this.loadFollowStatus();
       },
       error: () => {
         this.isShopDataFromApi = false;
         this.shop = { ...this.fallbackShop };
+        this.shopCurrencyCode = '';
+        this.shopCurrencySymbol = '$';
         this.isStoreLoaded = true;
         this.updateLoadingState();
+        this.loadFollowStatus();
+      },
+    });
+  }
+
+  toggleFollowShop(event?: Event): void {
+    event?.stopPropagation();
+    const storeId = this.normalizeId(this.shop?.id || this.currentStoreId);
+    if (!storeId || this.followActionLoading) return;
+
+    const wasFollowing = this.isFollowing;
+    this.followActionLoading = true;
+    this.followService.toggleFollow(storeId, wasFollowing).subscribe({
+      next: (result) => {
+        this.followActionLoading = false;
+        if (result === 'login_required') return;
+        this.isFollowing = result === true;
+        if (this.isFollowing && !wasFollowing) {
+          this.shop.followers = (Number(this.shop.followers) || 0) + 1;
+        } else if (!this.isFollowing && wasFollowing) {
+          this.shop.followers = Math.max(0, (Number(this.shop.followers) || 0) - 1);
+        }
+      },
+      error: () => {
+        this.followActionLoading = false;
+      },
+    });
+  }
+
+  private loadFollowStatus(): void {
+    const storeId = this.normalizeId(this.shop?.id || this.currentStoreId);
+    if (!storeId) return;
+
+    this.followService.getFollowStatus(storeId).subscribe({
+      next: (status) => {
+        this.isFollowing = !!status.is_following;
+        if (status.follower_count > 0 || this.isShopDataFromApi) {
+          this.shop.followers = status.follower_count;
+        }
       },
     });
   }
@@ -311,21 +390,23 @@ export class ShopDetails implements OnInit, OnDestroy {
         this.normalizeId(product?.sub_category_id) ||
         this.normalizeId(product?.category_id) ||
         'uncategorized';
+      const display = resolveVariantDisplayPrice(variant, product);
 
       return {
         id: product?.product_id,
+        slug: String(product?.slug || '').trim() || undefined,
         store_id: this.resolveStoreId(product, variant),
         name: product?.title || 'Untitled Product',
-        price: Number(variant?.base_price || 0),
-        originalPrice: Number(variant?.base_price || 0) > 0
-          ? Math.round(Number(variant?.base_price || 0) * 1.2 * 100) / 100
-          : 0,
+        price: display.price,
+        originalPrice: display.originalPrice,
         rating: Number(product?.rating || 0),
         reviews: Number(product?.review_count || 0),
         sold: Number(product?.sold_count || 0),
         image: imageUrl,
         category: categoryKey,
         inStock: Number(variant?.im_StoreVariantInventory?.[0]?.on_hand_quantity || 0) > 0,
+        store_currency_code: display.display_currency || this.shopCurrencyCode,
+        store_currency_symbol: display.display_symbol || this.shopCurrencySymbol,
         isApiData: true,
       };
     });
@@ -358,32 +439,7 @@ export class ShopDetails implements OnInit, OnDestroy {
 
   private updateLoadingState(): void {
     this.isLoading = !(this.isStoreLoaded && this.isProductsLoaded);
-  }
-
-  private buildFallbackCategories(): Array<{ id: string; name: string; count: number; isApiData?: boolean }> {
-    const map = new Map<string, { name: string; count: number }>();
-    this.allProducts.forEach((product: any) => {
-      const key = this.normalizeId(product?.category || 'other');
-      const existing = map.get(key);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        const derivedName = String(product?.category || 'Other')
-          .replace(/[-_]/g, ' ')
-          .replace(/\b\w/g, (s) => s.toUpperCase());
-        map.set(key, { name: derivedName, count: 1 });
-      }
-    });
-
-    return [
-      { id: 'all', name: 'All Products', count: this.allProducts.length, isApiData: false },
-      ...Array.from(map.entries()).map(([id, entry]) => ({
-        id,
-        name: entry.name,
-        count: entry.count,
-        isApiData: false,
-      })),
-    ];
+    this.cdr.markForCheck();
   }
 
   private resolveStoreId(product: any, variant: any): string {

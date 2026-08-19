@@ -9,17 +9,25 @@ import {
   ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { NavigationEnd, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { Signin } from '../../../features/products/models/signin/signin';
 import { Signup } from '../../../features/products/models/signup/signup';
+import { AuthCustomer, AuthService } from '../../../core/services/auth.service/auth.service';
 import { BackendapiServices } from '../../../core/services/backendapi.services/backendapi.services';
+import { CartService } from '../../../core/services/cart.service/cart.service';
 import { FavoritesService } from '../../../core/services/favorites.service/favorites.service';
+import { NotificationService } from '../../../core/services/notifications.service/notifications.service';
 import {
   MarketplaceCity,
   MarketplaceRegion,
   RegionSelection,
   RegionService,
 } from '../../../core/services/region.service/region.service';
+import {
+  CurrencyService,
+  MarketplaceCurrencyOption,
+} from '../../../core/services/currency.service/currency.service';
 import { filter, Subscription } from 'rxjs';
 
 type SearchSuggestionType = 'autocomplete' | 'category';
@@ -33,7 +41,7 @@ interface SearchSuggestionItem {
 
 @Component({
   selector: 'app-header',
-  imports: [CommonModule, Signin, Signup],
+  imports: [CommonModule, FormsModule, Signin, Signup],
   templateUrl: './header.html',
   styleUrl: './header.css',
 })
@@ -43,59 +51,24 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
   private readonly recentSearchesStorageKey = 'recent_searches';
   private categoryCloseTimeout: ReturnType<typeof setTimeout> | null = null;
   private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private accountMenuCloseTimer: ReturnType<typeof setTimeout> | null = null;
   private routerEventsSub: Subscription | null = null;
   private regionSub: Subscription | null = null;
+  private authSub: Subscription | null = null;
+  private notificationSub: Subscription | null = null;
+  private readonly onAuthUpdated = () => this.syncAuthState();
+  private readonly onOpenSignin = () => this.requestGuestSignIn();
   cartCount = 0;
   wishlistCount = 0;
-  notificationCount = 4;
+  notificationCount = 0;
   isSigninModalOpen = false;
   isSignupModalOpen = false;
+  isAccountMenuOpen = false;
+  customer: AuthCustomer | null = null;
 
-  currentAdIndex = 0;
-  private adInterval: any;
-
-  advertisements = [
-    {
-      backgroundImage: '/mobile3.jpg',
-      leftImage: '/mobile2.jpg',
-      rightImage: '/mobile.jpg',
-      title: 'CYBER MONDAY SALE',
-      description: "Don't miss out on amazing deals!",
-      discount: '75%',
-      buttonText: 'SHOP NOW',
-    },
-    {
-      backgroundImage: '/mobile4.jpg',
-      leftImage: '/keyboard.jpg',
-      rightImage: '/laptop.jpg',
-      title: 'SUMMER COLLECTION',
-      description: 'New arrivals with exclusive discounts!',
-      discount: '50%',
-      buttonText: 'EXPLORE NOW',
-    },
-    {
-      backgroundImage: '/mobile2.jpg',
-      leftImage: '/air-pod.jpg',
-      rightImage: '/Categories2.jpg',
-      title: 'FLASH SALE',
-      description: "Limited time offers - Shop before they're gone!",
-      discount: '60%',
-      buttonText: 'BUY NOW',
-    },
-    {
-      backgroundImage: '/mobile.jpg',
-      leftImage: '/ps5.jpg',
-      rightImage: '/mouse2.jpg',
-      title: 'WEEKEND SPECIAL',
-      description: 'Extra savings on selected items!',
-      discount: '40%',
-      buttonText: 'SHOP NOW',
-    },
-  ];
-
-  get currentAd() {
-    return this.advertisements[this.currentAdIndex];
-  }
+  /** Responsive global ads: desktop vs mobile (no rotation). */
+  readonly globalAdDesktop = '/global-desktop.png';
+  readonly globalAdMobile = '/global-mobile.png';
 
   categoryTree: any[] = [];
   ProductList: any[] = [];
@@ -113,37 +86,123 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
   modalRegionId = '';
   modalCity = '';
   isCitiesLoading = false;
+  isCurrencyDropdownOpen = false;
+  currencyOptions: MarketplaceCurrencyOption[] = [];
+  private currencySub: Subscription | null = null;
 
   constructor(
     private router: Router,
     private cdr: ChangeDetectorRef,
     private api: BackendapiServices,
     private favoritesService: FavoritesService,
-    private regionService: RegionService
+    private cartService: CartService,
+    private regionService: RegionService,
+    private authService: AuthService,
+    private currencyService: CurrencyService,
+    private notificationService: NotificationService,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit() {
-    this.startAdRotation();
     this.loadCategory();
     this.loadRegions();
+    this.loadCurrencies();
     this.regionSub = this.regionService.selection$.subscribe(() => {
       this.loadProductList();
     });
+    this.currencySub = this.currencyService.currency$.subscribe(() => {
+      this.cdr.markForCheck();
+    });
+    this.authSub = this.authService.customer$.subscribe((customer) => {
+      this.customer = customer;
+      this.notificationService.refreshUnreadCount();
+      this.cdr.markForCheck();
+    });
+    this.notificationSub = this.notificationService.unreadCount$.subscribe((count) => {
+      this.notificationCount = count;
+      this.cdr.markForCheck();
+    });
+    window.addEventListener('auth-updated', this.onAuthUpdated);
+    window.addEventListener('open-signin', this.onOpenSignin);
     this.loadCartCount();
     this.loadWishlistCount();
+    this.notificationService.refreshUnreadCount();
     this.loadRecentSearches();
     this.syncSearchQueryFromUrl();
     this.syncActiveMobileTabFromUrl();
+    this.openSigninFromQueryParams();
     this.routerEventsSub = this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe(() => {
         this.syncSearchQueryFromUrl();
         this.syncActiveMobileTabFromUrl();
+        this.openSigninFromQueryParams();
       });
   }
 
   get regionDisplayLabel(): string {
     return this.regionService.displayLabel;
+  }
+
+  get currencyDisplayCode(): string {
+    return this.currencyService.shortLabel;
+  }
+
+  get currencyDisplayLabel(): string {
+    return this.currencyService.displayLabel;
+  }
+
+  loadCurrencies(): void {
+    this.currencyService.loadOptions().subscribe({
+      next: (options) => {
+        this.currencyOptions = options;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.currencyOptions = [];
+      },
+    });
+  }
+
+  toggleCurrencyDropdown(event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.isCurrencyDropdownOpen = !this.isCurrencyDropdownOpen;
+    if (this.isCurrencyDropdownOpen) {
+      this.isAccountMenuOpen = false;
+      this.closeSearchDropdown();
+      this.activeMobileTab = 'currency';
+      if (!this.currencyOptions.length) {
+        this.loadCurrencies();
+      }
+    } else {
+      this.syncActiveMobileTabFromUrl();
+    }
+  }
+
+  selectCurrency(option: MarketplaceCurrencyOption, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    if (this.isCurrencySelected(option)) {
+      this.isCurrencyDropdownOpen = false;
+      this.syncActiveMobileTabFromUrl();
+      return;
+    }
+    this.isCurrencyDropdownOpen = false;
+    this.syncActiveMobileTabFromUrl();
+
+    // setCurrency persists NEXT code, clears cache, and emits currency-updated
+    // so pages refetch with the same next currency_code immediately.
+    // Preference save runs in parallel — do not wait on it before UI refresh.
+    this.currencyService.setCurrency(option.currency_code, option.country_code).subscribe();
+    this.loadProductList(option.currency_code);
+    this.cdr.markForCheck();
+  }
+
+  isCurrencySelected(option: MarketplaceCurrencyOption): boolean {
+    return option.currency_code === this.currencyService.currencyCode;
   }
 
   loadRegions(): void {
@@ -159,14 +218,15 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
 
   openRegionModal(): void {
     const current = this.regionService.getEffectiveSelection();
-    this.modalRegionId = current.countryRegionId;
-    this.modalCity = current.city;
+    this.modalRegionId = this.resolveModalRegionId(current);
+    this.modalCity = String(current.city || '').trim();
     this.isRegionModalOpen = true;
+    this.isCurrencyDropdownOpen = false;
     this.closeSearchDropdown();
     this.closeCategoryDropdown();
 
     if (this.modalRegionId) {
-      this.loadCitiesForModal(this.modalRegionId);
+      this.loadCitiesForModal(this.modalRegionId, this.modalCity);
       return;
     }
 
@@ -176,12 +236,13 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
     if (kaafuRegion) {
       this.modalRegionId = kaafuRegion.country_region_id;
       this.modalCity = this.modalCity || 'Male';
-      this.loadCitiesForModal(this.modalRegionId);
+      this.loadCitiesForModal(this.modalRegionId, this.modalCity);
     }
   }
 
   closeRegionModal(): void {
     this.isRegionModalOpen = false;
+    this.syncActiveMobileTabFromUrl();
   }
 
   onModalRegionChange(countryRegionId: string): void {
@@ -191,20 +252,51 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
   }
 
   onModalCityChange(city: string): void {
-    this.modalCity = city;
+    this.modalCity = city ?? '';
   }
 
-  private loadCitiesForModal(countryRegionId: string): void {
+  private resolveModalRegionId(current: RegionSelection): string {
+    const byId = this.regionList.find(
+      (region) => region.country_region_id === current.countryRegionId
+    );
+    if (byId) return byId.country_region_id;
+
+    const name = String(current.regionName || '').trim().toLowerCase();
+    if (name) {
+      const byName = this.regionList.find(
+        (region) => region.region_name?.trim().toLowerCase() === name
+      );
+      if (byName) return byName.country_region_id;
+    }
+    return String(current.countryRegionId || '').trim();
+  }
+
+  private loadCitiesForModal(countryRegionId: string, preferredCity = ''): void {
     if (!countryRegionId) {
       this.cityList = [];
       return;
     }
 
+    const cityToKeep = preferredCity || this.modalCity;
     this.isCitiesLoading = true;
     this.regionService.loadCities(countryRegionId).subscribe({
       next: () => {
         this.cityList = this.regionService.cities;
+        if (cityToKeep) {
+          const exact = this.cityList.find((c) => c.city === cityToKeep);
+          if (exact) {
+            this.modalCity = exact.city;
+          } else {
+            const loose = this.cityList.find(
+              (c) =>
+                String(c.city || '').trim().toLowerCase() ===
+                cityToKeep.trim().toLowerCase()
+            );
+            this.modalCity = loose?.city || '';
+          }
+        }
         this.isCitiesLoading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.cityList = [];
@@ -230,12 +322,19 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
     this.closeRegionModal();
   }
 
-  loadProductList() {
-    this.api.getMarketplaceProductsWithFallback(this.regionService.getProductRequestParams()).subscribe({
+  loadProductList(currencyOverride?: string) {
+    const generation = this.currencyService.fetchGeneration;
+    const params = this.currencyService.enrichProductParams(
+      this.regionService.getProductRequestParams(),
+      currencyOverride
+    );
+    this.api.getMarketplaceProductsWithFallback(params).subscribe({
       next: (res: any) => {
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
         this.ProductList = this.api.extractProductsFromResponse(res);
       },
       error: () => {
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
         this.ProductList = [];
         this.searchSuggestions = [];
         this.isSearchDropdownOpen = false;
@@ -254,7 +353,6 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
       // 2. Build recursive tree
       this.categoryTree = parents.map((parent: any) => this.buildCategoryTree(parent, categories));
 
-      // console.log('Category Tree:', this.categoryTree);
     });
   }
 
@@ -283,19 +381,7 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
     this.activeChild = null;
   }
 
-  startAdRotation() {
-    if (this.adInterval) clearInterval(this.adInterval);
-    this.adInterval = setInterval(() => {
-      this.currentAdIndex = (this.currentAdIndex + 1) % this.advertisements.length;
-      this.cdr.markForCheck();
-    }, 2000);
-  }
-
   ngOnDestroy() {
-    if (this.adInterval) {
-      clearInterval(this.adInterval);
-      this.adInterval = null;
-    }
     if (this.searchDebounceTimer) {
       clearTimeout(this.searchDebounceTimer);
       this.searchDebounceTimer = null;
@@ -308,15 +394,39 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
       this.regionSub.unsubscribe();
       this.regionSub = null;
     }
+    if (this.currencySub) {
+      this.currencySub.unsubscribe();
+      this.currencySub = null;
+    }
+    if (this.authSub) {
+      this.authSub.unsubscribe();
+      this.authSub = null;
+    }
+    if (this.notificationSub) {
+      this.notificationSub.unsubscribe();
+      this.notificationSub = null;
+    }
+    window.removeEventListener('auth-updated', this.onAuthUpdated);
+    window.removeEventListener('open-signin', this.onOpenSignin);
     if (this.categoryCloseTimeout) {
       clearTimeout(this.categoryCloseTimeout);
       this.categoryCloseTimeout = null;
     }
+    this.clearAccountMenuCloseTimer();
   }
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
+    if (!target.closest('[data-account-menu]')) {
+      this.isAccountMenuOpen = false;
+    }
+    if (!target.closest('[data-currency-dropdown]')) {
+      if (this.isCurrencyDropdownOpen) {
+        this.isCurrencyDropdownOpen = false;
+        this.syncActiveMobileTabFromUrl();
+      }
+    }
     if (!target.closest('.category-dropdown')) {
       this.isCategoryOpen = false;
     }
@@ -387,7 +497,7 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
   selectedCategory = 'All Category';
   isCategoryOpen = false;
   isMobileMenuOpen = false;
-  activeMobileTab: 'home' | 'search' | 'category' | 'notification' | 'profile' = 'home';
+  activeMobileTab: 'home' | 'category' | 'location' | 'currency' | 'profile' = 'home';
   isMobileSearchOpen = false;
   isDesktopHeaderFixed = false;
   desktopHeaderSpacerHeight = 0;
@@ -429,9 +539,17 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
     this.activeChild = null;
   }
 
+  onHeaderOverlayClick(): void {
+    this.closeCategoryDropdown();
+    this.closeSearchDropdown();
+    this.isAccountMenuOpen = false;
+    this.isCurrencyDropdownOpen = false;
+  }
+
   onCategoryMouseEnter() {
     this.openCategoryDropdown();
     this.closeSearchDropdown();
+    this.isAccountMenuOpen = false;
   }
 
   onCategoryMouseLeave() {
@@ -481,26 +599,48 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
   onHome() {
     this.activeMobileTab = 'home';
     this.isMobileSearchOpen = false;
+    this.isCurrencyDropdownOpen = false;
     this.router.navigate(['']);
   }
 
   onNotifications() {
-    this.activeMobileTab = 'notification';
     this.isMobileSearchOpen = false;
-    this.router.navigate(['/notification-item']);
+    this.isCurrencyDropdownOpen = false;
+    if (!this.authService.isLoggedIn && !this.authService.hasSavedSession) {
+      this.requestGuestSignIn();
+      return;
+    }
+    this.router.navigate(['/customer-profile'], {
+      queryParams: { section: 'notifications' },
+    });
   }
 
   onFavorites() {
-    this.router.navigate(['/favorite-products']);
+    this.isCurrencyDropdownOpen = false;
+    if (!this.authService.isLoggedIn && !this.authService.hasSavedSession) {
+      this.requestGuestSignIn();
+      return;
+    }
+    this.router.navigate(['/customer-profile'], {
+      queryParams: { section: 'wishlist' },
+    });
+  }
+
+  /** Open sign-in for guests only (does not toggle account menu). */
+  requestGuestSignIn(): void {
+    if (this.authService.isLoggedIn || this.authService.hasSavedSession) return;
+    this.isAccountMenuOpen = false;
+    this.isSigninModalOpen = true;
   }
 
   onCart() {
+    this.isCurrencyDropdownOpen = false;
     this.router.navigate(['/cart']);
   }
 
   onMobileSearch() {
-    this.activeMobileTab = 'search';
     this.isMobileSearchOpen = true;
+    this.isCurrencyDropdownOpen = false;
     this.isSearchDropdownOpen = true;
     this.selectedSearchIndex = this.searchSuggestions.length > 0 ? 0 : -1;
     setTimeout(() => {
@@ -512,16 +652,31 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
     this.isMobileSearchOpen = false;
     this.isSearchDropdownOpen = false;
     this.selectedSearchIndex = -1;
-    this.activeMobileTab = 'home';
+    this.syncActiveMobileTabFromUrl();
   }
 
   onMobileCategories() {
     this.activeMobileTab = 'category';
     this.isMobileSearchOpen = false;
+    this.isCurrencyDropdownOpen = false;
     this.isSearchDropdownOpen = false;
     this.selectedSearchIndex = -1;
     this.isMobileMenuOpen = false;
     this.router.navigate(['/categories']);
+  }
+
+  onMobileLocation() {
+    this.activeMobileTab = 'location';
+    this.isMobileSearchOpen = false;
+    this.isCurrencyDropdownOpen = false;
+    this.openRegionModal();
+  }
+
+  onMobileCurrency(event?: Event) {
+    this.activeMobileTab = 'currency';
+    this.isMobileSearchOpen = false;
+    this.isAccountMenuOpen = false;
+    this.toggleCurrencyDropdown(event);
   }
 
   onAboutUs() {
@@ -535,7 +690,73 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
   openSigninModal() {
     this.activeMobileTab = 'profile';
     this.isMobileSearchOpen = false;
+    this.isCurrencyDropdownOpen = false;
+    this.isAccountMenuOpen = false;
     this.isSigninModalOpen = true;
+  }
+
+  /** Mobile bottom-nav Profile tab */
+  onMobileProfile() {
+    this.activeMobileTab = 'profile';
+    this.isMobileSearchOpen = false;
+    this.isCurrencyDropdownOpen = false;
+    this.isAccountMenuOpen = false;
+
+    if (this.customer && (this.authService.isLoggedIn || this.authService.hasSavedSession)) {
+      // Land on profile hub (no section) so mobile shows the section list
+      this.router.navigate(['/customer-profile'], {
+        queryParams: {},
+      });
+      return;
+    }
+
+    this.isSigninModalOpen = true;
+  }
+
+  onAccountButtonClick(event: Event) {
+    event.stopPropagation();
+    if (this.customer && (this.authService.isLoggedIn || this.authService.hasSavedSession)) {
+      this.clearAccountMenuCloseTimer();
+      this.isAccountMenuOpen = !this.isAccountMenuOpen;
+      return;
+    }
+    // Guest: open phone/OTP sign-in modal
+    this.openSigninModal();
+  }
+
+  private openSigninFromQueryParams() {
+    const login = String(this.route.snapshot.queryParamMap.get('login') || '').trim();
+    if (login !== '1' && login.toLowerCase() !== 'true') return;
+    if (this.customer && this.authService.isLoggedIn) return;
+
+    this.isSigninModalOpen = true;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { login: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+  }
+
+  onAccountMenuEnter() {
+    if (!(this.authService.isLoggedIn || this.authService.hasSavedSession)) return;
+    this.clearAccountMenuCloseTimer();
+    this.isAccountMenuOpen = true;
+  }
+
+  onAccountMenuLeave() {
+    this.clearAccountMenuCloseTimer();
+    this.accountMenuCloseTimer = setTimeout(() => {
+      this.isAccountMenuOpen = false;
+      this.accountMenuCloseTimer = null;
+    }, 150);
+  }
+
+  private clearAccountMenuCloseTimer() {
+    if (this.accountMenuCloseTimer) {
+      clearTimeout(this.accountMenuCloseTimer);
+      this.accountMenuCloseTimer = null;
+    }
   }
 
   closeSigninModal() {
@@ -543,6 +764,7 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
   }
 
   openSignupModal() {
+    this.isAccountMenuOpen = false;
     this.isSignupModalOpen = true;
   }
 
@@ -558,6 +780,47 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
   onSignupToSignin() {
     this.closeSignupModal();
     this.openSigninModal();
+  }
+
+  onAuthSuccess() {
+    this.isSigninModalOpen = false;
+    this.isSignupModalOpen = false;
+    this.isAccountMenuOpen = false;
+    this.syncAuthState();
+  }
+
+  logout() {
+    this.authService.logout();
+    this.isAccountMenuOpen = false;
+    this.customer = null;
+  }
+
+  goToProfile() {
+    this.goToProfileSection('profile');
+  }
+
+  goToProfileSection(section: string, extraQuery: Record<string, string> = {}) {
+    this.isAccountMenuOpen = false;
+    this.router.navigate(['/customer-profile'], {
+      queryParams: { section, ...extraQuery },
+    });
+  }
+
+  get accountLabel(): string {
+    if (this.customer?.full_name) {
+      return this.customer.full_name.split(' ')[0];
+    }
+    return 'My account';
+  }
+
+  private syncAuthState() {
+    this.customer = this.authService.customer;
+    if (!this.authService.isLoggedIn && !this.authService.hasSavedSession) {
+      this.isAccountMenuOpen = false;
+      this.notificationCount = 0;
+    }
+    this.notificationService.refreshUnreadCount();
+    this.cdr.markForCheck();
   }
 
   onSearchInput(value: string) {
@@ -653,7 +916,6 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
     });
     if (isMobile) {
       this.isMobileSearchOpen = false;
-      this.activeMobileTab = 'search';
     }
   }
 
@@ -675,7 +937,6 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
     });
     if (isMobile) {
       this.isMobileSearchOpen = false;
-      this.activeMobileTab = 'search';
     }
   }
 
@@ -771,8 +1032,15 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
 
   getSearchProductPrice(product: any): number {
     const variant = product?.im_ProductVariants?.[0];
+    const display = Number(variant?.display_price);
+    if (Number.isFinite(display) && display > 0) return display;
     const price = Number(variant?.base_price);
     return Number.isFinite(price) ? price : 0;
+  }
+
+  getSearchProductCurrencySymbol(product: any): string {
+    const variant = product?.im_ProductVariants?.[0];
+    return String(variant?.display_symbol || product?.display_symbol || '$').trim() || '$';
   }
 
   private syncSearchQueryFromUrl(): void {
@@ -781,11 +1049,26 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
     this.searchQuery = urlSearch;
   }
 
-  isMobileTabActive(tab: 'home' | 'search' | 'category' | 'notification' | 'profile'): boolean {
+  isMobileTabActive(tab: 'home' | 'category' | 'location' | 'currency' | 'profile'): boolean {
+    if (tab === 'location') {
+      return this.isRegionModalOpen || this.activeMobileTab === 'location';
+    }
+    if (tab === 'currency') {
+      return this.isCurrencyDropdownOpen || this.activeMobileTab === 'currency';
+    }
     return this.activeMobileTab === tab;
   }
 
   private syncActiveMobileTabFromUrl(): void {
+    if (this.isRegionModalOpen) {
+      this.activeMobileTab = 'location';
+      return;
+    }
+    if (this.isCurrencyDropdownOpen) {
+      this.activeMobileTab = 'currency';
+      return;
+    }
+
     const path = this.router.url.split('?')[0] || '';
     if (path === '' || path === '/') {
       this.activeMobileTab = 'home';
@@ -793,20 +1076,14 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    if (path.startsWith('/notification-item')) {
-      this.activeMobileTab = 'notification';
-      this.isMobileSearchOpen = false;
-      return;
-    }
-
-    if (path.startsWith('/product-list') || path.startsWith('/search-result')) {
-      this.activeMobileTab = 'search';
-      this.isMobileSearchOpen = false;
-      return;
-    }
-
-    if (path.startsWith('/categories')) {
+    if (path.startsWith('/categories') || path.startsWith('/product-list')) {
       this.activeMobileTab = 'category';
+      this.isMobileSearchOpen = false;
+      return;
+    }
+
+    if (path.startsWith('/customer-profile')) {
+      this.activeMobileTab = 'profile';
       this.isMobileSearchOpen = false;
       return;
     }
@@ -916,25 +1193,10 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private loadCartCount() {
-    const storedCart = localStorage.getItem(this.cartStorageKey);
-    if (!storedCart) {
-      this.cartCount = 0;
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(storedCart);
-      if (!Array.isArray(parsed)) {
-        this.cartCount = 0;
-        return;
-      }
-
-      this.cartCount = parsed.reduce((total: number, item: any) => {
-        return total + Math.max(1, Number(item?.quantity) || 0);
-      }, 0);
-    } catch {
-      this.cartCount = 0;
-    }
+    const items = this.cartService.getItems();
+    this.cartCount = items.reduce((total, item) => {
+      return total + Math.max(1, Number(item?.quantity) || 0);
+    }, 0);
   }
 
   private recalculateDesktopHeaderMetrics() {

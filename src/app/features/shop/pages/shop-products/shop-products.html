@@ -75,10 +75,8 @@
           [src]="product.image"
           [alt]="product.name"
           class="object-cover w-full h-full transition hover:scale-105"
+          loading="lazy"
         />
-        <div *ngIf="product.originalPrice" class="absolute px-1.5 py-0.5 text-[10px] font-semibold text-white bg-red-600 rounded top-1 left-1">
-          {{ ((1 - product.price / product.originalPrice) * 100).toFixed(0) }}% OFF
-        </div>
       </div>
       <div class="p-2">
         <h3 class="mb-1 text-xs font-semibold text-gray-900 line-clamp-2 leading-tight">{{ product.name }}</h3>
@@ -95,10 +93,7 @@
           </svg>
         </div>
         <div class="flex items-center gap-1 mb-1">
-          <span class="text-sm font-bold text-gray-900">${{ product.price.toFixed(2) }}</span>
-          <span *ngIf="product.originalPrice" class="text-[10px] text-gray-400 line-through"
-            >${{ product.originalPrice.toFixed(2) }}</span
-          >
+          <span class="text-sm font-bold text-gray-900">{{ product.store_currency_symbol || '$' }}{{ product.price.toFixed(2) }}</span>
         </div>
         <div class="text-[10px] text-gray-600">{{ product.sold }} sold</div>
       </div>
@@ -117,10 +112,8 @@
           [src]="product.image"
           [alt]="product.name"
           class="object-cover w-full h-full transition hover:scale-105"
+          loading="lazy"
         />
-        <div *ngIf="product.originalPrice" class="absolute px-2 py-1 text-xs font-semibold text-white bg-red-600 rounded top-2 left-2">
-          {{ ((1 - product.price / product.originalPrice) * 100).toFixed(0) }}% OFF
-        </div>
       </div>
       <div class="p-4">
         <h3 class="mb-2 text-sm font-semibold text-gray-900 line-clamp-2">{{ product.name }}</h3>
@@ -138,10 +131,7 @@
           <span class="ml-1 text-xs text-gray-600">({{ product.reviews }})</span>
         </div>
         <div class="flex items-center gap-2 mb-2">
-          <span class="text-lg font-bold text-gray-900">${{ product.price.toFixed(2) }}</span>
-          <span *ngIf="product.originalPrice" class="text-sm text-gray-400 line-through"
-            >${{ product.originalPrice.toFixed(2) }}</span
-          >
+          <span class="text-lg font-bold text-gray-900">{{ product.store_currency_symbol || '$' }}{{ product.price.toFixed(2) }}</span>
         </div>
         <div class="text-xs text-gray-600">{{ product.sold }} sold</div>
       </div>
@@ -160,10 +150,8 @@
           [src]="product.image"
           [alt]="product.name"
           class="object-cover w-full h-full transition hover:scale-105"
+          loading="lazy"
         />
-        <div *ngIf="product.originalPrice" class="absolute px-3 py-1.5 text-sm font-semibold text-white bg-red-600 rounded top-3 left-3">
-          {{ ((1 - product.price / product.originalPrice) * 100).toFixed(0) }}% OFF
-        </div>
       </div>
       <div class="p-6">
         <h3 class="mb-3 text-base font-semibold text-gray-900 line-clamp-2">{{ product.name }}</h3>
@@ -181,10 +169,7 @@
           <span class="ml-1 text-sm text-gray-600">({{ product.reviews }})</span>
         </div>
         <div class="flex items-center gap-2 mb-3">
-          <span class="text-xl font-bold text-gray-900">${{ product.price.toFixed(2) }}</span>
-          <span *ngIf="product.originalPrice" class="text-base text-gray-400 line-through"
-            >${{ product.originalPrice.toFixed(2) }}</span
-          >
+          <span class="text-xl font-bold text-gray-900">{{ product.store_currency_symbol || '$' }}{{ product.price.toFixed(2) }}</span>
         </div>
         <div class="text-sm text-gray-600">{{ product.sold }} sold</div>
       </div>

@@ -1,0 +1,852 @@
+<app-header></app-header>
+
+<div class="profile-page">
+  <div class="container profile-container">
+    <div class="profile-layout" *ngIf="customer">
+      <!-- Left sidebar (desktop) / mobile menu hub -->
+      <aside
+        class="profile-sidebar"
+        [class.hide-on-mobile-section]="!mobileShowMenu"
+      >
+        <div class="mobile-hub-header" *ngIf="customer">
+          <div class="mobile-hub-avatar" aria-hidden="true">
+            <img *ngIf="profileImageUrl" [src]="profileImageUrl" alt="" />
+            <span *ngIf="!profileImageUrl">{{ initials }}</span>
+          </div>
+          <div class="mobile-hub-info">
+            <h1 class="mobile-hub-name">{{ customer.full_name || 'Customer' }}</h1>
+            <p class="mobile-hub-sub">Account &amp; settings</p>
+          </div>
+          <button type="button" class="mobile-hub-signout" (click)="logout()">
+            Sign out
+          </button>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Profile sections">
+          <button
+            *ngFor="let item of navItems"
+            type="button"
+            class="sidebar-item"
+            [class.active]="activeSection === item.id"
+            (click)="selectSection(item.id)"
+          >
+            <span class="sidebar-icon" [attr.data-icon]="item.icon" aria-hidden="true">
+              <!-- orders -->
+              <svg *ngIf="item.icon === 'orders'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+              <!-- reviews -->
+              <svg *ngIf="item.icon === 'reviews'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.364 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.364-1.118L2.98 9.1c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+              <!-- profile -->
+              <svg *ngIf="item.icon === 'profile'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <!-- wishlist -->
+              <svg *ngIf="item.icon === 'wishlist'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              <!-- followed -->
+              <svg *ngIf="item.icon === 'followed'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              <!-- history -->
+              <svg *ngIf="item.icon === 'history'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <!-- addresses -->
+              <svg *ngIf="item.icon === 'addresses'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <!-- region -->
+              <svg *ngIf="item.icon === 'region'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <!-- security -->
+              <svg *ngIf="item.icon === 'security'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <!-- notifications -->
+              <svg *ngIf="item.icon === 'notifications'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+            </span>
+            <span class="sidebar-label">{{ item.label }}</span>
+            <svg
+              class="sidebar-row-chevron"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Main content -->
+      <main class="profile-main" [class.hide-on-mobile-menu]="mobileShowMenu">
+        <button type="button" class="mobile-back-bar" (click)="backToMobileMenu()">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          <span>{{ activeLabel }}</span>
+        </button>
+
+        <!-- Profile header (always visible like Temu) -->
+        <div class="profile-header-card">
+          <div class="profile-header-top">
+            <div class="profile-avatar-wrap">
+              <div class="profile-avatar" aria-hidden="true">
+                <img *ngIf="profileImageUrl" [src]="profileImageUrl" alt="" />
+                <span *ngIf="!profileImageUrl">{{ initials }}</span>
+              </div>
+              <button
+                type="button"
+                class="profile-avatar-edit"
+                title="Change photo"
+                [disabled]="profileImageUploading || profileImageRemoving"
+                (click)="openProfileImageModal()"
+              >
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+            </div>
+            <div class="profile-header-info">
+              <div class="profile-name-row">
+                <h1 class="profile-name">{{ customer.full_name || 'Customer' }}</h1>
+                <button type="button" class="profile-edit-btn" title="Edit profile" (click)="openProfileEditModal()">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
+              </div>
+              <div class="profile-stats">
+                <div class="stat">
+                  <strong>0</strong>
+                  <span>Total reviews</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat">
+                  <strong>0</strong>
+                  <span>Helpfuls</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="profile-privacy">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <span>Your information and privacy will be kept secure and uncompromised.</span>
+          </div>
+        </div>
+
+        <!-- Section: Your profile (details + addresses) -->
+        <div class="section-panel" *ngIf="activeSection === 'profile'">
+          <div class="section-title-row">
+            <h2 class="section-title">Your profile</h2>
+            <button type="button" class="btn-add-address" (click)="openProfileEditModal()">
+              Edit
+            </button>
+          </div>
+
+          <dl class="detail-grid profile-summary-grid">
+            <div class="detail-row">
+              <dt>Full name</dt>
+              <dd>{{ customer.full_name || '—' }}</dd>
+            </div>
+            <div class="detail-row">
+              <dt>Email</dt>
+              <dd>{{ customer.email || '—' }}</dd>
+            </div>
+            <div class="detail-row">
+              <dt>Phone</dt>
+              <dd>{{ phoneDisplay }}</dd>
+            </div>
+          </dl>
+
+          <div class="profile-addresses-block" *ngIf="!profileEditModalOpen">
+            <div class="section-title-row">
+              <h3 class="section-subtitle-title">Addresses</h3>
+              <button type="button" class="btn-add-address" (click)="goToAddAddress()">
+                + Add address
+              </button>
+            </div>
+            <ng-container *ngTemplateOutlet="addressManagerTpl"></ng-container>
+          </div>
+        </div>
+
+        <!-- Section: Reviews (empty state like screenshot) -->
+        <div class="section-panel empty-panel" *ngIf="activeSection === 'reviews'">
+          <div class="empty-state">
+            <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 64 64">
+              <rect x="14" y="10" width="36" height="44" rx="3" stroke-width="2" stroke-dasharray="4 3" />
+              <path stroke-width="2" stroke-linecap="round" d="M24 24h16M24 32h16M24 40h10" />
+            </svg>
+            <h2>Review is empty</h2>
+            <p>You have no completed reviews or the reviews have been deleted.</p>
+            <button type="button" class="btn-primary" (click)="selectSection('reviews')">
+              Go to your reviews
+            </button>
+          </div>
+        </div>
+
+        <!-- Section: Orders empty -->
+        <div class="section-panel empty-panel" *ngIf="activeSection === 'orders'">
+          <div class="empty-state">
+            <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 64 64">
+              <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M16 20h32l-2 28H18L16 20z" />
+              <path stroke-width="2" stroke-linecap="round" d="M24 20V16a8 8 0 0116 0v4" />
+            </svg>
+            <h2>No orders yet</h2>
+            <p>When you place an order, it will show up here.</p>
+            <a routerLink="/" class="btn-primary">Continue shopping</a>
+          </div>
+        </div>
+
+        <!-- Section: Country / Region & Language (inline location picker) -->
+        <div class="section-panel" *ngIf="activeSection === 'region'">
+          <h2 class="section-title">Country / Region & Language</h2>
+          <p class="section-subtitle location-current">
+            Current:
+            <strong>{{ currentLocationLabel }}</strong>
+            · Currency
+            <strong>{{ selectedCurrencyCode }}</strong>
+          </p>
+
+          <div *ngIf="regionSaveError" class="addr-alert addr-alert-error" role="alert">
+            {{ regionSaveError }}
+          </div>
+          <div *ngIf="regionSaveMessage" class="addr-alert addr-alert-success" role="status">
+            {{ regionSaveMessage }}
+          </div>
+
+          <div class="location-layout">
+            <div class="location-form">
+              <h3 class="location-block-title">Choose your location</h3>
+              <label class="location-field">
+                <span>Atoll</span>
+                <select
+                  name="profileRegionId"
+                  [(ngModel)]="profileRegionId"
+                  (ngModelChange)="onProfileRegionChange($event)"
+                >
+                  <option value="" disabled>Select an atoll</option>
+                  <option
+                    *ngFor="let region of regionList"
+                    [ngValue]="region.country_region_id"
+                  >
+                    {{ region.region_name }}
+                  </option>
+                </select>
+              </label>
+
+              <label class="location-field">
+                <span>City / Island (optional)</span>
+                <select
+                  name="profileCity"
+                  [(ngModel)]="profileCity"
+                  (ngModelChange)="onProfileCityChange($event)"
+                  [disabled]="!profileRegionId || isCitiesLoading"
+                >
+                  <option [ngValue]="''">All cities in region</option>
+                  <option *ngFor="let city of cityList" [ngValue]="city.city">
+                    {{ city.city || city.region_name }}
+                  </option>
+                </select>
+                <small *ngIf="isCitiesLoading">Loading cities…</small>
+              </label>
+
+              <button
+                type="button"
+                class="btn-primary location-save-btn"
+                (click)="applyProfileLocation()"
+                [disabled]="!profileRegionId"
+              >
+                Choose Region
+              </button>
+            </div>
+
+            <div class="location-currency" *ngIf="currencyOptions.length">
+              <h3 class="location-block-title">Currency</h3>
+              <div *ngIf="currencySaveMessage" class="addr-alert addr-alert-success" role="status">
+                {{ currencySaveMessage }}
+              </div>
+              <div class="currency-option-list">
+                <button
+                  type="button"
+                  class="currency-option"
+                  *ngFor="let option of currencyOptions"
+                  [class.active]="isCurrencySelected(option)"
+                  (click)="selectProfileCurrency(option)"
+                >
+                  <span class="currency-flag">{{ option.flag }}</span>
+                  <span class="currency-meta">
+                    <strong>{{ option.currency_code }}</strong>
+                    <span>{{ option.currency_name }}</span>
+                  </span>
+                  <svg
+                    *ngIf="isCurrencySelected(option)"
+                    class="currency-check"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Followed stores -->
+        <div class="section-panel" *ngIf="activeSection === 'followed'">
+          <div class="section-title-row">
+            <h2 class="section-title">Followed stores</h2>
+            <span class="section-meta" *ngIf="!followedLoading">
+              {{ followedStores.length }} store{{ followedStores.length !== 1 ? 's' : '' }}
+            </span>
+          </div>
+
+          <div *ngIf="followedLoading" class="addr-loading">Loading followed stores…</div>
+          <div *ngIf="!followedLoading && followedError" class="addr-alert addr-alert-error">
+            {{ followedError }}
+          </div>
+
+          <div
+            class="empty-state addr-empty"
+            *ngIf="!followedLoading && !followedError && followedStores.length === 0"
+          >
+            <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <h2>No followed stores yet</h2>
+            <p>Follow shops you like to get notified when they publish new products.</p>
+            <a routerLink="/" class="btn-primary">Browse shops</a>
+          </div>
+
+          <div
+            class="followed-grid"
+            *ngIf="!followedLoading && !followedError && followedStores.length > 0"
+          >
+            <article
+              class="followed-card"
+              *ngFor="let store of followedStores"
+              (click)="openFollowedStore(store)"
+            >
+              <div class="followed-card-body">
+                <div class="followed-avatar" aria-hidden="true">
+                  {{ (store.store_name || 'S').charAt(0).toUpperCase() }}
+                </div>
+                <div class="followed-meta">
+                  <h3>{{ store.store_name || 'Store' }}</h3>
+                  <p *ngIf="store.store_location">{{ store.store_location }}</p>
+                  <p *ngIf="store.store_type" class="followed-type">{{ store.store_type }}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="btn-outline-danger followed-unfollow"
+                (click)="unfollowStore(store, $event)"
+              >
+                Unfollow
+              </button>
+            </article>
+          </div>
+        </div>
+
+        <!-- Section: Wishlist -->
+        <div class="section-panel" *ngIf="activeSection === 'wishlist'">
+          <div class="section-title-row">
+            <h2 class="section-title">Wishlist</h2>
+            <span class="section-meta" *ngIf="!wishlistLoading">
+              {{ favoriteProducts.length }} item{{ favoriteProducts.length !== 1 ? 's' : '' }}
+            </span>
+          </div>
+
+          <div *ngIf="wishlistLoading" class="addr-loading">Loading wishlist…</div>
+
+          <div
+            class="empty-state addr-empty"
+            *ngIf="!wishlistLoading && favoriteProducts.length === 0"
+          >
+            <svg class="empty-icon" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fill-rule="evenodd"
+                d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            <h2>No favorites yet</h2>
+            <p>Start adding products to your wishlist.</p>
+            <a routerLink="/" class="btn-primary">Browse products</a>
+          </div>
+
+          <div
+            class="wishlist-grid"
+            *ngIf="!wishlistLoading && favoriteProducts.length > 0"
+          >
+            <div class="wishlist-card" *ngFor="let product of favoriteProducts">
+              <button
+                type="button"
+                class="wishlist-heart"
+                (click)="removeFromWishlist(product.id, $event)"
+                aria-label="Remove from wishlist"
+              >
+                <svg fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fill-rule="evenodd"
+                    d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </button>
+              <div class="wishlist-media" (click)="onWishlistProductClick(product)">
+                <img [src]="product.image" [alt]="product.name" />
+              </div>
+              <div class="wishlist-body">
+                <h3 (click)="onWishlistProductClick(product)">{{ product.name }}</h3>
+                <app-shop-name-link
+                  class="wishlist-shop"
+                  [storeId]="product.store_id || ''"
+                  [storeName]="product.store_name || ''"
+                  [shopLocation]="product.shop_location || ''"
+                ></app-shop-name-link>
+                <div class="wishlist-price">
+                  <strong>{{ product.store_currency_symbol || '$' }}{{ product.price.toFixed(2) }}</strong>
+                </div>
+                <button
+                  type="button"
+                  class="btn-primary btn-sm wishlist-cart-btn"
+                  [disabled]="!product.inStock"
+                  (click)="addWishlistToCart(product, $event)"
+                >
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Notifications -->
+        <div class="section-panel" *ngIf="activeSection === 'notifications'">
+          <div class="section-title-row">
+            <div>
+              <h2 class="section-title">Notifications</h2>
+              <p class="section-subtitle" *ngIf="!notificationsLoading">
+                <span *ngIf="notificationUnreadCount > 0">
+                  <strong>{{ notificationUnreadCount }}</strong> unread
+                </span>
+                <span *ngIf="notificationUnreadCount === 0">You're all caught up</span>
+              </p>
+            </div>
+            <button
+              *ngIf="notificationUnreadCount > 0"
+              type="button"
+              class="btn-add-address"
+              (click)="markAllNotificationsRead()"
+            >
+              Mark all as read
+            </button>
+          </div>
+
+          <div *ngIf="notificationsLoading" class="addr-loading">Loading notifications…</div>
+          <div *ngIf="!notificationsLoading && notificationsError" class="addr-alert addr-alert-error">
+            {{ notificationsError }}
+          </div>
+
+          <div
+            class="empty-state addr-empty"
+            *ngIf="!notificationsLoading && !notificationsError && notifications.length === 0"
+          >
+            <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <h2>No notifications</h2>
+            <p>You're all caught up!</p>
+          </div>
+
+          <div
+            class="notif-list"
+            *ngIf="!notificationsLoading && !notificationsError && notifications.length > 0"
+          >
+            <article
+              class="notif-card"
+              *ngFor="let notification of notifications"
+              [class.unread]="!notification.read"
+              [class.clickable]="!!notification.linkPath || !!notification.referenceId"
+              (click)="onNotificationClick(notification)"
+            >
+              <div
+                class="notif-icon"
+                [attr.data-type]="notificationIconType(notification.type)"
+              >
+                <svg *ngIf="notificationIconType(notification.type) === 'order'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                <svg *ngIf="notificationIconType(notification.type) === 'product'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <svg *ngIf="notificationIconType(notification.type) === 'offer'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <svg *ngIf="notificationIconType(notification.type) === 'review'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                </svg>
+              </div>
+
+              <div class="notif-content">
+                <div class="notif-top">
+                  <div class="notif-text">
+                    <h3>{{ notification.title }}</h3>
+                    <p>{{ notification.message }}</p>
+
+                    <div class="notif-preview" *ngIf="notification.preview">
+                      <p *ngIf="notificationStoreNames(notification)" class="notif-stores">
+                        <strong>Stores:</strong> {{ notificationStoreNames(notification) }}
+                      </p>
+                      <div
+                        class="notif-products"
+                        *ngIf="notification.preview.products.length"
+                      >
+                        <div
+                          class="notif-product"
+                          *ngFor="let product of notification.preview.products"
+                        >
+                          <img [src]="product.image_url || '/mobile.jpg'" [alt]="product.product_name" />
+                          <div>
+                            <p>{{ product.product_name }}</p>
+                            <span *ngIf="product.quantity > 1">×{{ product.quantity }}</span>
+                            <span *ngIf="product.unit_price > 0 && notification.type === 'new_product'">
+                              {{ notification.preview.currency_symbol || notification.preview.currency_code || '' }}{{ product.unit_price }}
+                            </span>
+                          </div>
+                        </div>
+                        <span *ngIf="notificationExtraCount(notification) > 0" class="notif-more">
+                          +{{ notificationExtraCount(notification) }} more
+                        </span>
+                      </div>
+                      <div class="notif-meta-row">
+                        <span *ngIf="notification.preview.item_count">
+                          {{ notification.preview.item_count }} item{{ notification.preview.item_count === 1 ? '' : 's' }}
+                        </span>
+                        <strong *ngIf="formatNotificationTotal(notification)">
+                          {{ formatNotificationTotal(notification) }}
+                        </strong>
+                      </div>
+                    </div>
+
+                    <time>{{ notification.time }}</time>
+                  </div>
+
+                  <div class="notif-actions" (click)="$event.stopPropagation()">
+                    <span class="notif-dot" *ngIf="!notification.read"></span>
+                    <button
+                      type="button"
+                      *ngIf="!notification.read"
+                      class="addr-action"
+                      title="Mark as read"
+                      (click)="markNotificationRead(notification.id)"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      type="button"
+                      class="addr-action danger"
+                      title="Delete"
+                      (click)="deleteNotification(notification.id)"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <!-- Generic empty sections -->
+        <div
+          class="section-panel empty-panel"
+          *ngIf="
+            activeSection !== 'profile' &&
+            activeSection !== 'reviews' &&
+            activeSection !== 'orders' &&
+            activeSection !== 'wishlist' &&
+            activeSection !== 'followed' &&
+            activeSection !== 'notifications' &&
+            activeSection !== 'region'
+          "
+        >
+          <div class="empty-state">
+            <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 64 64">
+              <circle cx="32" cy="32" r="20" stroke-width="2" stroke-dasharray="4 3" />
+              <path stroke-width="2" stroke-linecap="round" d="M32 22v12M32 40h.01" />
+            </svg>
+            <h2>{{ activeLabel }}</h2>
+            <p>This section is coming soon.</p>
+            <a routerLink="/" class="btn-primary">Go shopping</a>
+          </div>
+        </div>
+      </main>
+
+      <!-- Right advertisement rail -->
+      <aside class="profile-ads" aria-label="Promotions">
+        <button
+          type="button"
+          class="profile-ad-card"
+          [class.fading]="adFading"
+          (click)="onAdClick()"
+        >
+          <div class="profile-ad-media">
+            <img [src]="currentAd.image" [alt]="currentAd.title" />
+            <span class="profile-ad-badge">{{ currentAd.discount }}</span>
+          </div>
+          <div class="profile-ad-body">
+            <h3>{{ currentAd.title }}</h3>
+            <p>{{ currentAd.description }}</p>
+            <span class="profile-ad-cta">{{ currentAd.buttonText }}</span>
+          </div>
+        </button>
+
+        <div class="profile-ad-secondary">
+          <img src="/mobile4.jpg" alt="Special offers" />
+          <div>
+            <strong>Member deals</strong>
+            <p>Save more on your next quote request.</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="profile-guest" *ngIf="!customer">
+      <p>Sign in to view your profile.</p>
+      <a routerLink="/" [queryParams]="{ login: '1' }" class="btn-primary">Sign in</a>
+    </div>
+  </div>
+</div>
+
+<ng-template #addressManagerTpl>
+  <div *ngIf="addressError" class="addr-alert addr-alert-error" role="alert">
+    {{ addressError }}
+  </div>
+  <div *ngIf="addressSuccess" class="addr-alert addr-alert-success" role="status">
+    {{ addressSuccess }}
+  </div>
+
+  <div *ngIf="addressesLoading" class="addr-loading">Loading addresses…</div>
+
+  <div
+    class="empty-state addr-empty"
+    *ngIf="!addressesLoading && addresses.length === 0"
+  >
+    <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 64 64">
+      <path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M32 10c-8.8 0-16 7.2-16 16 0 12 16 28 16 28s16-16 16-28c0-8.8-7.2-16-16-16z" />
+      <circle cx="32" cy="26" r="5" stroke-width="2" />
+    </svg>
+    <h2>No addresses yet</h2>
+    <p>Add a delivery address so we can get your orders to you.</p>
+    <button type="button" class="btn-primary" (click)="goToAddAddress()">
+      Add address
+    </button>
+  </div>
+
+  <ul class="address-list" *ngIf="!addressesLoading && addresses.length > 0">
+    <li class="address-card" *ngFor="let addr of addresses">
+      <div class="address-card-top">
+        <div class="address-type-row">
+          <span class="address-type">{{ typeLabel(addr.address_type) }}</span>
+          <span class="default-badge" *ngIf="addr.is_default">Default</span>
+        </div>
+        <div class="address-actions">
+          <button
+            type="button"
+            class="addr-action"
+            (click)="startEdit(addr)"
+            [disabled]="addressActionId === addr.address_id"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            class="addr-action"
+            *ngIf="!addr.is_default"
+            (click)="setDefault(addr)"
+            [disabled]="addressActionId === addr.address_id"
+          >
+            Set default
+          </button>
+          <button
+            type="button"
+            class="addr-action danger"
+            (click)="deleteAddress(addr)"
+            [disabled]="addressActionId === addr.address_id"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+
+      <div class="address-body" *ngIf="editingId !== addr.address_id">
+        <p class="address-contact" *ngIf="addr.contact_name || addr.contact_phone">
+          <strong *ngIf="addr.contact_name">{{ addr.contact_name }}</strong>
+          <span *ngIf="addr.contact_phone">{{ addr.contact_phone }}</span>
+        </p>
+        <p>{{ addr.address_line1 }}</p>
+        <p *ngIf="addr.land_mark" class="muted">Landmark: {{ addr.land_mark }}</p>
+        <p>
+          {{ addr.city }}<span *ngIf="addr.state_region">, {{ addr.state_region }}</span>
+          <span *ngIf="addr.postal_code"> {{ addr.postal_code }}</span>
+        </p>
+        <p *ngIf="addr.country_code" class="muted">{{ addr.country_code }}</p>
+      </div>
+
+      <form
+        class="address-edit-form"
+        *ngIf="editingId === addr.address_id"
+        (ngSubmit)="saveEdit()"
+      >
+        <div class="edit-grid">
+          <label>
+            Type
+            <select name="editType" [(ngModel)]="editForm.address_type">
+              <option *ngFor="let t of addressTypes" [value]="t.value">{{ t.label }}</option>
+            </select>
+          </label>
+          <label>
+            Contact name
+            <input name="editName" type="text" [(ngModel)]="editForm.contact_name" />
+          </label>
+          <label>
+            Contact phone
+            <input name="editPhone" type="tel" [(ngModel)]="editForm.contact_phone" />
+          </label>
+          <label class="span-2">
+            Address line *
+            <input name="editLine1" type="text" [(ngModel)]="editForm.address_line1" required />
+          </label>
+          <label class="span-2">
+            Landmark
+            <input name="editLandmark" type="text" [(ngModel)]="editForm.land_mark" />
+          </label>
+          <label>
+            City *
+            <input name="editCity" type="text" [(ngModel)]="editForm.city" required />
+          </label>
+          <label>
+            Region
+            <input name="editRegion" type="text" [(ngModel)]="editForm.state_region" />
+          </label>
+          <label>
+            Postal code
+            <input name="editPostal" type="text" [(ngModel)]="editForm.postal_code" />
+          </label>
+          <label>
+            Country
+            <input name="editCountry" type="text" [(ngModel)]="editForm.country_code" maxlength="2" />
+          </label>
+        </div>
+        <label class="edit-check">
+          <input type="checkbox" name="editDefault" [(ngModel)]="editForm.is_default" />
+          Set as default
+        </label>
+        <div class="edit-actions">
+          <button type="submit" class="btn-primary btn-sm" [disabled]="savingEdit">
+            {{ savingEdit ? 'Saving…' : 'Save' }}
+          </button>
+          <button type="button" class="btn-ghost" (click)="cancelEdit()" [disabled]="savingEdit">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </li>
+  </ul>
+</ng-template>
+
+<!-- Edit profile modal: name + addresses -->
+<div
+  *ngIf="profileEditModalOpen"
+  class="profile-edit-root"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="profile-edit-title"
+>
+  <div class="profile-edit-backdrop" (click)="closeProfileEditModal()"></div>
+  <div class="profile-edit-panel">
+    <div class="profile-edit-top">
+      <h2 id="profile-edit-title" class="profile-edit-title">Edit profile</h2>
+      <button type="button" class="profile-edit-close" (click)="closeProfileEditModal()" aria-label="Close">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="profile-edit-body">
+      <section class="profile-edit-section">
+        <h3 class="profile-edit-section-title">Name</h3>
+        <label class="profile-edit-field">
+          <span>Full name</span>
+          <input type="text" name="editFullName" [(ngModel)]="editFullName" maxlength="120" />
+        </label>
+        <div class="profile-edit-name-actions">
+          <button
+            type="button"
+            class="btn-primary btn-sm"
+            [disabled]="savingProfileName"
+            (click)="saveProfileName()"
+          >
+            {{ savingProfileName ? 'Saving…' : 'Save name' }}
+          </button>
+        </div>
+        <p class="profile-photo-msg error" *ngIf="profileNameError">{{ profileNameError }}</p>
+        <p class="profile-photo-msg success" *ngIf="profileNameSuccess">{{ profileNameSuccess }}</p>
+      </section>
+
+      <section class="profile-edit-section">
+        <div class="section-title-row">
+          <h3 class="profile-edit-section-title">Addresses</h3>
+          <button type="button" class="btn-add-address" (click)="goToAddAddress()">
+            + Add address
+          </button>
+        </div>
+        <ng-container *ngTemplateOutlet="addressManagerTpl"></ng-container>
+      </section>
+    </div>
+  </div>
+</div>
+
+<app-confirm-dialog
+  [isOpen]="isConfirmOpen"
+  [title]="confirmTitle"
+  [message]="confirmMessage"
+  [confirmLabel]="confirmLabel"
+  cancelLabel="Cancel"
+  (confirmed)="onConfirmDialogConfirmed()"
+  (cancelled)="closeConfirmDialog()"
+></app-confirm-dialog>
+
+<app-profile-image-modal
+  [isOpen]="profileImageModalOpen"
+  [hasImage]="!!profileImageUrl"
+  [previewUrl]="profileImageUrl"
+  [initials]="initials"
+  [uploading]="profileImageUploading"
+  [removing]="profileImageRemoving"
+  [errorMessage]="profileImageError"
+  (closed)="closeProfileImageModal()"
+  (cropped)="onProfileImageCropped($event)"
+  (removeRequested)="removeProfileImage()"
+></app-profile-image-modal>
+
+<app-footer></app-footer>

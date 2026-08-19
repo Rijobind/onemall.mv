@@ -1,6 +1,10 @@
 /* Category Dropdown Animation */
-.category-dropdown-menu {
+.category-dropdown-menu,
+.account-dropdown-menu {
   animation: dropdownFadeIn 0.2s ease-out;
+  box-shadow:
+    0 10px 25px -5px rgb(0 0 0 / 0.12),
+    0 8px 10px -6px rgb(0 0 0 / 0.08);
 }
 
 @media (min-width: 768px) {
@@ -9,7 +13,7 @@
     top: 0;
     left: 0;
     right: 0;
-    z-index: 90;
+    z-index: 100;
     border-bottom: 1px solid rgb(229 231 235);
   }
 }
@@ -20,7 +24,7 @@
     top: 0;
     left: 0;
     right: 0;
-    z-index: 90;
+    z-index: 100;
     border-bottom: 1px solid rgb(229 231 235);
   }
 }

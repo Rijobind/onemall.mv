@@ -12,23 +12,10 @@
             <div class="w-40 h-10 rounded-lg skeleton-pulse"></div>
           </div>
           <div class="space-y-4">
-            <div
+            <app-product-card-skeleton
               *ngFor="let i of [1,2,3,4,5,6]"
-              class="flex flex-col gap-4 p-4 bg-white border border-gray-200 rounded-lg sm:flex-row"
-            >
-              <div class="flex-shrink-0 w-full h-48 mx-auto sm:w-48 sm:mx-0">
-                <div class="w-full h-full rounded-lg skeleton-pulse"></div>
-              </div>
-              <div class="flex-1 min-w-0 space-y-3">
-                <div class="rounded h-5 w-5/6 skeleton-pulse"></div>
-                <div class="rounded h-5 w-3/4 skeleton-pulse"></div>
-                <div class="w-20 h-4 rounded skeleton-pulse"></div>
-                <div class="w-24 h-8 rounded skeleton-pulse"></div>
-                <div class="w-32 h-4 rounded skeleton-pulse"></div>
-                <div class="w-full h-4 rounded skeleton-pulse"></div>
-                <div class="w-28 h-10 rounded-lg skeleton-pulse"></div>
-              </div>
-            </div>
+              layout="list"
+            ></app-product-card-skeleton>
           </div>
         </div>
 
@@ -98,13 +85,25 @@
 
           <div class="space-y-4">
             <div
-              *ngFor="let product of filteredProducts; trackBy: trackByProductId"
+              *ngFor="let product of displayedProducts; let i = index; trackBy: trackByProductId"
               (click)="onProductClick(product)"
-              class="flex flex-col gap-4 p-4 transition bg-white border border-gray-200 rounded-lg cursor-pointer sm:flex-row hover:shadow-md"
+              class="relative flex flex-col gap-4 p-4 transition bg-white border border-gray-200 rounded-lg cursor-pointer sm:flex-row hover:shadow-md"
             >
+              <span
+                *ngIf="isFeaturedProduct(product)"
+                class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800"
+              >
+                AD
+              </span>
               <div class="flex-shrink-0 w-full h-48 mx-auto sm:w-48 sm:mx-0">
                 <div class="relative w-full h-full overflow-hidden bg-gray-100 rounded-lg">
-                  <img [src]="product.image" [alt]="product.title" class="object-cover w-full h-full" />
+                  <img
+                    [src]="product.image"
+                    [alt]="product.title"
+                    class="object-cover w-full h-full"
+                    [attr.loading]="i < 4 ? null : 'lazy'"
+                    [attr.fetchpriority]="i < 2 ? 'high' : null"
+                  />
                 </div>
               </div>
 
@@ -127,7 +126,7 @@
 
                 <div class="mb-2">
                   <div class="flex items-baseline gap-2">
-                    <span class="text-2xl font-bold text-gray-900">${{ product.price.toFixed(2) }}</span>
+                    <span class="text-2xl font-bold text-gray-900">{{ product.store_currency_symbol || '$' }}{{ product.price.toFixed(2) }}</span>
                   </div>
                 </div>
 
@@ -171,6 +170,16 @@
                 </div>
               </div>
             </div>
+          </div>
+
+          <div *ngIf="hasMoreProducts" class="flex justify-center mt-6 mb-2">
+            <button
+              type="button"
+              (click)="loadMoreProducts()"
+              class="px-6 py-2.5 text-sm font-medium text-green-700 transition bg-white border border-green-600 rounded-lg hover:bg-green-50"
+            >
+              Load more
+            </button>
           </div>
 
           <div *ngIf="filteredProducts.length === 0" class="py-12 text-center">
@@ -302,12 +311,26 @@
     </div>
     <!-- Product Grid -->
     <div *ngIf="!isLoading; else loadingCards" class="grid grid-cols-2 gap-2 px-2 pb-4">
-        <ng-container *ngFor="let product of filteredProducts; let i = index; trackBy: trackByProductId">
+        <ng-container *ngFor="let product of displayedProducts; let i = index; trackBy: trackByProductId">
         <button
           (click)="onProductClick(product)"
-          class="overflow-hidden text-left transition-all bg-white border border-gray-200 rounded-lg group hover:shadow-md hover:border-green-300"
+          class="relative overflow-hidden text-left transition-all bg-white border border-gray-200 rounded-lg group hover:shadow-md hover:border-green-300"
         >
-          <img [src]="product.image" [alt]="product.title" class="object-cover w-full h-40 bg-gray-100" />
+          <span
+            *ngIf="isFeaturedProduct(product)"
+            class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800"
+          >
+            AD
+          </span>
+          <div class="relative w-full h-40 overflow-hidden bg-gray-100">
+            <img
+              [src]="product.image"
+              [alt]="product.title"
+              class="object-cover w-full h-full"
+              [attr.loading]="i < 4 ? null : 'lazy'"
+              [attr.fetchpriority]="i < 2 ? 'high' : null"
+            />
+          </div>
           <div class="p-2">
             <h3 class="text-xs font-semibold leading-tight text-gray-900 transition line-clamp-2 group-hover:text-green-600">
               {{ product.title }}
@@ -328,7 +351,7 @@
             </div>
             <div class="flex items-end justify-between mt-2">
               <div>
-                <p class="text-base font-bold leading-none text-gray-900">${{ product.price.toFixed(2) }}</p>
+                <p class="text-base font-bold leading-none text-gray-900">{{ product.store_currency_symbol || '$' }}{{ product.price.toFixed(2) }}</p>
                 <p class="mt-0.5 text-[10px] leading-none text-gray-500">{{ product.soldLabel }}</p>
               </div>
               <div class="flex items-center gap-1">
@@ -385,17 +408,22 @@
         </ng-container>
     </div>
 
+    <div *ngIf="!isLoading && hasMoreProducts" class="flex justify-center px-2 pb-4">
+      <button
+        type="button"
+        (click)="loadMoreProducts()"
+        class="w-full px-4 py-2.5 text-sm font-medium text-green-700 transition bg-white border border-green-600 rounded-lg hover:bg-green-50"
+      >
+        Load more
+      </button>
+    </div>
+
     <ng-template #loadingCards>
       <div class="grid grid-cols-2 gap-2 px-2 pb-4">
-        <div *ngFor="let i of [1,2,3,4,5,6]" class="w-full overflow-hidden bg-white border border-gray-200 rounded-lg">
-          <div class="w-full h-40 bg-gray-100 animate-pulse"></div>
-          <div class="p-2 space-y-2">
-            <div class="w-full h-3 rounded bg-gray-100 animate-pulse"></div>
-            <div class="w-2/3 h-3 rounded bg-gray-100 animate-pulse"></div>
-            <div class="w-1/2 h-3 rounded bg-gray-100 animate-pulse"></div>
-            <div class="w-4/5 h-3 rounded bg-gray-100 animate-pulse"></div>
-          </div>
-        </div>
+        <app-product-card-skeleton
+          *ngFor="let i of [1,2,3,4,5,6]"
+          layout="compact"
+        ></app-product-card-skeleton>
       </div>
     </ng-template>
 
@@ -406,6 +434,15 @@
   </div>
   </div>
 </section>
+
+<app-cart-model
+  [isOpen]="isCartModalOpen"
+  [apiProduct]="cartModalApiProduct"
+  [mode]="cartModalMode"
+  [storeId]="cartModalStoreId"
+  (closed)="closeCartModal()"
+  (added)="onCartModalAdded($event)"
+></app-cart-model>
 
 <app-mobile-cart
   [isOpen]="isMobileCartModalOpen"

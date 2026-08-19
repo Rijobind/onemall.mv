@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, HostListener } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Header } from '../../../../shared/components/header/header';
@@ -6,18 +6,23 @@ import { Footer } from '../../../../shared/components/footer/footer';
 import { BackendapiServices } from '../../../../core/services/backendapi.services/backendapi.services';
 import { RegionService } from '../../../../core/services/region.service/region.service';
 import { MarketplaceShopService } from '../../../../core/services/marketplace-shop.service/marketplace-shop.service';
+import { CurrencyService } from '../../../../core/services/currency.service/currency.service';
 import { ShopNameLink } from '../../../../shared/components/shop-name-link/shop-name-link';
 import { FavoritesService } from '../../../../core/services/favorites.service/favorites.service';
 import { ActionFeedbackService } from '../../../../core/services/action-feedback.service/action-feedback.service';
+import { CartModel, CartModelMode } from '../../models/cart-model/cart-model';
+import { ProductCardSkeleton } from '../../../../shared/components/product-card-skeleton/product-card-skeleton';
+import { resolveVariantDisplayPrice } from '../../../../core/utils/marketplace-price.util';
+import { buildProductCommands } from '../../../../core/utils/product-url.util';
 
 @Component({
   selector: 'app-product-list',
-  imports: [CommonModule, Header, Footer, ShopNameLink],
+  imports: [CommonModule, Header, Footer, ShopNameLink, CartModel, ProductCardSkeleton],
   templateUrl: './product-list.html',
   styleUrl: './product-list.css',
 })
 export class ProductList implements OnInit, OnDestroy {
-  private readonly cartStorageKey = 'cart_items';
+  private apiProductsById = new Map<string, any>();
   categoryTree: any[] = [];
   allCategories: any[] = [];
   activeChildMap: Map<string, any> = new Map();
@@ -29,7 +34,13 @@ export class ProductList implements OnInit, OnDestroy {
   sortBy: string = 'featured';
   isSortOpen: boolean = false;
   isLoading: boolean = true;
+  readonly pageSize = 36;
+  visibleCount = 36;
   hoveredProductId: string | null = null;
+  isCartModalOpen = false;
+  cartModalMode: CartModelMode = 'add';
+  cartModalApiProduct: any = null;
+  cartModalStoreId = '';
   private pendingCategoryId: string | null = null;
   private searchTerm: string = '';
   private featuredOnly: boolean = false;
@@ -76,6 +87,10 @@ export class ProductList implements OnInit, OnDestroy {
   private productListAdInterval: ReturnType<typeof setInterval> | null = null;
   private productListAdFadeTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly regionUpdatedHandler = () => this.loadProducts();
+  private readonly currencyUpdatedHandler = (event: Event) => {
+    const detail = (event as CustomEvent)?.detail;
+    this.loadProducts(detail?.currency_code);
+  };
 
   get currentProductListAdImage(): string {
     return this.productListAdImages[this.currentProductListAdIndex];
@@ -88,8 +103,26 @@ export class ProductList implements OnInit, OnDestroy {
     private favoritesService: FavoritesService,
     private actionFeedback: ActionFeedbackService,
     private regionService: RegionService,
-    private shopService: MarketplaceShopService
+    private shopService: MarketplaceShopService,
+    private currencyService: CurrencyService,
+    private cdr: ChangeDetectorRef
   ) {}
+
+  get displayedProducts(): any[] {
+    return this.filteredProducts.slice(0, this.visibleCount);
+  }
+
+  get hasMoreProducts(): boolean {
+    return this.visibleCount < this.filteredProducts.length;
+  }
+
+  loadMoreProducts(): void {
+    this.visibleCount = Math.min(
+      this.visibleCount + this.pageSize,
+      this.filteredProducts.length
+    );
+    this.cdr.markForCheck();
+  }
 
   ngOnInit(): void {
     this.startProductListAdRotation();
@@ -117,9 +150,9 @@ export class ProductList implements OnInit, OnDestroy {
 
     this.loadCategory();
     this.loadProducts();
-    this.logMarketplaceProductsResponse();
     if (typeof window !== 'undefined') {
       window.addEventListener('region-updated', this.regionUpdatedHandler);
+      window.addEventListener('currency-updated', this.currencyUpdatedHandler);
     }
   }
 
@@ -127,6 +160,7 @@ export class ProductList implements OnInit, OnDestroy {
     this.stopProductListAdRotation();
     if (typeof window !== 'undefined') {
       window.removeEventListener('region-updated', this.regionUpdatedHandler);
+      window.removeEventListener('currency-updated', this.currencyUpdatedHandler);
     }
   }
 
@@ -155,17 +189,6 @@ export class ProductList implements OnInit, OnDestroy {
 
   onProductListAdClick(): void {
     this.router.navigate(['/']);
-  }
-
-  private logMarketplaceProductsResponse(): void {
-    this.api.getMarketplaceProductsWithFallback(this.regionService.getProductRequestParams()).subscribe({
-      next: (res: any) => {
-        console.log('Marketplace products API response:', res);
-      },
-      error: (error: any) => {
-        console.error('Marketplace products API error:', error);
-      },
-    });
   }
 
   private normalizeId(value: any): string {
@@ -201,10 +224,10 @@ export class ProductList implements OnInit, OnDestroy {
       this.categoryTree = parents.map((parent: any) => this.buildCategoryTree(parent, this.allCategories));
       this.displayedCategoryTree = this.categoryTree; // Initialize with all categories
       this.mobileSecondCategories = this.buildMobileSecondCategories();
-      console.log('Product List Category Tree:', this.categoryTree);
 
       this.tryApplyPendingCategoryFilter();
       this.refreshMobileSecondCategories();
+      this.cdr.markForCheck();
     });
   }
 
@@ -215,13 +238,26 @@ export class ProductList implements OnInit, OnDestroy {
     this.mobileSecondCategories = this.buildMobileSecondCategories();
   }
 
-  loadProducts() {
-    this.api.getMarketplaceProductsWithFallback(this.regionService.getProductRequestParams()).subscribe(
+  loadProducts(currencyOverride?: string) {
+    this.isLoading = true;
+    this.cdr.markForCheck();
+    const generation = this.currencyService.fetchGeneration;
+    const params = this.currencyService.enrichProductParams(
+      this.regionService.getProductRequestParams(),
+      currencyOverride
+    );
+    this.api.getMarketplaceProductsWithFallback(params).subscribe(
       (res: any) => {
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
         const apiProducts = this.api.extractProductsFromResponse(res);
+        this.apiProductsById.clear();
         
         // Transform API product data to match template structure
         const mapped = apiProducts.map((product: any) => {
+          const productId = this.normalizeId(product.product_id);
+          if (productId) {
+            this.apiProductsById.set(productId, product);
+          }
           const variant = product.im_ProductVariants?.[0];
           const images = variant?.im_ProductImages || [];
           const mediaUrls = images
@@ -231,16 +267,15 @@ export class ProductList implements OnInit, OnDestroy {
           const firstImage = mediaUrls.find((url: string) => !this.isVideoMedia(url)) || null;
           const inventory = variant?.im_StoreVariantInventory?.[0];
           const onHandQty = this.toSafeNumber(inventory?.on_hand_quantity, 0);
-          const basePrice = this.toSafeNumber(variant?.base_price, 0);
+          const display = resolveVariantDisplayPrice(variant, product);
           const shopFields = this.shopService.mapApiProductShopFields(product, variant);
           
           return {
             id: product.product_id,
+            slug: String(product?.slug || '').trim() || undefined,
             name: product.title || 'Untitled Product',
-            price: basePrice,
-            originalPrice: basePrice > 0 
-              ? Math.round(basePrice * 1.2 * 100) / 100 
-              : 0,
+            price: display.price,
+            originalPrice: display.originalPrice,
             rating: 4.5,
             reviews: Math.floor(Math.random() * 5000) + 100,
             image: product.thumbnail_url || firstImage || firstVideo || '/mobile.jpg',
@@ -253,6 +288,8 @@ export class ProductList implements OnInit, OnDestroy {
             shop_atoll: shopFields.shop_atoll,
             shop_city: shopFields.shop_city,
             shop_location: shopFields.shop_location,
+            store_currency_code: display.display_currency || shopFields.store_currency_code,
+            store_currency_symbol: display.display_symbol || shopFields.store_currency_symbol,
             description: product.description,
             brand: product.brand,
             created_at: product?.created_at || '',
@@ -267,37 +304,39 @@ export class ProductList implements OnInit, OnDestroy {
           };
         });
 
+        this.products = mapped;
+        this.finishProductsLoad();
+
         this.shopService.enrichWithShopNames(mapped).subscribe({
           next: (enriched) => {
+            if (!this.currencyService.isCurrentGeneration(generation)) return;
             this.products = enriched;
-            this.finishProductsLoad();
+            this.applyFiltersFromState();
+            this.cdr.markForCheck();
           },
           error: () => {
-            this.products = mapped;
-            this.finishProductsLoad();
+            /* mapped products already shown */
           },
         });
       },
-      (error) => {
-        console.error('Error loading products:', error);
+      () => {
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
         this.products = [];
         this.filteredProducts = [];
+        this.visibleCount = this.pageSize;
         this.isLoading = false;
         this.refreshMobileSecondCategories();
+        this.cdr.markForCheck();
       }
     );
   }
 
   private finishProductsLoad(): void {
-    if (this.selectedCategory) {
-      this.applyFiltersFromState();
-    } else {
-      this.applyFiltersFromState();
-    }
-
+    this.applyFiltersFromState();
     this.tryApplyPendingCategoryFilter();
     this.isLoading = false;
     this.refreshMobileSecondCategories();
+    this.cdr.markForCheck();
   }
 
   buildCategoryTree(parent: any, allCategories: any[]): any {
@@ -661,10 +700,30 @@ export class ProductList implements OnInit, OnDestroy {
         products.sort((a, b) => this.getProductTimestamp(b) - this.getProductTimestamp(a));
         break;
       default:
-        // Featured - keep original order
+        // Featured - keep original order, then pin featured items to the top
         break;
     }
-    this.filteredProducts = products;
+    // Featured matches always float to the top of the current result set.
+    this.filteredProducts = this.prioritizeFeaturedProducts(products);
+    this.visibleCount = this.pageSize;
+  }
+
+  private prioritizeFeaturedProducts(products: any[]): any[] {
+    const featured: any[] = [];
+    const others: any[] = [];
+    for (const product of products) {
+      if (this.isFeaturedProduct(product)) {
+        featured.push(product);
+      } else {
+        others.push(product);
+      }
+    }
+    return [...featured, ...others];
+  }
+
+  isFeaturedProduct(product: any): boolean {
+    const flag = String(product?.featured_item || '').trim().toUpperCase();
+    return flag === 'T' || flag === 'TRUE' || flag === '1' || flag === 'Y' || flag === 'YES';
   }
 
   private applyCategoryFilter(category: any) {
@@ -865,11 +924,7 @@ export class ProductList implements OnInit, OnDestroy {
 
     this.filteredProducts = result;
     this.applySort();
-  }
-
-  private isFeaturedProduct(product: any): boolean {
-    const flag = String(product?.featured_item || '').trim().toUpperCase();
-    return flag === 'T' || flag === 'TRUE' || flag === '1' || flag === 'Y' || flag === 'YES';
+    this.visibleCount = this.pageSize;
   }
 
   private isTruthyFlag(value: any): boolean {
@@ -889,12 +944,8 @@ export class ProductList implements OnInit, OnDestroy {
       localStorage.setItem('store_id', selectedStoreId);
     }
 
-    this.router.navigate(['/product-details'], {
-      queryParams: {
-        productId: product.id,
-        store_id: selectedStoreId || undefined,
-      }
-    });
+    const link = buildProductCommands(product);
+    this.router.navigate(link.commands, { queryParams: link.queryParams });
   }
 
   onProductHover(product: any, isHovered: boolean) {
@@ -908,12 +959,20 @@ export class ProductList implements OnInit, OnDestroy {
     );
   }
 
+  muteProductVideo(video: HTMLVideoElement | null | undefined): void {
+    if (!video) return;
+    video.muted = true;
+    video.defaultMuted = true;
+    video.volume = 0;
+  }
+
   onToggleFavorite(product: any, event?: MouseEvent) {
     if (event) {
       event.stopPropagation();
     }
-    const added = this.favoritesService.toggle(this.favoritesService.fromListProduct(product));
-    this.actionFeedback.feedback(event, 'favorite', { added, image: product?.image });
+    const result = this.favoritesService.toggle(this.favoritesService.fromListProduct(product));
+    if (result === 'login_required') return;
+    this.actionFeedback.feedback(event, 'favorite', { added: result, image: product?.image });
   }
 
   isProductFavorite(product: any): boolean {
@@ -928,57 +987,51 @@ export class ProductList implements OnInit, OnDestroy {
     const productId = this.normalizeId(product?.id);
     if (!productId) return;
 
-    const existingItems = this.getStoredCartItems();
-    const existingIndex = existingItems.findIndex(
-      (item: any) => this.normalizeId(item?.id) === productId
-    );
-
-    if (existingIndex >= 0) {
-      existingItems[existingIndex].quantity =
-        (Number(existingItems[existingIndex].quantity) || 0) + 1;
-      existingItems[existingIndex].price = Number(product?.price) || 0;
-      existingItems[existingIndex].originalPrice = Number(product?.originalPrice) || 0;
-      existingItems[existingIndex].image = product?.image || '/mobile.jpg';
-      existingItems[existingIndex].name = product?.name || 'Untitled Product';
-      existingItems[existingIndex].inStock = product?.inStock !== false;
-      existingItems[existingIndex].store_id = this.normalizeId(product?.store_id);
-      existingItems[existingIndex].store_name = product?.store_name || '';
-      existingItems[existingIndex].shop_location = product?.shop_location || '';
+    const apiProduct = this.apiProductsById.get(productId);
+    if (!apiProduct) {
+      // Fallback: open modal with minimal product shape so qty can still be chosen.
+      this.cartModalApiProduct = {
+        product_id: productId,
+        title: product?.name || 'Untitled Product',
+        thumbnail_url: product?.image || '/mobile.jpg',
+        store_id: product?.store_id,
+        store_name: product?.store_name,
+        shop_location: product?.shop_location,
+        store_currency_code: product?.store_currency_code,
+        store_currency_symbol: product?.store_currency_symbol,
+        im_ProductVariants: [
+          {
+            base_price: Number(product?.price) || 0,
+            im_ProductImages: [{ image_url: product?.image || '/mobile.jpg', is_primary: 'T' }],
+            im_VariantAttributes: [],
+            im_StoreVariantInventory: [{ on_hand_quantity: product?.inStock === false ? 0 : 1 }],
+          },
+        ],
+      };
     } else {
-      existingItems.push({
-        id: productId,
-        name: product?.name || 'Untitled Product',
-        price: Number(product?.price) || 0,
-        originalPrice: Number(product?.originalPrice) || 0,
-        image: product?.image || '/mobile.jpg',
-        quantity: 1,
-        inStock: product?.inStock !== false,
-        store_id: this.normalizeId(product?.store_id),
-        store_name: product?.store_name || '',
-        shop_location: product?.shop_location || '',
-      });
+      this.cartModalApiProduct = {
+        ...apiProduct,
+        store_currency_code: product?.store_currency_code,
+        store_currency_symbol: product?.store_currency_symbol,
+      };
     }
 
-    localStorage.setItem(this.cartStorageKey, JSON.stringify(existingItems));
-    window.dispatchEvent(new Event('cart-updated'));
-    this.actionFeedback.feedback(event, 'cart', { image: product?.image });
+    this.cartModalStoreId = this.normalizeId(product?.store_id);
+    this.cartModalMode = 'add';
+    this.isCartModalOpen = true;
+  }
+
+  closeCartModal(): void {
+    this.isCartModalOpen = false;
+  }
+
+  onCartModalAdded(): void {
+    this.isCartModalOpen = false;
   }
 
   getDiscountPercentage(product: any): number {
     if (!product.originalPrice) return 0;
     return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
-  }
-
-  private getStoredCartItems(): any[] {
-    const raw = localStorage.getItem(this.cartStorageKey);
-    if (!raw) return [];
-
-    try {
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
   }
 
   @HostListener('document:click', ['$event'])

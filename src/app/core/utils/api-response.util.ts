@@ -31,3 +31,27 @@ export function isApiSuccess(response: any): boolean {
   if (response.success === true || response.Success === true) return true;
   return extractApiList(response).length > 0;
 }
+
+export function extractApiData(response: any): any {
+  if (!response) return null;
+  return (
+    response?.data ??
+    response?.Data ??
+    response?.result ??
+    response?.Result ??
+    null
+  );
+}
+
+export function extractApiMessage(response: any): string {
+  if (!response) return '';
+  return (
+    response?.message ??
+    response?.Message ??
+    response?.error ??
+    response?.Error ??
+    response?.title ??
+    response?.Title ??
+    ''
+  );
+}

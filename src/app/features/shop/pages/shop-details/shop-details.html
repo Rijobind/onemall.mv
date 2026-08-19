@@ -16,14 +16,10 @@
     <div class="h-10 mt-3 bg-gray-200 rounded-md skeleton-pulse"></div>
   </div>
   <div class="grid grid-cols-2 gap-3 px-2 py-3">
-    <div *ngFor="let i of [1,2,3,4]" class="overflow-hidden bg-white border border-gray-200 rounded-lg">
-      <div class="bg-gray-200 aspect-square skeleton-pulse"></div>
-      <div class="p-2 space-y-2">
-        <div class="h-3 bg-gray-200 rounded skeleton-pulse"></div>
-        <div class="w-2/3 h-3 bg-gray-200 rounded skeleton-pulse"></div>
-        <div class="w-1/2 h-3 bg-gray-200 rounded skeleton-pulse"></div>
-      </div>
-    </div>
+    <app-product-card-skeleton
+      *ngFor="let i of [1,2,3,4]"
+      layout="compact"
+    ></app-product-card-skeleton>
   </div>
 </section>
 
@@ -46,9 +42,18 @@
           </div>
           <button
             type="button"
-            class="px-3 py-1 text-sm font-semibold text-white bg-green-600 rounded-full hover:bg-green-700"
+            class="px-3 py-1 text-sm font-semibold rounded-full transition"
+            [class.text-white]="!isFollowing"
+            [class.bg-green-600]="!isFollowing"
+            [class.hover:bg-green-700]="!isFollowing"
+            [class.text-green-700]="isFollowing"
+            [class.bg-green-50]="isFollowing"
+            [class.border]="isFollowing"
+            [class.border-green-200]="isFollowing"
+            [disabled]="followActionLoading"
+            (click)="toggleFollowShop($event)"
           >
-            Follow
+            {{ isFollowing ? 'Following' : 'Follow' }}
           </button>
         </div>
 
@@ -134,10 +139,7 @@
     <div class="grid grid-cols-2 gap-3 px-2 py-3">
       <div *ngFor="let product of mobileTabProducts" (click)="onProductClick(product)" class="overflow-hidden transition bg-white border border-gray-200 rounded-lg shadow-sm cursor-pointer hover:shadow-md">
         <div class="relative overflow-hidden bg-gray-100 aspect-square">
-          <img [src]="product.image" [alt]="product.name" class="object-cover w-full h-full transition hover:scale-105" />
-          <div *ngIf="product.originalPrice" class="absolute px-1.5 py-0.5 text-[10px] font-semibold text-white bg-red-600 rounded top-1 left-1">
-            {{ ((1 - product.price / product.originalPrice) * 100).toFixed(0) }}% OFF
-          </div>
+          <img [src]="product.image" [alt]="product.name" class="object-cover w-full h-full transition hover:scale-105" loading="lazy" />
         </div>
         <div class="p-2">
           <p class="text-xs font-semibold leading-tight text-gray-900 line-clamp-2">{{ product.name }}</p>
@@ -154,8 +156,7 @@
             </svg>
           </div>
           <div class="flex items-center gap-1 mt-1">
-            <span class="text-sm font-bold text-gray-900">${{ product.price.toFixed(2) }}</span>
-            <span *ngIf="product.originalPrice" class="text-[10px] text-gray-400 line-through">${{ product.originalPrice.toFixed(2) }}</span>
+            <span class="text-sm font-bold text-gray-900">{{ product.store_currency_symbol || '$' }}{{ product.price.toFixed(2) }}</span>
           </div>
           <p class="mt-0.5 text-[10px] text-gray-500">{{ product.sold }} sold</p>
         </div>
@@ -250,7 +251,6 @@
           </svg>
           <span>{{ shop.location }}</span>
         </div>
-        <p class="mb-4" [class.text-gray-600]="isShopDataFromApi" [class.text-amber-700]="!isShopDataFromApi">{{ shop.description }}</p>
         <div class="flex flex-wrap items-center justify-center gap-4 text-sm md:justify-start">
           <div class="flex items-center gap-1">
             <div class="flex">
@@ -277,8 +277,21 @@
         </div>
       </div>
       <div class="flex gap-3 mt-4 md:mt-0">
-        <button class="px-6 py-2 font-medium text-white transition bg-green-600 rounded-lg hover:bg-green-700">
-          Follow Shop
+        <button
+          type="button"
+          class="px-6 py-2 font-medium transition rounded-lg"
+          [class.text-white]="!isFollowing"
+          [class.bg-green-600]="!isFollowing"
+          [class.hover:bg-green-700]="!isFollowing"
+          [class.text-green-700]="isFollowing"
+          [class.bg-white]="isFollowing"
+          [class.border]="isFollowing"
+          [class.border-green-300]="isFollowing"
+          [class.hover:bg-green-50]="isFollowing"
+          [disabled]="followActionLoading"
+          (click)="toggleFollowShop($event)"
+        >
+          {{ isFollowing ? 'Following' : 'Follow Shop' }}
         </button>
         <button class="px-6 py-2 font-medium text-gray-700 transition border border-gray-300 rounded-lg hover:bg-gray-50">
           <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -306,14 +319,10 @@
         </div>
         <div class="lg:col-span-3">
           <div class="grid grid-cols-2 gap-4 lg:grid-cols-3">
-            <div *ngFor="let i of [1,2,3,4,5,6]" class="bg-white border border-gray-200 rounded-lg">
-              <div class="h-48 bg-gray-200 rounded-t-lg skeleton-pulse"></div>
-              <div class="p-3 space-y-2">
-                <div class="h-4 bg-gray-200 rounded skeleton-pulse"></div>
-                <div class="w-2/3 h-4 bg-gray-200 rounded skeleton-pulse"></div>
-                <div class="w-1/2 h-4 bg-gray-200 rounded skeleton-pulse"></div>
-              </div>
-            </div>
+            <app-product-card-skeleton
+              *ngFor="let i of [1,2,3,4,5,6]"
+              layout="grid"
+            ></app-product-card-skeleton>
           </div>
         </div>
       </div>
@@ -339,47 +348,29 @@
                 <span class="text-xs text-gray-500">({{ category.count }})</span>
               </button>
             </div>
-
-            <div class="pt-6 mt-6 border-t border-gray-200">
-              <h4 class="mb-4 text-sm font-semibold text-gray-900">Shop Statistics</h4>
-              <div class="space-y-3">
-                <div class="flex items-center justify-between">
-                  <span class="text-sm text-gray-600">Response Rate:</span>
-                  <span class="text-sm font-medium text-gray-900">{{ shop.responseRate }}%</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-sm text-gray-600">Response Time:</span>
-                  <span class="text-sm font-medium text-gray-900">{{ shop.responseTime }}</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-sm text-gray-600">Items Sold:</span>
-                  <span class="text-sm font-medium text-gray-900">{{ shop.itemsSold.toLocaleString() }}+</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-sm text-gray-600">Followers:</span>
-                  <span class="text-sm font-medium text-gray-900">{{ shop.followers.toLocaleString() }}+</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-sm text-gray-600">Location:</span>
-                  <span class="text-sm font-medium text-right text-gray-900">{{ shop.location }}</span>
-                </div>
-                <div *ngIf="shop.atoll" class="flex items-center justify-between">
-                  <span class="text-sm text-gray-600">Atoll:</span>
-                  <span class="text-sm font-medium text-gray-900">{{ shop.atoll }}</span>
-                </div>
-                <div *ngIf="shop.city" class="flex items-center justify-between">
-                  <span class="text-sm text-gray-600">City / Island:</span>
-                  <span class="text-sm font-medium text-gray-900">{{ shop.city }}</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
       <div class="lg:col-span-3">
+        <div class="relative mb-5">
+          <input
+            type="text"
+            [(ngModel)]="shopSearchQuery"
+            [placeholder]="'Search all ' + allProducts.length + ' items'"
+            class="w-full py-3 pl-11 pr-4 text-sm bg-white border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+          <svg class="absolute w-5 h-5 text-gray-400 left-4 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+        </div>
         <app-shop-products
-          [products]="filteredProducts"
+          [products]="desktopFilteredProducts"
           [size]="'small'"
           [showSort]="true"
           [sortBy]="sortBy"

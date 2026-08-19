@@ -2,60 +2,94 @@
 
 <!-- Mobile layout -->
 <section class="categories-page categories-mobile">
-  <div class="top-strip">
-    <p class="top-strip-title">Shop by Category</p>
-    <p class="top-strip-subtitle">Find products from your favorite collections</p>
-  </div>
+  <header class="mobile-hero">
+    <div class="mobile-hero-copy">
+      <p class="mobile-hero-kicker">Browse</p>
+      <h1 class="mobile-hero-title">Categories</h1>
+      <p class="mobile-hero-subtitle">Pick a department, then dive into what you need</p>
+    </div>
+    <div class="mobile-hero-orb" aria-hidden="true"></div>
+  </header>
 
-  <div *ngIf="isLoading; else categoriesContent" class="categories-layout">
-    <aside class="featured-panel">
-      <div class="featured-skeleton-list">
-        <div *ngFor="let _ of [1,2,3,4,5,6,7,8,9,10,11,12,13]" class="featured-skeleton-item skeleton-pulse"></div>
-      </div>
-    </aside>
-
-    <main class="categories-panel mb-16">
-      <div class="categories-grid">
-        <div *ngFor="let _ of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]" class="category-card">
-          <div class="thumb-wrap skeleton-pulse"></div>
-          <div class="category-label-skeleton skeleton-pulse"></div>
+  <div *ngIf="isLoading; else categoriesContent" class="mobile-body">
+    <div class="parent-rail">
+      <div *ngFor="let _ of [1,2,3,4,5,6]" class="parent-chip-skeleton skeleton-pulse"></div>
+    </div>
+    <div class="mobile-section-head">
+      <div class="section-title-skeleton skeleton-pulse"></div>
+      <div class="section-count-skeleton skeleton-pulse"></div>
+    </div>
+    <div class="subcategory-grid">
+      <div *ngFor="let _ of [1,2,3,4,5,6]" class="subcategory-card subcategory-card--skeleton">
+        <div class="subcategory-media skeleton-pulse"></div>
+        <div class="subcategory-meta">
+          <div class="subcategory-name-skeleton skeleton-pulse"></div>
+          <div class="subcategory-hint-skeleton skeleton-pulse"></div>
         </div>
       </div>
-    </main>
+    </div>
   </div>
 
   <ng-template #categoriesContent>
-    <div class="categories-layout">
-      <aside class="featured-panel">
+    <div class="mobile-body">
+      <div class="parent-rail" role="tablist" aria-label="Parent categories">
         <button
           *ngFor="let item of featuredCategories; trackBy: trackByCategoryName"
           type="button"
-          class="featured-item"
-          [class.active]="item.id === selectedFeaturedCategoryId"
+          role="tab"
+          class="parent-chip"
+          [class.parent-chip--active]="item.id === selectedFeaturedCategoryId"
+          [attr.aria-selected]="item.id === selectedFeaturedCategoryId"
           (click)="onSelectFeaturedCategory(item)"
         >
-          {{ item.name }}
+          <span class="parent-chip-dot" aria-hidden="true"></span>
+          <span class="parent-chip-label">{{ item.name }}</span>
         </button>
-        <p *ngIf="featuredCategories.length === 0" class="state-text">No categories found</p>
-      </aside>
+        <p *ngIf="featuredCategories.length === 0" class="state-text parent-rail-empty">
+          No categories found
+        </p>
+      </div>
 
-      <main class="categories-panel mb-16">
-        <div class="categories-grid">
-          <button
-            *ngFor="let category of shopCategories; trackBy: trackByCategoryName"
-            type="button"
-            class="category-card"
-            (click)="onSelectCategory(category)"
-          >
-            <div class="thumb-wrap">
-              <img [src]="category.image" [alt]="category.name" (error)="onImageError($event)" />
-              <span *ngIf="category.hot" class="hot-badge">HOT</span>
-            </div>
-            <p>{{ category.name }}</p>
-          </button>
+      <div class="mobile-section-head">
+        <h2 class="mobile-section-title">{{ selectedFeaturedName }}</h2>
+        <span class="mobile-section-count">{{ shopCategories.length }}</span>
+      </div>
+
+      <div class="subcategory-grid" *ngIf="shopCategories.length > 0; else emptySubs">
+        <button
+          *ngFor="let category of shopCategories; trackBy: trackByCategoryName; let i = index"
+          type="button"
+          class="subcategory-card"
+          [style.animation-delay]="(i % 6) * 40 + 'ms'"
+          (click)="onSelectCategory(category)"
+        >
+          <div class="subcategory-media">
+            <img [src]="getCategoryImage(category)" [alt]="category.name" (error)="onImageError($event)" />
+            <span *ngIf="category.hot" class="hot-badge">HOT</span>
+          </div>
+          <div class="subcategory-meta">
+            <p class="subcategory-name">{{ category.name }}</p>
+            <span class="subcategory-cta">
+              Shop
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path
+                  d="M7.5 5l5 5-5 5"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </span>
+          </div>
+        </button>
+      </div>
+
+      <ng-template #emptySubs>
+        <div class="empty-panel">
+          <p class="state-text">No categories available</p>
         </div>
-        <p *ngIf="shopCategories.length === 0" class="state-text">No categories available</p>
-      </main>
+      </ng-template>
     </div>
   </ng-template>
 </section>
@@ -166,13 +200,10 @@
         </div>
 
         <div *ngIf="isLoading" class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-          <div *ngFor="let _ of [1,2,3,4,5,6,7,8]" class="overflow-hidden rounded-xl border border-gray-200 bg-white">
-            <div class="aspect-square skeleton-pulse"></div>
-            <div class="space-y-2 p-4">
-              <div class="h-3 w-full rounded skeleton-pulse"></div>
-              <div class="h-3 w-2/3 rounded skeleton-pulse"></div>
-            </div>
-          </div>
+          <app-product-card-skeleton
+            *ngFor="let _ of [1,2,3,4,5,6,7,8]"
+            layout="grid"
+          ></app-product-card-skeleton>
         </div>
 
         <ng-container *ngIf="!isLoading">
@@ -190,6 +221,7 @@
                     [src]="product.image"
                     [alt]="product.name"
                     class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    loading="lazy"
                     (error)="onImageError($event)"
                   />
                 </div>
@@ -219,31 +251,18 @@
                   </div>
                   <div class="flex items-center gap-2">
                     <span class="text-base font-bold text-gray-900 md:text-lg">
-                      ${{ product.price.toLocaleString() }}
-                    </span>
-                    <span
-                      *ngIf="product.originalPrice > product.price"
-                      class="text-xs text-gray-400 line-through md:text-sm"
-                    >
-                      ${{ product.originalPrice.toLocaleString() }}
+                      {{ product.store_currency_symbol || '$' }}{{ product.price.toLocaleString() }}
                     </span>
                   </div>
                 </div>
               </button>
-              <div class="grid grid-cols-2 gap-2 border-t border-gray-100 p-3 md:p-4">
+              <div class="border-t border-gray-100 p-3 md:p-4">
                 <button
                   type="button"
                   (click)="onAddToCart(product, $event)"
-                  class="rounded-lg border border-green-600 px-2 py-2 text-xs font-semibold text-green-600 transition hover:bg-green-50 md:text-sm"
+                  class="w-full rounded-lg bg-green-600 px-2 py-2 text-xs font-semibold text-white transition hover:bg-green-700 md:text-sm"
                 >
                   Add to Cart
-                </button>
-                <button
-                  type="button"
-                  (click)="onBuyNow(product, $event)"
-                  class="rounded-lg bg-green-600 px-2 py-2 text-xs font-semibold text-white transition hover:bg-green-700 md:text-sm"
-                >
-                  Buy Now
                 </button>
               </div>
             </article>
@@ -302,3 +321,12 @@
     </div>
   </div>
 </section>
+
+<app-cart-model
+  [isOpen]="isCartModalOpen"
+  [apiProduct]="cartModalApiProduct"
+  [mode]="cartModalMode"
+  [storeId]="cartModalStoreId"
+  (closed)="closeCartModal()"
+  (added)="onCartModalAdded()"
+></app-cart-model>

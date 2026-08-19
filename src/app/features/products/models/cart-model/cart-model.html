@@ -1,0 +1,189 @@
+@if (isOpen) {
+  <div
+    class="cart-model-backdrop"
+    (click)="onBackdropClick($event)"
+    role="presentation"
+  >
+    <div
+      class="cart-model-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Choose product options"
+      (click)="$event.stopPropagation()"
+    >
+      <button
+        type="button"
+        class="cart-model-close"
+        (click)="close()"
+        aria-label="Close"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <div class="cart-model-body">
+        <!-- Left: images -->
+        <div class="cart-model-gallery">
+          <div class="cart-model-main-image">
+            <img
+              [src]="displayImages[selectedImageIndex] || '/mobile.jpg'"
+              [alt]="displayName"
+            />
+          </div>
+          <div class="cart-model-thumbs" *ngIf="displayImages.length > 1">
+            <button
+              type="button"
+              *ngFor="let img of displayImages; let i = index"
+              class="cart-model-thumb"
+              [class.is-active]="selectedImageIndex === i"
+              (click)="selectImage(i)"
+            >
+              <img [src]="img" [alt]="'Thumbnail ' + (i + 1)" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: details + options -->
+        <div class="cart-model-details">
+          <h2 class="cart-model-title">{{ displayName }}</h2>
+
+          <div class="cart-model-meta" *ngIf="displaySold">
+            <span>{{ displaySold }} sold</span>
+          </div>
+
+          <div class="cart-model-price-row">
+            <span class="cart-model-price">{{ displayCurrencySymbol }}{{ displayPrice.toFixed(2) }}</span>
+          </div>
+
+          <!-- Color -->
+          <div class="cart-model-section" *ngIf="colorGroup">
+            <div class="cart-model-section-label">
+              <span>Color:</span>
+              <span
+                class="inline-block w-3 h-3 ml-1 border border-gray-300 rounded-full"
+                *ngIf="getSelectedValueLabelByType('color')"
+                [style.backgroundColor]="getSelectedColorCode()"
+              ></span>
+              <strong *ngIf="getSelectedValueLabelByType('color')">
+                {{ getSelectedValueLabelByType('color') }}
+              </strong>
+              <span
+                class="cart-model-required"
+                *ngIf="showValidation && !selectedAttributes.get(colorGroup.attributeId)"
+              >
+                Please select color!
+              </span>
+            </div>
+            <div class="cart-model-color-grid">
+              <button
+                type="button"
+                *ngFor="let valueId of colorGroup.values"
+                class="cart-model-color-option"
+                [disabled]="!isAttributeValueAvailable(colorGroup.attributeId, valueId)"
+                [class.is-selected]="isAttributeValueSelected(colorGroup.attributeId, valueId)"
+                [class.is-disabled]="!isAttributeValueAvailable(colorGroup.attributeId, valueId)"
+                (click)="onAttributeSelect(colorGroup.attributeId, valueId)"
+              >
+                <img
+                  [src]="getColorOptionImage(valueId)"
+                  [alt]="getValueDisplayLabel(valueId)"
+                />
+                <span>{{ getValueDisplayLabel(valueId) }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Size -->
+          <div class="cart-model-section" *ngIf="sizeGroup">
+            <div class="cart-model-section-label">
+              <span
+                [class.text-red-600]="showValidation && !selectedAttributes.get(sizeGroup.attributeId)"
+                [class.font-semibold]="showValidation && !selectedAttributes.get(sizeGroup.attributeId)"
+              >
+                Size
+              </span>
+              <span
+                class="cart-model-required"
+                *ngIf="showValidation && !selectedAttributes.get(sizeGroup.attributeId)"
+              >
+                Please select size!
+              </span>
+            </div>
+            <div class="cart-model-size-row">
+              <button
+                type="button"
+                *ngFor="let valueId of sizeGroup.values"
+                class="cart-model-size-chip"
+                [disabled]="!isAttributeValueAvailable(sizeGroup.attributeId, valueId)"
+                [class.is-selected]="isAttributeValueSelected(sizeGroup.attributeId, valueId)"
+                [class.is-disabled]="!isAttributeValueAvailable(sizeGroup.attributeId, valueId)"
+                (click)="onAttributeSelect(sizeGroup.attributeId, valueId)"
+              >
+                {{ getValueDisplayLabel(valueId) }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Other options -->
+          <div class="cart-model-section" *ngFor="let group of otherGroups">
+            <div class="cart-model-section-label">
+              <span
+                [class.text-red-600]="showValidation && !selectedAttributes.get(group.attributeId)"
+              >
+                {{ group.label }}
+              </span>
+              <span
+                class="cart-model-required"
+                *ngIf="showValidation && !selectedAttributes.get(group.attributeId)"
+              >
+                Please select {{ group.label | lowercase }}!
+              </span>
+            </div>
+            <div class="cart-model-size-row">
+              <button
+                type="button"
+                *ngFor="let valueId of group.values"
+                class="cart-model-size-chip"
+                [disabled]="!isAttributeValueAvailable(group.attributeId, valueId)"
+                [class.is-selected]="isAttributeValueSelected(group.attributeId, valueId)"
+                [class.is-disabled]="!isAttributeValueAvailable(group.attributeId, valueId)"
+                (click)="onAttributeSelect(group.attributeId, valueId)"
+              >
+                {{ getValueDisplayLabel(valueId) }}
+              </button>
+            </div>
+          </div>
+
+          <div class="cart-model-delivery" *ngIf="displayStock !== null && displayStock <= 5 && displayStock > 0">
+            Only {{ displayStock }} left in stock
+          </div>
+
+          <div class="cart-model-qty-row">
+            <span class="text-sm font-medium text-gray-600">Qty</span>
+            <select
+              [(ngModel)]="quantity"
+              class="cart-model-qty-select"
+            >
+              <option *ngFor="let qty of qtyOptions" [ngValue]="qty">{{ qty }}</option>
+            </select>
+          </div>
+
+          <p *ngIf="alreadyInCart" class="cart-model-already-note">
+            You already added this product to the cart (qty {{ existingCartQuantity }}).
+            Do you need to increase the qty?
+          </p>
+
+          <button
+            type="button"
+            class="cart-model-cta"
+            [class.is-pending]="!allOptionsSelected"
+            (click)="confirm($event)"
+          >
+            {{ primaryButtonLabel }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

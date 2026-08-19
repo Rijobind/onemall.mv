@@ -4,7 +4,19 @@ export interface ProductShopFields {
   shop_atoll: string;
   shop_city: string;
   shop_location: string;
+  store_currency_code: string;
+  store_currency_symbol: string;
 }
+
+const CURRENCY_SYMBOL_MAP: Record<string, string> = {
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  MVR: 'Rf',
+  INR: '₹',
+  AED: 'AED',
+  SAR: 'SAR',
+};
 
 export function normalizeId(value: unknown): string {
   return value == null ? '' : String(value).trim();
@@ -53,7 +65,15 @@ export function extractShopFieldsFromApiProduct(
     shop_atoll: atoll,
     shop_city: city,
     shop_location: formatShopLocation(atoll, city),
+    store_currency_code: '',
+    store_currency_symbol: '$',
   };
+}
+
+export function resolveCurrencySymbol(currencyCode: unknown): string {
+  const normalized = String(currencyCode || '').trim().toUpperCase();
+  if (!normalized) return '$';
+  return CURRENCY_SYMBOL_MAP[normalized] || normalized;
 }
 
 export function resolveStoreAddressRegion(store: any): { atoll: string; city: string } {

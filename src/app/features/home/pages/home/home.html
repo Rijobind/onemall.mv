@@ -1,7 +1,7 @@
-<app-header></app-header>
+﻿<app-header></app-header>
 
-<section class="py-4 bg-gray-50 md:py-6">
-  <div class="container px-4 mx-auto sm:px-5 lg:px-6 md:mb-10">
+<section class="pt-4 pb-3 bg-gray-50 md:pt-6 md:pb-3">
+  <div class="container px-4 mx-auto sm:px-5 lg:px-6 md:mb-3">
     <div class="w-full mb-3 md:hidden">
       <div class="flex items-center gap-5 px-1 overflow-x-auto border-gray-200 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <button
@@ -291,102 +291,79 @@
       <div class="flex-1">
         <div class="grid grid-cols-1 gap-2 md:gap-6 lg:grid-cols-3">
           <div
-            class="lg:col-span-2 relative rounded-2xl overflow-hidden h-[200px] md:h-[543px] group"
-            (mouseenter)="isHeroPaused = true"
-            (mouseleave)="isHeroPaused = false"
+            class="lg:col-span-2 relative rounded-2xl overflow-hidden h-[200px] md:h-[543px] group bg-[#f4f5f7] border border-gray-200 shadow-sm"
           >
-            <!-- Background slides -->
+            <!-- Product images: slide in from the right -->
             <div
               *ngFor="let ad of heroAds; let i = index"
               data-hero-slide
               [attr.data-slide-index]="i"
-              [class]="getHeroSlideClasses(i)"
+              [class]="getHeroProductWrapClasses(i)"
               (transitionend)="onHeroSlideTransitionEnd($event)"
             >
-              <div
-                [class]="getHeroBgClasses(i)"
-                [style.background-image]="'url(' + ad.image + ')'"
-              ></div>
-              <div
-                class="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/10 md:from-black/70 md:via-black/35 md:to-transparent"
-              ></div>
+              <img
+                [src]="ad.image"
+                [alt]="ad.title"
+                class="object-contain max-h-[90%] max-w-full drop-shadow-2xl"
+              />
             </div>
 
-            <!-- Promo content -->
-            <div class="relative z-10 h-full pointer-events-none">
-              <div
-                *ngFor="let ad of heroAds; let i = index"
-                [class]="getHeroCopyClasses(i)"
+            <!-- Promo copy: direction-aware fade/slide with staggered items -->
+            <div
+              *ngFor="let ad of heroAds; let i = index"
+              [class]="getHeroCopyClasses(i)"
+            >
+              <span
+                *ngIf="ad.discount"
+                class="hero-copy-item inline-flex items-center self-start px-2 py-0.5 mb-1 text-[8px] font-bold tracking-wider text-white uppercase rounded-full md:px-3 md:py-1.5 md:mb-3 md:text-xs bg-green-600"
+                style="--d: 0ms"
               >
-                <span
-                  *ngIf="ad.discount"
-                  class="inline-flex items-center self-start px-2.5 py-1 mb-2 text-[10px] font-bold tracking-wider text-white uppercase rounded-full md:px-3 md:py-1.5 md:mb-3 md:text-xs bg-green-600/90"
-                >
-                  {{ ad.discount }}
-                </span>
-                <p
-                  class="mb-1 text-[10px] font-semibold tracking-[0.2em] text-green-300 uppercase md:mb-2 md:text-xs"
-                >
-                  {{ ad.badge }}
-                </p>
-                <h2
-                  class="mb-1.5 text-xl font-bold leading-tight text-white md:mb-3 md:text-4xl lg:text-5xl"
-                >
-                  {{ ad.title }}
-                </h2>
-                <p
-                  class="mb-3 text-xs leading-relaxed text-white/85 md:mb-6 md:text-base md:max-w-md"
-                >
-                  {{ ad.subtitle }}
-                </p>
-                <button
-                  type="button"
-                  (click)="onHeroAdClick(ad)"
-                  class="inline-flex items-center self-start gap-2 px-4 py-2 text-xs font-semibold text-green-900 transition rounded-lg pointer-events-auto md:px-6 md:py-3 md:text-sm bg-white hover:bg-green-50 hover:shadow-lg active:scale-[0.98]"
-                >
-                  {{ ad.cta }}
-                  <svg class="w-3.5 h-3.5 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </button>
-              </div>
+                {{ ad.discount }}
+              </span>
+              <p
+                class="hero-copy-item mb-0.5 text-[8px] font-semibold tracking-[0.18em] text-green-600 uppercase md:mb-2 md:text-xs md:tracking-[0.2em]"
+                style="--d: 70ms"
+              >
+                {{ ad.badge }}
+              </p>
+              <h2
+                class="hero-copy-item mb-1 text-sm font-bold leading-tight text-gray-900 sm:text-base md:mb-3 md:text-4xl lg:text-5xl"
+                style="--d: 130ms"
+              >
+                {{ ad.title }}
+              </h2>
+              <p
+                class="hero-copy-item mb-2 text-[9px] leading-snug text-gray-500 line-clamp-2 md:mb-6 md:text-base md:leading-relaxed md:max-w-md md:line-clamp-none"
+                style="--d: 190ms"
+              >
+                {{ ad.subtitle }}
+              </p>
+              <button
+                type="button"
+                (click)="onHeroAdClick(ad)"
+                class="hero-copy-item inline-flex items-center self-start gap-1.5 px-3 py-1.5 text-[10px] font-semibold text-white rounded-lg md:gap-2 md:px-6 md:py-3 md:text-sm bg-green-600 hover:bg-green-700 hover:shadow-lg"
+                style="--d: 250ms"
+              >
+                {{ ad.cta }}
+                <svg class="w-3 h-3 md:w-4 md:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
             </div>
 
             <!-- Shine overlay on hover -->
             <div
-              class="absolute inset-0 z-[2] pointer-events-none overflow-hidden opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              class="absolute inset-0 z-[8] pointer-events-none overflow-hidden opacity-0 transition-opacity duration-300 group-hover:opacity-100"
             >
               <div
-                class="absolute top-0 -left-full w-1/2 h-full bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shine"
+                class="absolute top-0 w-1/2 h-full -left-full bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shine"
               ></div>
             </div>
-
-            <!-- Navigation arrows -->
-            <button
-              type="button"
-              (click)="previousHeroSlide()"
-              class="absolute left-2 z-20 flex items-center justify-center w-8 h-8 text-white transition -translate-y-1/2 rounded-full top-1/2 md:left-4 md:w-10 md:h-10 bg-black/30 backdrop-blur-sm hover:bg-black/50 opacity-0 group-hover:opacity-100"
-              aria-label="Previous advertisement"
-            >
-              <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              (click)="nextHeroSlide()"
-              class="absolute right-2 z-20 flex items-center justify-center w-8 h-8 text-white transition -translate-y-1/2 rounded-full top-1/2 md:right-4 md:w-10 md:h-10 bg-black/30 backdrop-blur-sm hover:bg-black/50 opacity-0 group-hover:opacity-100"
-              aria-label="Next advertisement"
-            >
-              <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
 
             <!-- Slide indicators -->
             <div
@@ -401,15 +378,15 @@
                 [class.md:w-8]="activeHeroImageIndex === i"
                 [class.w-1.5]="activeHeroImageIndex !== i"
                 [class.md:w-2]="activeHeroImageIndex !== i"
-                [class.bg-white]="activeHeroImageIndex === i"
-                [class.bg-white/50]="activeHeroImageIndex !== i"
+                [class.bg-green-600]="activeHeroImageIndex === i"
+                [class.bg-gray-300]="activeHeroImageIndex !== i"
                 [attr.aria-label]="'Go to slide ' + (i + 1)"
               ></button>
             </div>
 
             <!-- Sponsored label -->
             <span
-              class="absolute top-3 right-3 z-20 px-2 py-0.5 text-[9px] font-medium tracking-wide text-white/70 uppercase rounded md:top-4 md:right-4 md:text-[10px] bg-black/25 backdrop-blur-sm"
+              class="absolute top-3 right-3 z-20 px-2 py-0.5 text-[9px] font-medium tracking-wide text-gray-500 uppercase rounded md:top-4 md:right-4 md:text-[10px] bg-white/80"
             >
               Sponsored
             </span>
@@ -417,66 +394,67 @@
 
           <div class="grid grid-cols-2 gap-2 md:flex md:flex-col md:gap-6">
             <div
-              class="relative h-[170px] md:h-[260px] rounded-xl md:rounded-2xl overflow-hidden bg-gradient-to-r from-green-800 via-emerald-800 to-green-700 group"
+              (click)="onProductDetails()"
+              class="relative h-[170px] md:h-[260px] rounded-xl md:rounded-2xl overflow-hidden cursor-pointer bg-[#f4f5f7] border border-gray-200 shadow-sm group"
             >
-              <div
-                class="absolute z-20 flex items-center justify-center text-[10px] md:text-sm font-bold text-white bg-green-600 rounded-full top-2 left-2 md:top-4 md:left-4 w-10 h-10 md:w-14 md:h-14"
+              <img
+                src="/Samsung_Galaxy_S26_Ultra-removebg-preview.png"
+                alt="Featured product"
+                class="absolute inset-0 object-contain w-full h-[78%] p-3 mx-auto mt-2 md:h-[80%] md:p-5 md:mt-3 drop-shadow-xl transition-transform duration-700 ease-out group-hover:scale-105"
+              />
+              <span
+                class="absolute z-10 px-2 py-0.5 text-[9px] font-bold tracking-wide text-white uppercase rounded-full top-2 left-2 md:top-3 md:left-3 md:px-2.5 md:py-1 md:text-[11px] bg-green-600"
               >
-                SALE<br />17%
-              </div>
-              <div class="relative z-10 flex items-center h-full px-2 md:px-6">
-                <div class="w-1/2 mt-5 text-white">
-                  <h3 class="text-[10px] font-semibold tracking-wide opacity-90 md:text-sm">
-                    CATCH BIG
+                17% OFF
+              </span>
+              <div
+                class="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-2 px-2.5 py-2 md:px-4 md:py-3 bg-gradient-to-t from-white via-white/85 to-transparent"
+              >
+                <div class="min-w-0">
+                  <p class="text-[8px] font-semibold tracking-wider text-green-600 uppercase md:text-[11px]">
+                    CATCH BIG DEALS
+                  </p>
+                  <h3 class="text-xs font-bold leading-tight text-gray-900 truncate md:text-base">
+                    ON THE CAMERAS
                   </h3>
-                  <h2 class="text-base font-bold leading-tight md:text-2xl">DEALS</h2>
-                  <p class="mt-0.5 text-[10px] md:mt-1 md:text-sm opacity-80">ON THE CAMERAS</p>
-
-                  <a
-                    (click)="onProductDetails()"
-                    class="inline-flex items-center mt-1.5 md:mt-4 text-[10px] md:text-sm font-semibold underline cursor-pointer underline-offset-4"
-                  >
-                    Shop now
-                  </a>
                 </div>
-                <div class="flex justify-end w-1/2">
-                  <img
-                    src="/shirt.jpg"
-                    alt="Camera"
-                    class="w-24 md:w-44 transition-transform duration-[2000ms] rounded-xl ease-in-out group-hover:scale-110"
-                  />
-                </div>
+                <span
+                  class="flex-shrink-0 text-[9px] font-semibold text-green-600 cursor-pointer md:text-sm"
+                >
+                  Shop now
+                </span>
               </div>
             </div>
             <div
-              class="relative h-[170px] md:h-[260px] rounded-xl md:rounded-2xl overflow-hidden bg-gradient-to-r from-green-900 via-emerald-900 to-green-800 group"
+              (click)="onProductDetails()"
+              class="relative h-[170px] md:h-[260px] rounded-xl md:rounded-2xl overflow-hidden cursor-pointer bg-[#f4f5f7] border border-gray-200 shadow-sm group"
             >
-              <div
-                class="absolute z-20 flex items-center justify-center text-[10px] md:text-sm font-bold text-white bg-green-600 rounded-full top-2 left-2 md:top-4 md:left-4 w-10 h-10 md:w-14 md:h-14"
+              <img
+                src="/New_colour_drop__Series_1_Triple_Taupe_Suede___Instagram-removebg-preview.png"
+                alt="Featured product"
+                class="absolute inset-0 object-contain w-full h-[78%] p-3 mx-auto mt-2 md:h-[80%] md:p-5 md:mt-3 drop-shadow-xl transition-transform duration-700 ease-out group-hover:scale-105"
+              />
+              <span
+                class="absolute z-10 px-2 py-0.5 text-[9px] font-bold tracking-wide text-white uppercase rounded-full top-2 left-2 md:top-3 md:left-3 md:px-2.5 md:py-1 md:text-[11px] bg-green-600"
               >
-                SALE<br />10%
-              </div>
-              <div class="relative z-10 flex items-center h-full px-2 md:px-6">
-                <div class="w-1/2 mt-5 text-white">
-                  <h3 class="text-[10px] font-semibold tracking-wide opacity-90 md:text-sm">
-                    CATCH BIG
+                10% OFF
+              </span>
+              <div
+                class="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-2 px-2.5 py-2 md:px-4 md:py-3 bg-gradient-to-t from-white via-white/85 to-transparent"
+              >
+                <div class="min-w-0">
+                  <p class="text-[8px] font-semibold tracking-wider text-green-600 uppercase md:text-[11px]">
+                    CATCH BIG DEALS
+                  </p>
+                  <h3 class="text-xs font-bold leading-tight text-gray-900 truncate md:text-base">
+                    ON THE CAMERAS
                   </h3>
-                  <h2 class="text-base font-bold leading-tight md:text-2xl">DEALS</h2>
-                  <p class="mt-0.5 text-[10px] md:mt-1 md:text-sm opacity-80">ON THE CAMERAS</p>
-                  <a
-                    (click)="onProductDetails()"
-                    class="inline-flex items-center mt-1.5 md:mt-4 text-[10px] md:text-sm font-semibold underline cursor-pointer underline-offset-4"
-                  >
-                    Shop now
-                  </a>
                 </div>
-                <div class="flex justify-end w-1/2">
-                  <img
-                    src="/shirt2.jpg"
-                    alt="Camera"
-                    class="w-24 md:w-44 transition-transform duration-[2000ms] rounded-xl ease-in-out group-hover:scale-110"
-                  />
-                </div>
+                <span
+                  class="flex-shrink-0 text-[9px] font-semibold text-green-600 cursor-pointer md:text-sm"
+                >
+                  Shop now
+                </span>
               </div>
             </div>
           </div>
@@ -486,11 +464,12 @@
   </div>
 
   <!-- Explore Your Interests -->
-  <div class="container hidden px-4 mx-auto sm:px-5 lg:px-6 md:block">
-    <div class="mb-6 text-center md:mb-8">
-      <h2 class="text-2xl font-bold tracking-wide text-black uppercase">Explore Your Interests</h2>
-    </div>
-    <div class="relative">
+  <div class="container hidden px-4 mx-auto sm:px-5 lg:px-6 md:block md:mt-0">
+    <div
+      class="relative"
+      (mouseenter)="onInterestMarqueeEnter()"
+      (mouseleave)="onInterestMarqueeLeave()"
+    >
       <button
         type="button"
         (click)="scrollInterestCategories('left')"
@@ -524,10 +503,16 @@
       ></div>
       <div
         #interestCarousel
-        class="flex items-center gap-3 px-12 py-3 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:gap-4"
+        class="flex items-center gap-3 px-12 py-1 overflow-x-auto cursor-grab active:cursor-grabbing select-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:gap-4 md:py-1.5"
+        (wheel)="onMarqueeWheel('interest', $event)"
+        (pointerdown)="onMarqueePointerDown('interest', $event)"
+        (pointermove)="onMarqueePointerMove($event)"
+        (pointerup)="onMarqueePointerUp('interest', $event)"
+        (pointercancel)="onMarqueePointerUp('interest', $event)"
       >
         <button
-          *ngFor="let category of allCategoryTree"
+          type="button"
+          *ngFor="let category of interestMarqueeCategories; trackBy: trackInterestMarqueeItem"
           (click)="onInterestCategoryClick(category)"
           class="px-6 py-3 text-sm font-medium text-gray-900 transition-all bg-white border border-gray-300 rounded-full whitespace-nowrap hover:border-black hover:text-black"
         >
@@ -581,6 +566,19 @@
       </div>
 
       <div
+        *ngIf="isProductsLoading"
+        class="flex w-full max-w-full gap-2 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:hidden"
+      >
+        <div
+          *ngFor="let i of productSkeletonSlots"
+          class="flex-none w-40 min-w-40 max-w-40"
+        >
+          <app-product-card-skeleton layout="compact"></app-product-card-skeleton>
+        </div>
+      </div>
+
+      <div
+        *ngIf="!isProductsLoading"
         class="flex w-full max-w-full gap-2 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:hidden"
         style="scroll-behavior: smooth"
       >
@@ -594,6 +592,7 @@
               [src]="product.image"
               [alt]="product.name"
               class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+              loading="lazy"
             />
           </div>
           <div class="flex flex-col gap-1 p-2 md:gap-1.5 md:p-4">
@@ -622,17 +621,21 @@
             ></app-shop-name-link>
             <div class="flex items-center gap-2">
               <span class="text-base font-bold text-gray-900 md:text-lg"
-                >${{ product.price.toLocaleString() }}</span
-              >
-              <span class="text-xs text-gray-400 line-through md:text-sm"
-                >${{ product.originalPrice.toLocaleString() }}</span
+                >{{ product.store_currency_symbol || '$' }}{{ product.price.toLocaleString() }}</span
               >
             </div>
           </div>
         </div>
       </div>
 
-      <div class="hidden gap-6 md:grid md:grid-cols-5">
+      <div *ngIf="isProductsLoading" class="hidden gap-6 md:grid md:grid-cols-5">
+        <app-product-card-skeleton
+          *ngFor="let i of productSkeletonSlots"
+          layout="grid"
+        ></app-product-card-skeleton>
+      </div>
+
+      <div *ngIf="!isProductsLoading" class="hidden gap-6 md:grid md:grid-cols-5">
         <div
           *ngFor="let product of newArrivals | slice: 0 : 5"
           (click)="onProductClick(product)"
@@ -643,6 +646,7 @@
               [src]="product.image"
               [alt]="product.name"
               class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+              loading="lazy"
             />
           </div>
           <div class="flex flex-col gap-1 p-2 md:gap-1.5 md:p-4">
@@ -671,10 +675,7 @@
             ></app-shop-name-link>
             <div class="flex items-center gap-2">
               <span class="text-base font-bold text-gray-900 md:text-lg"
-                >${{ product.price.toLocaleString() }}</span
-              >
-              <span class="text-xs text-gray-400 line-through md:text-sm"
-                >${{ product.originalPrice.toLocaleString() }}</span
+                >{{ product.store_currency_symbol || '$' }}{{ product.price.toLocaleString() }}</span
               >
             </div>
           </div>
@@ -699,7 +700,13 @@
       </div>
 
       <div class="flex-1">
-        <div class="grid grid-cols-2 gap-3 md:hidden">
+        <div *ngIf="isProductsLoading" class="grid grid-cols-2 gap-3 md:hidden">
+          <app-product-card-skeleton
+            *ngFor="let i of [1,2,3,4]"
+            layout="compact"
+          ></app-product-card-skeleton>
+        </div>
+        <div *ngIf="!isProductsLoading" class="grid grid-cols-2 gap-3 md:hidden">
           <div
             *ngFor="let product of featuredProducts | slice: 0 : 4"
             (click)="onProductClick(product)"
@@ -710,6 +717,7 @@
                 [src]="product.image"
                 [alt]="product.name"
                 class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+                loading="lazy"
               />
             </div>
             <div class="flex flex-col gap-1 p-2 md:gap-1.5 md:p-4">
@@ -738,18 +746,21 @@
               ></app-shop-name-link>
               <div class="flex items-center gap-2">
                 <span class="text-base font-bold text-gray-900 md:text-lg"
-                  >${{ product.price.toLocaleString() }}</span
-                >
-                <span class="text-xs text-gray-400 line-through md:text-sm"
-                  >${{ product.originalPrice.toLocaleString() }}</span
+                  >{{ product.store_currency_symbol || '$' }}{{ product.price.toLocaleString() }}</span
                 >
               </div>
             </div>
           </div>
         </div>
-        <div class="hidden gap-6 md:grid md:grid-cols-5">
+        <div *ngIf="isProductsLoading" class="hidden gap-6 md:grid md:grid-cols-5">
+          <app-product-card-skeleton
+            *ngFor="let i of [1,2,3,4,5,6,7,8,9,10]"
+            layout="grid"
+          ></app-product-card-skeleton>
+        </div>
+        <div *ngIf="!isProductsLoading" class="hidden gap-6 md:grid md:grid-cols-5">
           <div
-            *ngFor="let product of featuredProducts | slice: 0 : 5"
+            *ngFor="let product of featuredProducts | slice: 0 : 10"
             (click)="onProductClick(product)"
             class="overflow-hidden transition-all duration-300 bg-white border border-gray-200 rounded-lg cursor-pointer group md:rounded-xl hover:shadow-xl"
           >
@@ -758,6 +769,7 @@
                 [src]="product.image"
                 [alt]="product.name"
                 class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+                loading="lazy"
               />
             </div>
             <div class="flex flex-col gap-1 p-2 md:gap-1.5 md:p-4">
@@ -786,10 +798,7 @@
               ></app-shop-name-link>
               <div class="flex items-center gap-2">
                 <span class="text-base font-bold text-gray-900 md:text-lg"
-                  >${{ product.price.toLocaleString() }}</span
-                >
-                <span class="text-xs text-gray-400 line-through md:text-sm"
-                  >${{ product.originalPrice.toLocaleString() }}</span
+                  >{{ product.store_currency_symbol || '$' }}{{ product.price.toLocaleString() }}</span
                 >
               </div>
             </div>
@@ -808,28 +817,6 @@
           alt="Banner"
           class="absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-in-out group-hover:scale-105"
         />
-        <div class="absolute inset-0 bg-black/30"></div>
-        <div
-          class="absolute z-20 flex items-center justify-center text-[10px] md:text-xs font-bold text-white bg-green-600 rounded-full top-3 left-3 md:top-4 md:left-4 w-10 h-10 md:w-14 md:h-14"
-        >
-          SALE<br />17%
-        </div>
-        <div class="relative z-10 flex items-center h-full px-4 md:px-6">
-          <div class="w-1/2 text-white"></div>
-          <div class="flex justify-end w-1/2">
-            <div class="w-1/2 text-white">
-              <p class="text-[10px] tracking-widest text-green-300 uppercase">Limited offer</p>
-              <h2 class="text-lg font-extrabold leading-tight md:text-2xl">Big Deals</h2>
-              <p class="mt-1 text-[10px] md:text-xs opacity-90">On premium smartphones</p>
-
-              <a
-                class="inline-flex items-center px-3 md:px-4 py-1 md:py-1.5 mt-2 md:mt-3 text-[10px] md:text-xs font-semibold text-white bg-white/20 rounded-full backdrop-blur hover:bg-white/30 transition"
-              >
-                Shop now
-              </a>
-            </div>
-          </div>
-        </div>
       </div>
       <div class="relative hidden h-[150px] overflow-hidden rounded-xl group md:block md:h-[200px] md:rounded-2xl">
         <img
@@ -838,28 +825,6 @@
           class="absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-in-out group-hover:scale-105"
         />
 
-        <div class="absolute inset-0 bg-black/30"></div>
-        <div
-          class="absolute z-20 flex items-center justify-center text-[10px] md:text-xs font-bold text-white bg-green-600 rounded-full top-3 left-3 md:top-4 md:left-4 w-10 h-10 md:w-14 md:h-14"
-        >
-          SALE<br />10%
-        </div>
-        <div class="relative z-10 flex items-center h-full px-4 md:px-6">
-          <div class="w-1/2 text-white"></div>
-          <div class="flex justify-end w-1/2">
-            <div class="w-1/2 text-white">
-              <p class="text-[10px] tracking-widest text-green-300 uppercase md:text-xs">Hot deal</p>
-              <h2 class="text-lg font-extrabold leading-tight md:text-2xl">New Arrivals</h2>
-              <p class="mt-1 text-[10px] md:text-xs opacity-90">Best price guaranteed</p>
-
-              <a
-                class="inline-flex items-center px-3 md:px-4 py-1 md:py-1.5 mt-2 md:mt-3 text-[10px] md:text-xs font-semibold text-white bg-white/20 rounded-full backdrop-blur hover:bg-white/30 transition"
-              >
-                Shop now
-              </a>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -879,7 +844,14 @@
       </button>
     </div>
 
-    <div class="grid grid-cols-2 gap-3 md:hidden">
+    <div *ngIf="isProductsLoading" class="grid grid-cols-2 gap-3 md:hidden">
+      <app-product-card-skeleton
+        *ngFor="let i of [1,2,3,4]"
+        layout="compact"
+      ></app-product-card-skeleton>
+    </div>
+
+    <div *ngIf="!isProductsLoading" class="grid grid-cols-2 gap-3 md:hidden">
       <div
         *ngFor="let product of discoverProductsForYou | slice: 0 : 4"
         (click)="onProductClick(product)"
@@ -890,6 +862,7 @@
             [src]="product.image"
             [alt]="product.name"
             class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+            loading="lazy"
           />
         </div>
         <div class="flex flex-col gap-1 p-2 md:gap-1.5 md:p-4">
@@ -918,17 +891,21 @@
           ></app-shop-name-link>
           <div class="flex items-center gap-2">
             <span class="text-base font-bold text-gray-900 md:text-lg"
-              >${{ product.price.toLocaleString() }}</span
-            >
-            <span class="text-xs text-gray-400 line-through md:text-sm"
-              >${{ product.originalPrice.toLocaleString() }}</span
+              >{{ product.store_currency_symbol || '$' }}{{ product.price.toLocaleString() }}</span
             >
           </div>
         </div>
       </div>
     </div>
 
-    <div class="hidden gap-6 md:grid md:grid-cols-5">
+    <div *ngIf="isProductsLoading" class="hidden gap-6 md:grid md:grid-cols-5">
+      <app-product-card-skeleton
+        *ngFor="let i of productSkeletonSlots"
+        layout="grid"
+      ></app-product-card-skeleton>
+    </div>
+
+    <div *ngIf="!isProductsLoading" class="hidden gap-6 md:grid md:grid-cols-5">
       <div
         *ngFor="let product of discoverProductsForYou | slice: 0 : 5"
         (click)="onProductClick(product)"
@@ -939,6 +916,7 @@
             [src]="product.image"
             [alt]="product.name"
             class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+            loading="lazy"
           />
         </div>
         <div class="flex flex-col gap-1 p-2 md:gap-1.5 md:p-4">
@@ -967,10 +945,7 @@
           ></app-shop-name-link>
           <div class="flex items-center gap-2">
             <span class="text-base font-bold text-gray-900 md:text-lg"
-              >${{ product.price.toLocaleString() }}</span
-            >
-            <span class="text-xs text-gray-400 line-through md:text-sm"
-              >${{ product.originalPrice.toLocaleString() }}</span
+              >{{ product.store_currency_symbol || '$' }}{{ product.price.toLocaleString() }}</span
             >
           </div>
         </div>
@@ -1016,112 +991,62 @@
         We partner with industry leaders worldwide
       </p>
     </div>
-    <div class="relative overflow-x-auto md:overflow-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+    <div
+      class="relative"
+      (mouseenter)="onBrandMarqueeEnter()"
+      (mouseleave)="onBrandMarqueeLeave()"
+    >
+      <button
+        type="button"
+        (click)="scrollBrandPartners('left')"
+        class="absolute left-0 z-20 flex items-center justify-center w-10 h-10 -translate-y-1/2 bg-white border border-gray-300 rounded-full shadow-sm top-1/2 hover:bg-gray-100"
+        aria-label="Scroll brands left"
+      >
+        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+      </button>
+      <button
+        type="button"
+        (click)="scrollBrandPartners('right')"
+        class="absolute right-0 z-20 flex items-center justify-center w-10 h-10 -translate-y-1/2 bg-white border border-gray-300 rounded-full shadow-sm top-1/2 hover:bg-gray-100"
+        aria-label="Scroll brands right"
+      >
+        <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
       <div
-        class="absolute top-0 bottom-0 left-0 z-10 w-8 pointer-events-none md:w-20 bg-gradient-to-r from-white to-transparent"
+        class="absolute top-0 bottom-0 left-0 z-10 w-8 pointer-events-none bg-gradient-to-r from-white to-transparent"
       ></div>
       <div
-        class="absolute top-0 bottom-0 right-0 z-10 w-8 pointer-events-none md:w-20 bg-gradient-to-l from-white to-transparent"
+        class="absolute top-0 bottom-0 right-0 z-10 w-8 pointer-events-none bg-gradient-to-l from-white to-transparent"
       ></div>
-      <div class="flex w-fit animate-brand-scroll pointer-events-none max-md:pointer-events-auto hover:[animation-play-state:paused]">
-        <div class="flex items-center flex-shrink-0 gap-6 px-2 md:gap-16 md:px-4">
-          <div
-            class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
+      <div
+        #brandCarousel
+        class="flex items-center gap-6 px-12 py-1 overflow-x-auto cursor-grab active:cursor-grabbing select-none touch-pan-x [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:gap-8 md:py-1.5"
+        (wheel)="onMarqueeWheel('brand', $event)"
+        (pointerdown)="onMarqueePointerDown('brand', $event)"
+        (pointermove)="onMarqueePointerMove($event)"
+        (pointerup)="onMarqueePointerUp('brand', $event)"
+        (pointercancel)="onMarqueePointerUp('brand', $event)"
+      >
+        <div
+          *ngFor="let brand of brandMarqueeItems; trackBy: trackBrandMarqueeItem"
+          class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] flex-shrink-0 pointer-events-none md:h-24 md:px-8 md:py-4 md:min-w-[160px]"
+        >
+          <span [class]="getBrandNameClasses(brand.style)">{{ brand.name }}</span>
+          <span
+            *ngIf="brand.subtitle"
+            class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs"
           >
-            <span class="text-lg font-bold text-gray-800 md:text-2xl">Walmart</span>
-            <span class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs">eCommerce</span>
-          </div>
-          <div
-            class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
-          >
-            <span class="text-base font-bold text-gray-800 md:text-xl">RODEM</span>
-            <span class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs">SMART SANITARY</span>
-          </div>
-          <div
-            class="flex items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
-          >
-            <span class="text-2xl font-light text-gray-800 md:text-3xl">fabric</span>
-          </div>
-          <div
-            class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
-          >
-            <span class="text-lg font-bold text-gray-800 md:text-2xl">SUDO</span>
-            <span class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs">E-COMMERCE</span>
-          </div>
-          <div
-            class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
-          >
-            <span class="text-base font-semibold text-gray-800 md:text-xl">ctaecom</span>
-            <span class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs">e-commerce</span>
-          </div>
-          <div
-            class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
-          >
-            <span class="text-lg font-bold text-gray-800 md:text-2xl">LEAD</span>
-            <span class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs">E-COMMERCE</span>
-          </div>
-          <div
-            class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
-          >
-            <span class="text-lg font-bold text-gray-800 md:text-2xl">GLOBAL</span>
-            <span class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs">BRAND</span>
-          </div>
-          <div
-            class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
-          >
-            <span class="text-sm font-semibold text-gray-800 md:text-lg">Great Deals</span>
-            <span class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs">E-Commerce</span>
-          </div>
-        </div>
-
-        <div class="flex items-center flex-shrink-0 gap-6 px-2 md:gap-16 md:px-4">
-          <div
-            class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
-          >
-            <span class="text-lg font-bold text-gray-800 md:text-2xl">Walmart</span>
-            <span class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs">eCommerce</span>
-          </div>
-          <div
-            class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
-          >
-            <span class="text-base font-bold text-gray-800 md:text-xl">RODEM</span>
-            <span class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs">SMART SANITARY</span>
-          </div>
-          <div
-            class="flex items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
-          >
-            <span class="text-2xl font-light text-gray-800 md:text-3xl">fabric</span>
-          </div>
-          <div
-            class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
-          >
-            <span class="text-lg font-bold text-gray-800 md:text-2xl">SUDO</span>
-            <span class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs">E-COMMERCE</span>
-          </div>
-          <div
-            class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
-          >
-            <span class="text-base font-semibold text-gray-800 md:text-xl">ctaecom</span>
-            <span class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs">e-commerce</span>
-          </div>
-          <div
-            class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
-          >
-            <span class="text-lg font-bold text-gray-800 md:text-2xl">LEAD</span>
-            <span class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs">E-COMMERCE</span>
-          </div>
-          <div
-            class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
-          >
-            <span class="text-lg font-bold text-gray-800 md:text-2xl">GLOBAL</span>
-            <span class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs">BRAND</span>
-          </div>
-          <div
-            class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] md:h-24 md:px-8 md:py-4 md:min-w-[180px]"
-          >
-            <span class="text-sm font-semibold text-gray-800 md:text-lg">Great Deals</span>
-            <span class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs">E-Commerce</span>
-          </div>
+            {{ brand.subtitle }}
+          </span>
         </div>
       </div>
     </div>
@@ -1181,6 +1106,7 @@
                 [src]="product.image"
                 [alt]="product.name"
                 class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
+                loading="lazy"
               />
 
               <div
@@ -1273,7 +1199,7 @@
               ></app-shop-name-link>
               <div class="flex items-center">
                 <span class="text-lg font-bold text-gray-900"
-                  >${{
+                  >{{ product.store_currency_symbol || '$' }}{{
                     product.price.toLocaleString('en-US', {
                       minimumFractionDigits: 3,
                       maximumFractionDigits: 3,

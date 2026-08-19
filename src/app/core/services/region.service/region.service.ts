@@ -28,6 +28,12 @@ export interface MarketplaceProductParams {
   country_region_id?: string;
   region_name?: string;
   city?: string;
+  /** Preferred display currency for backend conversion (e.g. MVR, USD). */
+  currency_code?: string;
+  /** Logged-in marketplace customer id. */
+  user_id?: string;
+  /** ISO country code hint (e.g. MV, US, IN). */
+  country_code?: string;
 }
 
 function readString(raw: any, ...keys: string[]): string {
@@ -150,6 +156,30 @@ export class RegionService {
     return params;
   }
 
+  /** Kaafu · Male — used to fill remaining home products. */
+  getDefaultProductRequestParams(): MarketplaceProductParams {
+    const kaafu = this.findRegionByName(this.defaultAtollName);
+    return {
+      country_region_id: kaafu?.country_region_id || this.defaultAtollId,
+      region_name: kaafu?.region_name || this.defaultAtollName,
+      city: this.defaultCity,
+    };
+  }
+
+  isDefaultLocationSelected(): boolean {
+    const current = this.getEffectiveSelection();
+    const defaults = this.getDefaultProductRequestParams();
+    const sameAtoll =
+      String(current.countryRegionId || '').toLowerCase() ===
+        String(defaults.country_region_id || '').toLowerCase() ||
+      String(current.regionName || '').trim().toLowerCase() ===
+        String(defaults.region_name || '').trim().toLowerCase();
+    const sameCity =
+      String(current.city || '').trim().toLowerCase() ===
+      String(defaults.city || '').trim().toLowerCase();
+    return sameAtoll && sameCity;
+  }
+
   loadRegions(): Observable<any> {
     return this.api.getMarketplaceRegions().pipe(
       switchMap((res: any) => {
@@ -265,6 +295,7 @@ export class RegionService {
     };
     this.selectionSubject.next(normalized);
     this.saveToStorage(normalized);
+    this.api.clearMarketplaceProductsCache();
     this.dispatchRegionUpdated();
   }
 

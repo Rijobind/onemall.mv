@@ -1,8 +1,7 @@
 <app-header></app-header>
 
-<!-- Breadcrumb -->
 <div class="border-b border-gray-200 bg-gray-50">
-  <div class="container px-6 py-4 mx-auto">
+  <div class="container px-4 py-4 mx-auto md:px-6">
     <nav class="flex items-center gap-2 text-sm">
       <a routerLink="/" class="text-gray-600 transition hover:text-green-600">Home</a>
       <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -13,20 +12,24 @@
   </div>
 </div>
 
-<!-- Notifications Page -->
-<section class="min-h-screen py-12 bg-gray-50">
-  <div class="container px-6 mx-auto">
+<section class="min-h-screen py-8 bg-gray-50 md:py-12">
+  <div class="container px-4 mx-auto md:px-6">
     <div class="max-w-4xl mx-auto">
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900">Notifications</h1>
-          <p class="mt-2 text-sm text-gray-600">
-            You have <span class="font-semibold text-green-600">{{ unreadCount }}</span> unread notifications
+          <h1 class="text-2xl font-bold text-gray-900 md:text-3xl">Notifications</h1>
+          <p class="mt-1 text-sm text-gray-600" *ngIf="isLoggedIn">
+            You have
+            <span class="font-semibold text-green-600">{{ unreadCount }}</span>
+            unread
+          </p>
+          <p class="mt-1 text-sm text-gray-600" *ngIf="!isLoggedIn">
+            Sign in to see your notifications.
           </p>
         </div>
         <button
-          *ngIf="unreadCount > 0"
+          *ngIf="isLoggedIn && unreadCount > 0"
+          type="button"
           (click)="markAllAsRead()"
           class="px-4 py-2 text-sm font-medium text-gray-700 transition bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
         >
@@ -34,25 +37,32 @@
         </button>
       </div>
 
-      <!-- Notifications List -->
-      <div class="space-y-3">
+      <div *ngIf="isLoading" class="py-12 text-center text-sm text-gray-500">
+        Loading notifications…
+      </div>
+
+      <div *ngIf="!isLoading && loadError" class="py-8 text-center text-sm text-red-600">
+        {{ loadError }}
+      </div>
+
+      <div *ngIf="!isLoading && !loadError && isLoggedIn" class="space-y-3">
         <div
           *ngFor="let notification of notifications"
           [class.bg-white]="!notification.read"
           [class.bg-gray-50]="notification.read"
-          class="p-4 transition border border-gray-200 rounded-lg hover:shadow-md"
+          class="p-4 transition border border-gray-200 rounded-lg cursor-pointer hover:shadow-md hover:border-green-200"
+          (click)="onNotificationClick(notification)"
         >
           <div class="flex items-start gap-4">
-            <!-- Icon -->
             <div
-              [class.bg-green-100]="notification.type === 'order'"
-              [class.bg-blue-100]="notification.type === 'product'"
-              [class.bg-yellow-100]="notification.type === 'offer'"
-              [class.bg-purple-100]="notification.type === 'review'"
+              [class.bg-green-100]="iconType(notification.type) === 'order'"
+              [class.bg-blue-100]="iconType(notification.type) === 'product'"
+              [class.bg-yellow-100]="iconType(notification.type) === 'offer'"
+              [class.bg-purple-100]="iconType(notification.type) === 'review'"
               class="flex-shrink-0 p-3 rounded-full"
             >
               <svg
-                *ngIf="notification.type === 'order'"
+                *ngIf="iconType(notification.type) === 'order'"
                 class="w-6 h-6 text-green-600"
                 fill="none"
                 stroke="currentColor"
@@ -61,7 +71,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
               <svg
-                *ngIf="notification.type === 'product'"
+                *ngIf="iconType(notification.type) === 'product'"
                 class="w-6 h-6 text-blue-600"
                 fill="none"
                 stroke="currentColor"
@@ -70,7 +80,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
               </svg>
               <svg
-                *ngIf="notification.type === 'offer'"
+                *ngIf="iconType(notification.type) === 'offer'"
                 class="w-6 h-6 text-yellow-600"
                 fill="none"
                 stroke="currentColor"
@@ -79,7 +89,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <svg
-                *ngIf="notification.type === 'review'"
+                *ngIf="iconType(notification.type) === 'review'"
                 class="w-6 h-6 text-purple-600"
                 fill="none"
                 stroke="currentColor"
@@ -89,17 +99,72 @@
               </svg>
             </div>
 
-            <!-- Content -->
-            <div class="flex-1">
-              <div class="flex items-start justify-between">
-                <div class="flex-1">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex-1 min-w-0">
                   <h3 class="font-semibold text-gray-900">{{ notification.title }}</h3>
                   <p class="mt-1 text-sm text-gray-600">{{ notification.message }}</p>
+
+                  <!-- Quotation preview: stores + products -->
+                  <div *ngIf="notification.preview" class="mt-3 space-y-2">
+                    <p *ngIf="storeNames(notification)" class="text-xs text-gray-500">
+                      <span class="font-medium text-gray-700">Stores:</span>
+                      {{ storeNames(notification) }}
+                    </p>
+
+                    <div
+                      *ngIf="notification.preview.products.length"
+                      class="flex flex-wrap items-center gap-2"
+                    >
+                      <div
+                        *ngFor="let product of notification.preview.products"
+                        class="flex items-center gap-2 px-2 py-1.5 bg-white border border-gray-200 rounded-lg max-w-[220px]"
+                      >
+                        <img
+                          [src]="product.image_url || '/mobile.jpg'"
+                          [alt]="product.product_name"
+                          class="object-cover flex-shrink-0 w-9 h-9 bg-gray-100 rounded-md"
+                        />
+                        <div class="min-w-0">
+                          <p class="text-xs font-medium text-gray-800 truncate">
+                            {{ product.product_name }}
+                          </p>
+                          <p class="text-[11px] text-gray-500">
+                            <span *ngIf="product.quantity > 1">×{{ product.quantity }}</span>
+                            <span *ngIf="product.unit_price > 0 && notification.type === 'new_product'">
+                              {{ notification.preview.currency_symbol || notification.preview.currency_code || '' }}{{ product.unit_price }}
+                            </span>
+                            <span *ngIf="product.store_name"> · {{ product.store_name }}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <span
+                        *ngIf="extraProductCount(notification) > 0"
+                        class="px-2 py-1 text-xs font-semibold text-gray-600 bg-gray-100 rounded-full"
+                      >
+                        +{{ extraProductCount(notification) }} more
+                      </span>
+                    </div>
+
+                    <div
+                      *ngIf="notification.preview.item_count || formatPreviewTotal(notification)"
+                      class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500"
+                    >
+                      <span *ngIf="notification.preview.item_count">
+                        {{ notification.preview.item_count }} item{{ notification.preview.item_count === 1 ? '' : 's' }}
+                      </span>
+                      <span *ngIf="formatPreviewTotal(notification)" class="font-semibold text-green-700">
+                        {{ formatPreviewTotal(notification) }}
+                      </span>
+                    </div>
+                  </div>
+
                   <p class="mt-2 text-xs text-gray-500">{{ notification.time }}</p>
                 </div>
-                <div class="flex items-center gap-2 ml-4">
+                <div class="flex items-center flex-shrink-0 gap-2" (click)="$event.stopPropagation()">
                   <div *ngIf="!notification.read" class="w-2 h-2 bg-green-600 rounded-full"></div>
                   <button
+                    type="button"
                     (click)="markAsRead(notification.id)"
                     *ngIf="!notification.read"
                     class="p-1 text-gray-400 transition rounded hover:bg-gray-100 hover:text-gray-600"
@@ -110,6 +175,7 @@
                     </svg>
                   </button>
                   <button
+                    type="button"
                     (click)="deleteNotification(notification.id)"
                     class="p-1 text-gray-400 transition rounded hover:bg-gray-100 hover:text-red-600"
                     title="Delete"
@@ -125,8 +191,10 @@
         </div>
       </div>
 
-      <!-- Empty State -->
-      <div *ngIf="notifications.length === 0" class="py-12 text-center">
+      <div
+        *ngIf="!isLoading && !loadError && isLoggedIn && notifications.length === 0"
+        class="py-12 text-center"
+      >
         <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
         </svg>
@@ -136,5 +204,15 @@
     </div>
   </div>
 </section>
+
+<app-confirm-dialog
+  [isOpen]="isConfirmOpen"
+  [title]="confirmTitle"
+  [message]="confirmMessage"
+  confirmLabel="Yes, delete"
+  cancelLabel="Cancel"
+  (confirmed)="onConfirmDeleteNotification()"
+  (cancelled)="closeConfirm()"
+></app-confirm-dialog>
 
 <app-footer></app-footer>

@@ -1,6 +1,7 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnChanges, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
+import { buildProductCommands } from '../../../../core/utils/product-url.util';
 
 @Component({
   selector: 'app-shop-products',
@@ -51,17 +52,13 @@ export class ShopProducts implements OnInit, OnChanges {
   }
 
   onProductClick(product: any): void {
-    if (!product?.id) return;
+    if (!product?.id && !product?.slug) return;
     const storeId = product?.store_id ? String(product.store_id) : '';
     if (storeId && typeof window !== 'undefined') {
       localStorage.setItem('store_id', storeId);
     }
-    this.router.navigate(['/product-details'], {
-      queryParams: {
-        productId: product.id,
-        store_id: storeId || undefined,
-      },
-    });
+    const link = buildProductCommands(product);
+    this.router.navigate(link.commands, { queryParams: link.queryParams });
   }
 
   @HostListener('document:click', ['$event'])

@@ -1,18 +1,18 @@
 <!-- Modal Backdrop -->
 <div
   *ngIf="isOpen"
-  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+  class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
   (click)="close()"
 >
-  <!-- Modal Content -->
   <div
     class="relative w-full max-w-md bg-white rounded-lg shadow-2xl"
     (click)="$event.stopPropagation()"
   >
-    <!-- Close Button -->
     <button
+      type="button"
       (click)="close()"
       class="absolute p-2 text-gray-400 transition rounded-full top-4 right-4 hover:bg-gray-100 hover:text-gray-600"
+      aria-label="Close"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
@@ -24,118 +24,154 @@
       </svg>
     </button>
 
-    <!-- Register Form -->
     <div class="p-6">
-      <h2 class="mb-6 text-2xl font-bold text-gray-900">Create Account</h2>
-      <form (ngSubmit)="onRegister()" class="space-y-4">
+      <h2 class="mb-2 text-2xl font-bold text-gray-900">
+        {{ step === 'otp' ? 'Enter OTP' : 'Create account' }}
+      </h2>
+      <p class="mb-6 text-sm text-gray-500">
+        {{
+          step === 'otp'
+            ? 'We sent a 6-digit code to ' + maskedPhone
+            : 'Register with your name, email, and phone. We will verify by SMS.'
+        }}
+      </p>
+
+      <div
+        *ngIf="errorMessage"
+        class="px-3 py-2 mb-4 text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg"
+      >
+        {{ errorMessage }}
+      </div>
+      <div
+        *ngIf="infoMessage && step === 'otp'"
+        class="px-3 py-2 mb-4 text-sm text-green-700 bg-green-50 border border-green-100 rounded-lg"
+      >
+        {{ infoMessage }}
+      </div>
+      <div
+        *ngIf="otpDev"
+        class="px-3 py-2 mb-4 text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-lg"
+      >
+        Dev OTP: <span class="font-mono font-semibold">{{ otpDev }}</span>
+      </div>
+
+      <form *ngIf="step === 'register'" (ngSubmit)="onRegister()" class="space-y-4">
         <div>
-          <label for="register-name" class="block mb-2 text-sm font-medium text-gray-700"
-            >Full Name</label
-          >
+          <label class="block mb-2 text-sm font-medium text-gray-700">Full name</label>
           <input
-            id="register-name"
             type="text"
-            [(ngModel)]="registerForm.name"
-            name="registerName"
+            [(ngModel)]="form.full_name"
+            name="registerFullName"
             required
-            placeholder="Enter your full name"
+            placeholder="Ahmed Ali"
             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         </div>
         <div>
-          <label for="User-name" class="block mb-2 text-sm font-medium text-gray-700"
-            >User Name</label
-          >
+          <label class="block mb-2 text-sm font-medium text-gray-700">Email</label>
           <input
-            id="User-name"
-            type="text"
-            [(ngModel)]="registerForm.username"
-            name="UserName"
-            required
-            placeholder="Enter your full User-name"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
-        </div>
-        <div>
-          <label for="register-email" class="block mb-2 text-sm font-medium text-gray-700"
-            >Email Address</label
-          >
-          <input
-            id="register-email"
             type="email"
-            [(ngModel)]="registerForm.email"
+            [(ngModel)]="form.email"
             name="registerEmail"
             required
-            placeholder="Enter your email"
+            placeholder="ahmed@example.com"
             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         </div>
         <div>
-          <label for="register-email" class="block mb-2 text-sm font-medium text-gray-700"
-            >Phone Number</label
-          >
-          <input
-            id="register-PhoneNumber"
-            type="PhoneNumber"
-            [(ngModel)]="registerForm.PhoneNumber"
-            name="registerPhoneNumber"
+          <label class="block mb-2 text-sm font-medium text-gray-700">Country</label>
+          <select
+            [(ngModel)]="form.country_code"
+            name="registerCountry"
             required
-            placeholder="Enter your PhoneNumber"
             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
+          >
+            <option *ngFor="let c of auth.countries" [value]="c.dial_code">
+              {{ c.flag }} {{ c.name }} ({{ c.dial_code }})
+            </option>
+          </select>
         </div>
         <div>
-          <label for="register-password" class="block mb-2 text-sm font-medium text-gray-700"
-            >Password</label
-          >
-          <input
-            id="register-password"
-            type="password"
-            [(ngModel)]="registerForm.password"
-            name="registerPassword"
-            required
-            placeholder="Create a password"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
-        </div>
-        <div>
-          <label for="register-confirm-password" class="block mb-2 text-sm font-medium text-gray-700"
-            >Confirm Password</label
-          >
-          <input
-            id="register-confirm-password"
-            type="password"
-            [(ngModel)]="registerForm.confirmPassword"
-            name="registerConfirmPassword"
-            required
-            placeholder="Confirm your password"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
-        </div>
-        <div class="flex items-start">
-          <input
-            type="checkbox"
-            required
-            class="w-4 h-4 mt-1 text-green-600 border-gray-300 rounded focus:ring-green-500"
-          />
-          <label class="ml-2 text-sm text-gray-600">
-            I agree to the
-            <a href="#" class="text-green-600 hover:text-green-700">Terms & Conditions</a>
-            and
-            <a href="#" class="text-green-600 hover:text-green-700">Privacy Policy</a>
-          </label>
+          <label class="block mb-2 text-sm font-medium text-gray-700">Phone number</label>
+          <div class="flex gap-2">
+            <input
+              type="text"
+              [value]="form.country_code"
+              readonly
+              class="w-24 px-3 py-3 text-center text-gray-700 bg-gray-50 border border-gray-300 rounded-lg"
+            />
+            <input
+              type="tel"
+              inputmode="numeric"
+              [ngModel]="form.phone_number"
+              (ngModelChange)="onPhoneDigitsInput($event)"
+              name="registerPhone"
+              required
+              placeholder="7712345"
+              class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+          </div>
+          <p class="mt-1 text-xs text-gray-400">Local digits only — no country code or +</p>
         </div>
         <button
           type="submit"
-          class="w-full px-6 py-3 font-semibold text-white transition bg-green-600 rounded-lg hover:bg-green-700"
+          [disabled]="loading"
+          class="w-full px-6 py-3 font-semibold text-white transition bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-60"
         >
-          Create Account
+          {{ loading ? 'Creating…' : 'Create account' }}
         </button>
       </form>
-      <div class="mt-6 text-center">
+
+      <form *ngIf="step === 'otp'" (ngSubmit)="onVerifyOtp()" class="space-y-4">
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700">6-digit code</label>
+          <input
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            maxlength="6"
+            [ngModel]="form.otp"
+            (ngModelChange)="onOtpInput($event)"
+            name="registerOtp"
+            required
+            placeholder="482913"
+            class="w-full px-4 py-3 text-2xl tracking-[0.4em] text-center font-semibold border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+          />
+        </div>
+        <button
+          type="submit"
+          [disabled]="loading || form.otp.length !== 6"
+          class="w-full px-6 py-3 font-semibold text-white transition bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-60"
+        >
+          {{ loading ? 'Verifying…' : 'Verify & continue' }}
+        </button>
+        <div class="flex items-center justify-between text-sm">
+          <button
+            type="button"
+            (click)="backToRegister()"
+            class="font-medium text-gray-600 hover:text-green-600"
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            (click)="onResendOtp()"
+            [disabled]="resendSeconds > 0 || loading"
+            class="font-medium text-green-600 hover:text-green-700 disabled:text-gray-400"
+          >
+            {{ resendSeconds > 0 ? 'Resend in ' + resendSeconds + 's' : 'Resend OTP' }}
+          </button>
+        </div>
+      </form>
+
+      <div *ngIf="step === 'register'" class="mt-6 text-center">
         <p class="text-sm text-gray-600">
           Already have an account?
-          <button (click)="onSigninClick()" class="font-semibold text-green-600 hover:text-green-700">
+          <button
+            type="button"
+            (click)="onSigninClick()"
+            class="font-semibold text-green-600 hover:text-green-700"
+          >
             Sign in
           </button>
         </p>

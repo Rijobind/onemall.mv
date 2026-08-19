@@ -1,0 +1,85 @@
+.hero-copy {
+  will-change: transform, opacity;
+  transition:
+    opacity 600ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 650ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hero-copy.is-visible,
+.hero-copy.is-entering {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.hero-copy.is-leaving.from-next {
+  opacity: 0;
+  transform: translateX(-32px);
+  transition-duration: 420ms;
+}
+
+.hero-copy.is-leaving.from-prev {
+  opacity: 0;
+  transform: translateX(32px);
+  transition-duration: 420ms;
+}
+
+.hero-copy.is-hidden.from-next {
+  opacity: 0;
+  transform: translateX(40px);
+}
+
+.hero-copy.is-hidden.from-prev {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+
+.hero-copy-item {
+  transition:
+    opacity 500ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: 0ms;
+}
+
+.hero-copy.is-hidden .hero-copy-item {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+.hero-copy.is-entering .hero-copy-item,
+.hero-copy.is-visible .hero-copy-item {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: var(--d, 0ms);
+}
+
+.hero-copy.is-leaving .hero-copy-item {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0ms;
+}
+
+.hero-product-wrap {
+  will-change: transform, opacity;
+  transition:
+    transform 900ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 640ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hero-product-wrap.is-hidden {
+  opacity: 0;
+  transform: translateX(72%) scale(0.96);
+  pointer-events: none;
+}
+
+.hero-product-wrap.is-entering,
+.hero-product-wrap.is-visible {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.hero-product-wrap.is-leaving {
+  opacity: 0;
+  transform: translateX(-14%);
+  transition-duration: 520ms, 420ms;
+  pointer-events: none;
+}

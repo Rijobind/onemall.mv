@@ -1,24 +1,40 @@
-import { Component, OnInit, OnDestroy, HostListener, ViewChild, ElementRef } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, OnDestroy, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { Title } from '@angular/platform-browser';
+import { combineLatest } from 'rxjs';
 import { Header } from "../../../../shared/components/header/header";
 import { Footer } from "../../../../shared/components/footer/footer";
 import { BackendapiServices } from "../../../../core/services/backendapi.services/backendapi.services";
 import { RegionService } from '../../../../core/services/region.service/region.service';
+import { CurrencyService } from '../../../../core/services/currency.service/currency.service';
 import { FavoritesService } from "../../../../core/services/favorites.service/favorites.service";
 import { ActionFeedbackService } from "../../../../core/services/action-feedback.service/action-feedback.service";
+import { CartService } from '../../../../core/services/cart.service/cart.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { HomeProductCard } from '../../../home/pages/home/home';
 import {
   formatShopLocation,
+  resolveCurrencySymbol,
   resolveStoreAddressRegion,
   resolveStoreRegionFromProduct,
 } from '../../../../core/utils/marketplace-shop.util';
+import { resolveVariantDisplayPrice } from '../../../../core/utils/marketplace-price.util';
+import {
+  buildProductCommands,
+  extractSlugGuidPrefix,
+  isProductGuid,
+  isSafeProductSlug,
+  productIdMatchesSlugPrefix,
+} from '../../../../core/utils/product-url.util';
+import { extractApiData, isApiSuccess } from '../../../../core/utils/api-response.util';
+import { CartModel, CartModelMode } from '../../models/cart-model/cart-model';
+import { FollowService } from '../../../../core/services/follow.service/follow.service';
 
 @Component({
   selector: 'app-product-details',
-  imports: [CommonModule, FormsModule, RouterModule, Header, Footer],
+  imports: [CommonModule, FormsModule, RouterModule, Header, Footer, CartModel],
   templateUrl: './product-details.html',
   styleUrl: './product-details.css',
 })
@@ -26,7 +42,6 @@ export class ProductDetails implements OnInit, OnDestroy {
   @ViewChild('recentlyViewedCarousel') recentlyViewedCarousel?: ElementRef<HTMLElement>;
   @ViewChild('relatedProductsCarousel') relatedProductsCarousel?: ElementRef<HTMLElement>;
 
-  private readonly cartStorageKey = 'cart_items';
   private readonly recentlyViewedStorageKey = 'recently_viewed_products';
   private allMarketplaceCards: HomeProductCard[] = [];
   private allCategoriesFlat: any[] = [];
@@ -36,6 +51,11 @@ export class ProductDetails implements OnInit, OnDestroy {
 
   
   productId: string | null = null;
+  /** SEO slug from route (or from API after load). */
+  productSlug: string | null = null;
+  private routeLoadKey: string | null = null;
+  /** True when API/catalog could not resolve the product for this URL. */
+  productNotFound = false;
   selectedImageIndex: number = 0;
   quantity: number = 1;
   selectedVariantIndex: number = 0;
@@ -47,10 +67,14 @@ export class ProductDetails implements OnInit, OnDestroy {
   apiProductData: any = null;
   selectedAttributes: Map<string, string> = new Map();
   isShareOpen: boolean = false;
+  isCartModalOpen = false;
+  cartModalMode: CartModelMode = 'add';
+  cartModalInitialAttributes: Record<string, string> | null = null;
   attributeLabels: Map<string, string> = new Map();
   valueLabels: Map<string, string> = new Map();
   colorCodes: Map<string, string> = new Map();
   currentStoreId: string = '';
+  priceCurrencySymbol: string = '$';
   shopProfile = {
     id: '',
     name: 'Unknown Shop',
@@ -67,6 +91,8 @@ export class ProductDetails implements OnInit, OnDestroy {
     location: '',
     isApiData: false,
   };
+  isFollowingShop = false;
+  followActionLoading = false;
 
   get colorGroup() {
     return this.variantGroups.find((g: any) => g.type === 'color');
@@ -77,60 +103,36 @@ export class ProductDetails implements OnInit, OnDestroy {
   }
 
   product: any = {
-    id: 1,
-    name: '3Dconnexion 3DX-700040 SpaceMouse Pro 3D - Professional 3D Navigation Tool for CAD and Design',
-    category: 'Consumer Electronics',
-    rating: 4.5,
-    reviews: 1738,
-    sold: 349,
-    price: 64.50,
-    originalPrice: 80.40,
-    brand: 'Elite Gourmet',
-    capacity: '1 Liters',
-    material: 'Glass',
-    wattage: '1100 watts',
-    images: [
-      '/shoe3.jpg',
-      '/shirt.jpg',
-      '/shirt2.jpg',
-      '/shirts.jpg',
-      '/glass.jpg',
-      '/keyboard.jpg'
-    ],
-    aboutItems: [
-      "Here's the quickest way to enjoy your delicious hot tea every single day.",
-      "100% BPA-Free premium design meets excellent",
-      "No more messy accidents or spills",
-      "So easy & convenient that everyone can use it",
-      "This powerful 900-1100-Watt kettle has convenient capacity markings on the body lets you accurately",
-      "1 year limited warranty and us-based customer support team lets you buy with confidence."
-    ],
-    description: "Experience professional-grade 3D navigation with the SpaceMouse Pro. Perfect for CAD designers and 3D professionals who need precise control and intuitive navigation in their 3D workspace.",
+    id: '',
+    name: '',
+    category: '',
+    rating: 0,
+    reviews: 0,
+    sold: 0,
+    price: 0,
+    originalPrice: 0,
+    brand: '',
+    capacity: '',
+    material: '',
+    wattage: '',
+    images: [] as string[],
+    aboutItems: [] as string[],
+    description: '',
     productInfo: {
-      dimensions: "12 x 8 x 4 inches",
-      weight: "2.5 pounds",
-      warranty: "1 year limited warranty",
-      manufacturer: "3Dconnexion"
-    }
+      dimensions: '',
+      weight: '',
+      warranty: '',
+      manufacturer: '',
+    },
   };
 
   reviewBreakdown = [
     { label: 'Small', percent: 0 },
     { label: 'True to size', percent: 0 },
-    { label: 'Large', percent: 100 },
+    { label: 'Large', percent: 0 },
   ];
 
-  productReviews = [
-    {
-      user: 'N*** ut',
-      country: 'FR',
-      date: 'May 14, 2026',
-      rating: 5,
-      text: "They're lightweight and comfortable, with good cushioning, but they run a bit large.",
-      purchasedCount: 0,
-      relatedText: '',
-    },
-  ];
+  productReviews: any[] = [];
 
   activeTab: string = 'description';
   isLoading: boolean = true;
@@ -155,7 +157,7 @@ export class ProductDetails implements OnInit, OnDestroy {
       title: 'FLASH SALE',
       description: "Limited time offers — shop before they're gone!",
       discount: '60% OFF',
-      buttonText: 'Buy Now',
+      buttonText: 'Shop Now',
     },
     {
       image: '/mobile.jpg',
@@ -170,9 +172,11 @@ export class ProductDetails implements OnInit, OnDestroy {
   private productDetailAdInterval: ReturnType<typeof setInterval> | null = null;
   private productDetailAdFadeTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly regionUpdatedHandler = () => {
-    if (this.productId) {
-      this.loadProduct(this.productId);
-    }
+    this.reloadCurrentProduct();
+  };
+  private readonly currencyUpdatedHandler = (event: Event) => {
+    const detail = (event as CustomEvent)?.detail;
+    this.reloadCurrentProduct(detail?.currency_code);
   };
 
   get currentProductDetailAd() {
@@ -186,13 +190,19 @@ export class ProductDetails implements OnInit, OnDestroy {
     private sanitizer: DomSanitizer,
     private favoritesService: FavoritesService,
     private actionFeedback: ActionFeedbackService,
-    private regionService: RegionService
+    private regionService: RegionService,
+    private cartService: CartService,
+    private currencyService: CurrencyService,
+    private followService: FollowService,
+    private title: Title,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
     this.startProductDetailAdRotation();
     if (typeof window !== 'undefined') {
       window.addEventListener('region-updated', this.regionUpdatedHandler);
+      window.addEventListener('currency-updated', this.currencyUpdatedHandler);
     }
     this.api.getAllCategoryList().subscribe((res: any) => {
       const allCategories = res?.data || [];
@@ -200,22 +210,64 @@ export class ProductDetails implements OnInit, OnDestroy {
       this.refreshCardCategoryNames();
       this.buildRelatedProducts();
     });
-    this.route.queryParams.subscribe(params => {
-      this.productId = params['productId'];
-      this.currentStoreId = this.resolveStoreIdFromRoute(params);
-      if (this.productId) {
+
+    combineLatest([this.route.paramMap, this.route.queryParamMap]).subscribe(
+      ([params, query]) => {
+        const slugParam = String(params.get('slug') || '').trim();
+        const productIdQuery = String(query.get('productId') || '').trim();
+        this.currentStoreId = this.resolveStoreIdFromRoute({
+          store_id: query.get('store_id'),
+        });
+
+        const loadKey = slugParam
+          ? `slug:${slugParam}`
+          : productIdQuery
+            ? `id:${productIdQuery}`
+            : '';
+
+        if (!loadKey) {
+          this.isLoading = false;
+          this.cdr.markForCheck();
+          return;
+        }
+
+        // Skip duplicate emit from canonicalize replaceUrl when product already shown.
+        if (
+          loadKey === this.routeLoadKey &&
+          this.apiProductData &&
+          !this.isLoading
+        ) {
+          return;
+        }
+        this.routeLoadKey = loadKey;
         this.isLoading = true;
-        this.loadProduct(this.productId);
-      } else {
-        this.isLoading = false;
+        this.productNotFound = false;
+        this.apiProductData = null;
+        this.cdr.markForCheck();
+
+        if (slugParam) {
+          this.productSlug = slugParam;
+          if (isProductGuid(slugParam)) {
+            this.productId = slugParam;
+            this.loadProductById(slugParam, undefined, true);
+          } else {
+            this.loadProductBySlug(slugParam);
+          }
+          return;
+        }
+
+        // Legacy: /product-details?productId=
+        this.productId = productIdQuery;
+        this.loadProductById(productIdQuery, undefined, true);
       }
-    });
+    );
   }
 
   ngOnDestroy(): void {
     this.stopProductDetailAdRotation();
     if (typeof window !== 'undefined') {
       window.removeEventListener('region-updated', this.regionUpdatedHandler);
+      window.removeEventListener('currency-updated', this.currencyUpdatedHandler);
     }
   }
 
@@ -242,40 +294,254 @@ export class ProductDetails implements OnInit, OnDestroy {
     }
   }
 
-  loadProduct(productId: string) {
-    this.api.getMarketplaceProductsWithFallback(this.regionService.getProductRequestParams()).subscribe({
+  private reloadCurrentProduct(currencyOverride?: string): void {
+    if (this.productSlug && !isProductGuid(this.productSlug)) {
+      this.loadProductBySlug(this.productSlug, currencyOverride);
+      return;
+    }
+    if (this.productId) {
+      this.loadProductById(this.productId, currencyOverride, false);
+    }
+  }
+
+  /** @deprecated Prefer loadProductBySlug / loadProductById. Kept for call-site clarity. */
+  loadProduct(productId: string, currencyOverride?: string) {
+    this.loadProductById(productId, currencyOverride, false);
+  }
+
+  private loadProductBySlug(slug: string, currencyOverride?: string): void {
+    const generation = this.currencyService.fetchGeneration;
+    const params = this.currencyService.enrichProductParams(
+      this.regionService.getProductRequestParams(),
+      currencyOverride
+    );
+
+    // Unsafe / backend-rejected slugs → skip by-slug and resolve via catalog / id suffix.
+    if (!isSafeProductSlug(slug)) {
+      this.resolveProductFromCatalog(slug, params, generation, true);
+      return;
+    }
+
+    this.api.getMarketplaceProductBySlug(slug, params).subscribe({
       next: (res: any) => {
-        const productList = this.api.extractProductsFromResponse(res);
-
-        const matchedProduct = productList.find(
-          (product: any) => String(product?.product_id ?? product?.id ?? '') === String(productId)
-        );
-        console.log('[ProductDetails] Product list count:', productList.length);
-        console.log('[ProductDetails] Matched product for productId:', productId, matchedProduct);
-
-        if (!matchedProduct) {
-          console.warn('[ProductDetails] No product found in marketplace list for productId:', productId, res);
-          this.isLoading = false;
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
+        const product = this.extractSingleProduct(res);
+        if (!product) {
+          this.resolveProductFromCatalog(slug, params, generation, true);
           return;
         }
+        this.applyLoadedProduct(product);
+        this.loadRelatedCatalog(params, generation);
+      },
+      error: () => {
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
+        this.resolveProductFromCatalog(slug, params, generation, true);
+      },
+    });
+  }
 
+  private loadProductById(
+    productId: string,
+    currencyOverride?: string,
+    canonicalize = false
+  ): void {
+    const generation = this.currencyService.fetchGeneration;
+    const params = this.currencyService.enrichProductParams(
+      this.regionService.getProductRequestParams(),
+      currencyOverride
+    );
+
+    this.api.getMarketplaceProductById(productId, params).subscribe({
+      next: (res: any) => {
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
+        const product = this.extractSingleProduct(res);
+        if (!product) {
+          this.loadProductFromCatalogFallback(productId, params, generation, canonicalize);
+          return;
+        }
+        this.applyLoadedProduct(product);
+        if (canonicalize) {
+          this.canonicalizeUrl(product);
+        }
+        this.loadRelatedCatalog(params, generation);
+      },
+      error: () => {
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
+        this.loadProductFromCatalogFallback(productId, params, generation, canonicalize);
+      },
+    });
+  }
+
+  /**
+   * When by-slug fails (Invalid slug / 404), find the product in the marketplace list
+   * by exact slug or by the trailing 8-char guid prefix in the slug.
+   */
+  private resolveProductFromCatalog(
+    slug: string,
+    params: any,
+    generation: number,
+    canonicalize: boolean
+  ): void {
+    this.api.getMarketplaceProductsWithFallback(params).subscribe({
+      next: (res: any) => {
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
+        const productList = this.api.extractProductsFromResponse(res);
         this.allMarketplaceCards = productList.map((product: any) =>
           this.mapApiProductToCard(product)
         );
         this.refreshCardCategoryNames();
-        this.transformProductData(matchedProduct);
-        this.loadShopProfileForProduct(matchedProduct);
+
+        const needle = String(slug || '').trim().toLowerCase();
+        const prefix = extractSlugGuidPrefix(slug);
+
+        let matched =
+          productList.find(
+            (p: any) => String(p?.slug || '').trim().toLowerCase() === needle
+          ) || null;
+
+        if (!matched && prefix) {
+          matched =
+            productList.find((p: any) =>
+              productIdMatchesSlugPrefix(
+                String(p?.product_id ?? p?.id ?? ''),
+                prefix
+              )
+            ) || null;
+        }
+
+        if (!matched) {
+          this.markProductNotFound();
+          this.buildRecentlyViewed();
+          this.buildRelatedProducts();
+          return;
+        }
+
+        this.applyLoadedProduct(matched);
+        if (canonicalize) {
+          this.canonicalizeUrl(matched);
+        }
         this.buildRecentlyViewed();
         this.buildRelatedProducts();
-        this.isLoading = false;
       },
-      error: (err: any) => {
-        console.error('[ProductDetails] getMarketplaceProductsWithFallback error:', err);
-        this.allMarketplaceCards = [];
+      error: () => {
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
+        this.markProductNotFound();
+      },
+    });
+  }
+
+  private loadProductFromCatalogFallback(
+    productId: string,
+    params: any,
+    generation: number,
+    canonicalize: boolean
+  ): void {
+    this.api.getMarketplaceProductsWithFallback(params).subscribe({
+      next: (res: any) => {
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
+        const productList = this.api.extractProductsFromResponse(res);
+        const matchedProduct = productList.find(
+          (product: any) =>
+            String(product?.product_id ?? product?.id ?? '') === String(productId)
+        );
+        this.allMarketplaceCards = productList.map((product: any) =>
+          this.mapApiProductToCard(product)
+        );
+        this.refreshCardCategoryNames();
+        if (!matchedProduct) {
+          this.markProductNotFound();
+          this.buildRecentlyViewed();
+          this.buildRelatedProducts();
+          return;
+        }
+        this.applyLoadedProduct(matchedProduct);
+        if (canonicalize) {
+          this.canonicalizeUrl(matchedProduct);
+        }
         this.buildRecentlyViewed();
         this.buildRelatedProducts();
-        this.isLoading = false;
+      },
+      error: () => {
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
+        this.allMarketplaceCards = [];
+        this.markProductNotFound();
+        this.buildRecentlyViewed();
+        this.buildRelatedProducts();
+      },
+    });
+  }
+
+  private loadRelatedCatalog(params: any, generation: number): void {
+    this.api.getMarketplaceProductsWithFallback(params).subscribe({
+      next: (res: any) => {
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
+        const productList = this.api.extractProductsFromResponse(res);
+        this.allMarketplaceCards = productList.map((product: any) =>
+          this.mapApiProductToCard(product)
+        );
+        this.refreshCardCategoryNames();
+        this.buildRecentlyViewed();
+        this.buildRelatedProducts();
+      },
+      error: () => {
+        if (!this.currencyService.isCurrentGeneration(generation)) return;
+        this.buildRecentlyViewed();
+        this.buildRelatedProducts();
+      },
+    });
+  }
+
+  private extractSingleProduct(res: any): any | null {
+    if (!isApiSuccess(res) && res?.success !== true && res?.Success !== true) {
+      // Some APIs return success with a single object still parseable via data
+      const data = extractApiData(res);
+      if (data && !Array.isArray(data) && (data.product_id || data.slug)) {
+        return data;
       }
+      return null;
+    }
+    const data = extractApiData(res);
+    if (data && !Array.isArray(data)) return data;
+    if (Array.isArray(data) && data.length) return data[0];
+    return null;
+  }
+
+  private applyLoadedProduct(matchedProduct: any): void {
+    this.productNotFound = false;
+    this.productId = String(matchedProduct?.product_id ?? matchedProduct?.id ?? '');
+    this.productSlug = String(matchedProduct?.slug || this.productSlug || '').trim() || null;
+    this.transformProductData(matchedProduct);
+    this.loadShopProfileForProduct(matchedProduct);
+    const titleName = String(matchedProduct?.title || this.product?.name || 'Product').trim();
+    this.title.setTitle(`${titleName} | OneMall`);
+    this.isLoading = false;
+    this.cdr.markForCheck();
+  }
+
+  private markProductNotFound(): void {
+    this.productNotFound = true;
+    this.apiProductData = null;
+    this.isLoading = false;
+    this.title.setTitle('Product not found | OneMall');
+    this.cdr.markForCheck();
+  }
+
+  private canonicalizeUrl(product: any): void {
+    const slug = String(product?.slug || '').trim();
+    // Only rewrite URL when backend will accept the slug on reload.
+    if (!isSafeProductSlug(slug)) return;
+
+    const currentSlug = String(this.route.snapshot.paramMap.get('slug') || '').trim();
+    if (currentSlug === slug) return;
+
+    this.routeLoadKey = `slug:${slug}`;
+    this.router.navigate(['/product', slug], {
+      replaceUrl: true,
+      queryParams: {
+        store_id: this.currentStoreId || null,
+        productId: null,
+      },
+      queryParamsHandling: 'merge',
     });
   }
 
@@ -307,6 +573,7 @@ export class ProductDetails implements OnInit, OnDestroy {
     const entry = {
       id: productId,
       productId,
+      slug: String(apiProduct?.slug || '').trim() || undefined,
       name: apiProduct?.title || 'Untitled Product',
       category: this.resolveCategoryName(
         this.normalizeProductId(apiProduct?.category_id),
@@ -314,9 +581,11 @@ export class ProductDetails implements OnInit, OnDestroy {
         this.normalizeProductId(apiProduct?.sub_sub_category_id)
       ),
       price: basePrice,
-      originalPrice: basePrice > 0 ? Math.round(basePrice * 1.2 * 100) / 100 : 0,
+      originalPrice: 0,
       image: primaryImage,
       store_id: this.resolveStoreIdFromProduct(apiProduct, variant),
+      store_currency_code: String(apiProduct?.default_currency || '').trim().toUpperCase(),
+      store_currency_symbol: resolveCurrencySymbol(apiProduct?.default_currency),
       viewedAt: Date.now(),
     };
 
@@ -358,6 +627,7 @@ export class ProductDetails implements OnInit, OnDestroy {
     });
 
     this.recentlyViewed = resolved.slice(0, 12);
+    this.cdr.markForCheck();
   }
 
   private mapApiProductToCard(product: any): HomeProductCard {
@@ -371,18 +641,22 @@ export class ProductDetails implements OnInit, OnDestroy {
       allImages[0]?.image_url ||
       '/mobile.jpg';
     const basePrice = Number(variant?.base_price ?? product?.fixed_price ?? 0);
+    const display = resolveVariantDisplayPrice(variant, product);
     const categoryId = this.normalizeProductId(product?.category_id);
     const subCategoryId = this.normalizeProductId(product?.sub_category_id);
     const subSubCategoryId = this.normalizeProductId(product?.sub_sub_category_id);
 
     return {
       id: this.normalizeProductId(product?.product_id ?? product?.id),
+      slug: String(product?.slug || '').trim() || undefined,
       name: product?.title || 'Untitled Product',
       category: this.resolveCategoryName(categoryId, subCategoryId, subSubCategoryId),
-      price: basePrice,
-      originalPrice: basePrice > 0 ? Math.round(basePrice * 1.2 * 100) / 100 : 0,
+      price: display.price,
+      originalPrice: display.originalPrice,
       image: imageUrl,
       store_id: this.resolveStoreIdFromProduct(product, variant),
+      store_currency_code: display.display_currency,
+      store_currency_symbol: display.display_symbol,
       category_id: categoryId,
       sub_category_id: subCategoryId,
       sub_sub_category_id: subSubCategoryId,
@@ -487,16 +761,12 @@ export class ProductDetails implements OnInit, OnDestroy {
   }
 
   private navigateToProduct(product: HomeProductCard): void {
-    if (!product?.id) return;
+    if (!product?.id && !(product as any)?.slug) return;
     if (product.store_id && typeof window !== 'undefined') {
       localStorage.setItem('store_id', product.store_id);
     }
-    this.router.navigate(['/product-details'], {
-      queryParams: {
-        productId: product.id,
-        store_id: product.store_id || undefined,
-      },
-    });
+    const link = buildProductCommands(product);
+    this.router.navigate(link.commands, { queryParams: link.queryParams });
   }
 
   private getStoredRecentlyViewed(): any[] {
@@ -618,22 +888,17 @@ export class ProductDetails implements OnInit, OnDestroy {
     });
 
     if (colorAttrId) {
-      const colorValues = Array.from(attributeMap.get(colorAttrId) || []);
-      this.colors = colorValues;
-      const firstVariantWithAttr = variants.find((v: any) => v.im_VariantAttributes?.some((a: any) => a.attribute_id === colorAttrId));
-      const firstColorAttr = firstVariantWithAttr?.im_VariantAttributes?.find((a: any) => a.attribute_id === colorAttrId);
-      this.selectedColor = firstColorAttr?.value_id || colorValues[0] || '';
-      this.selectedAttributes.set(colorAttrId, this.selectedColor);
+      this.colors = Array.from(attributeMap.get(colorAttrId) || []);
     }
 
     if (sizeAttrId && sizeAttrId !== colorAttrId) {
-      const sizeValues = Array.from(attributeMap.get(sizeAttrId) || []);
-      this.sizes = sizeValues;
-      const firstVariantWithSize = variants.find((v: any) => v.im_VariantAttributes?.some((a: any) => a.attribute_id === sizeAttrId));
-      const firstSizeAttr = firstVariantWithSize?.im_VariantAttributes?.find((a: any) => a.attribute_id === sizeAttrId);
-      this.selectedSize = firstSizeAttr?.value_id || sizeValues[0] || '';
-      this.selectedAttributes.set(sizeAttrId, this.selectedSize);
+      this.sizes = Array.from(attributeMap.get(sizeAttrId) || []);
     }
+
+    // Do not auto-select variants — user must choose on page or in cart modal.
+    this.selectedColor = '';
+    this.selectedSize = '';
+    this.selectedAttributes.clear();
 
     this.variantGroups = attributeIds.map((attrId, idx) => ({
       attributeId: attrId,
@@ -650,6 +915,32 @@ export class ProductDetails implements OnInit, OnDestroy {
                 : 'option',
       label: this.attributeLabels.get(attrId) || `Option ${idx + 1}`
     }));
+  }
+
+  /** True when product has no option groups, or every group has a selection. */
+  areAllRequiredVariantsSelected(): boolean {
+    if (!this.variantGroups.length) return true;
+    return this.variantGroups.every(
+      (g: any) => !!this.selectedAttributes.get(g.attributeId)
+    );
+  }
+
+  openCartModal(mode: CartModelMode = 'add'): void {
+    const attrs: Record<string, string> = {};
+    this.selectedAttributes.forEach((valueId, attrId) => {
+      if (attrId && valueId) attrs[attrId] = valueId;
+    });
+    this.cartModalInitialAttributes = Object.keys(attrs).length ? attrs : null;
+    this.cartModalMode = mode;
+    this.isCartModalOpen = true;
+  }
+
+  closeCartModal(): void {
+    this.isCartModalOpen = false;
+  }
+
+  onCartModalAdded(): void {
+    this.isCartModalOpen = false;
   }
 
   getAttributeLabel(attrId: string): string {
@@ -783,7 +1074,8 @@ export class ProductDetails implements OnInit, OnDestroy {
       this.selectedSize = valueId;
     }
     this.selectedAttributes.set(attributeId, valueId);
-    const variant = this.findCompatibleVariant();
+    // Only update display from the best match — do not auto-fill other options.
+    const variant = this.findMatchingVariantWithoutMutating();
     if (variant && this.apiProductData) {
       this.updateProductFromVariant(variant, this.apiProductData, true);
     }
@@ -820,14 +1112,30 @@ export class ProductDetails implements OnInit, OnDestroy {
   }
 
   getSelectedVariant(): any {
+    return this.findMatchingVariantWithoutMutating();
+  }
+
+  /** Match current selections to a variant without auto-selecting other attributes. */
+  private findMatchingVariantWithoutMutating(): any {
     if (!this.apiProductData?.im_ProductVariants) return null;
     const variants = this.apiProductData.im_ProductVariants;
+    if (!variants.length) return null;
+
+    if (this.selectedAttributes.size === 0) {
+      return variants[0] || null;
+    }
+
     for (const variant of variants) {
       const attributes = variant.im_VariantAttributes || [];
       let matches = true;
       for (const [attrId, valueId] of this.selectedAttributes.entries()) {
-        const hasAttribute = attributes.some((attr: any) => attr.attribute_id === attrId && attr.value_id === valueId);
-        if (!hasAttribute) { matches = false; break; }
+        const hasAttribute = attributes.some(
+          (attr: any) => attr.attribute_id === attrId && attr.value_id === valueId
+        );
+        if (!hasAttribute) {
+          matches = false;
+          break;
+        }
       }
       if (matches) return variant;
     }
@@ -864,11 +1172,13 @@ export class ProductDetails implements OnInit, OnDestroy {
     const inventory = variant?.im_StoreVariantInventory?.[0];
     const onHandQty = inventory?.on_hand_quantity != null ? inventory.on_hand_quantity : (variant ? null : 0);
     const descriptionText = this.parseHtmlDescription(apiProduct.description || '');
+    const display = resolveVariantDisplayPrice(variant, apiProduct);
 
     const productName = apiProduct.title || 'Untitled Product';
 
     this.product = {
       id: apiProduct.product_id,
+      slug: String(apiProduct?.slug || this.productSlug || '').trim() || undefined,
       name: productName,
       category: this.resolveCategoryName(
         this.normalizeProductId(apiProduct.category_id),
@@ -878,8 +1188,8 @@ export class ProductDetails implements OnInit, OnDestroy {
       rating: 4.5,
       reviews: Math.floor(Math.random() * 5000) + 100,
       sold: Math.floor(Math.random() * 1000) + 50,
-      price: variant?.base_price ?? 0,
-      originalPrice: variant?.base_price && variant.base_price > 0 ? Math.round(variant.base_price * 1.2 * 100) / 100 : 0,
+      price: display.price,
+      originalPrice: display.originalPrice,
       brand: apiProduct.brand || 'Unknown Brand',
       capacity: variant?.description_2 || '',
       material: '', wattage: '',
@@ -900,6 +1210,7 @@ export class ProductDetails implements OnInit, OnDestroy {
       variants: apiProduct.im_ProductVariants || [],
       variantAttributes: variant?.im_VariantAttributes || []
     };
+    this.priceCurrencySymbol = display.display_symbol || this.priceCurrencySymbol || '$';
     this.selectedImageIndex = 0;
   }
 
@@ -994,6 +1305,65 @@ export class ProductDetails implements OnInit, OnDestroy {
         store_id: storeIdForNavigation || undefined,
       },
     });
+  }
+
+  toggleFollowShop(event?: Event): void {
+    event?.stopPropagation();
+    const storeId = String(this.shopProfile?.id || this.currentStoreId || '').trim();
+    if (!storeId || this.followActionLoading) return;
+
+    const wasFollowing = this.isFollowingShop;
+    this.followActionLoading = true;
+    this.followService.toggleFollow(storeId, wasFollowing).subscribe({
+      next: (result) => {
+        this.followActionLoading = false;
+        if (result === 'login_required') return;
+        this.isFollowingShop = result === true;
+        this.refreshFollowersLabel(wasFollowing, this.isFollowingShop);
+      },
+      error: () => {
+        this.followActionLoading = false;
+      },
+    });
+  }
+
+  private loadShopFollowStatus(storeId: string): void {
+    const normalizedId = String(storeId || '').trim();
+    if (!normalizedId) {
+      this.isFollowingShop = false;
+      return;
+    }
+
+    this.followService.getFollowStatus(normalizedId).subscribe({
+      next: (status) => {
+        this.isFollowingShop = !!status.is_following;
+        if (status.follower_count >= 0) {
+          this.shopProfile = {
+            ...this.shopProfile,
+            followersLabel: this.formatCompactCount(status.follower_count),
+          };
+        }
+      },
+    });
+  }
+
+  private refreshFollowersLabel(wasFollowing: boolean, isFollowing: boolean): void {
+    const current = this.parseCompactCount(this.shopProfile.followersLabel);
+    let next = current;
+    if (isFollowing && !wasFollowing) next = current + 1;
+    if (!isFollowing && wasFollowing) next = Math.max(0, current - 1);
+    this.shopProfile = {
+      ...this.shopProfile,
+      followersLabel: this.formatCompactCount(next),
+    };
+  }
+
+  private parseCompactCount(label: string): number {
+    const raw = String(label || '').trim().toUpperCase();
+    if (!raw) return 0;
+    if (raw.endsWith('K')) return Math.round(parseFloat(raw) * 1000) || 0;
+    if (raw.endsWith('M')) return Math.round(parseFloat(raw) * 1000000) || 0;
+    return Math.max(0, Number(raw.replace(/,/g, '')) || 0);
   }
 
   onProductDetailAdClick(): void {
@@ -1112,6 +1482,23 @@ export class ProductDetails implements OnInit, OnDestroy {
           location: locationLabel,
           isApiData: true,
         };
+        this.loadShopFollowStatus(storeIdToLoad);
+        this.priceCurrencySymbol =
+          resolveCurrencySymbol(storeData?.default_currency) ||
+          this.priceCurrencySymbol ||
+          '$';
+        if (this.apiProductData) {
+          const variant = this.getSelectedVariant();
+          const display = resolveVariantDisplayPrice(variant, this.apiProductData);
+          this.priceCurrencySymbol = display.display_symbol || this.priceCurrencySymbol;
+          this.apiProductData = {
+            ...this.apiProductData,
+            store_currency_code:
+              display.display_currency ||
+              String(storeData?.default_currency || '').trim().toUpperCase(),
+            store_currency_symbol: this.priceCurrencySymbol,
+          };
+        }
       },
       error: () => {
         const productRegion = resolveStoreRegionFromProduct(productData);
@@ -1158,6 +1545,14 @@ export class ProductDetails implements OnInit, OnDestroy {
           location: formatShopLocation(productRegion.atoll, productRegion.city),
           isApiData: true,
         };
+        this.loadShopFollowStatus(storeIdToLoad);
+        this.priceCurrencySymbol = '$';
+        if (this.apiProductData) {
+          this.apiProductData = {
+            ...this.apiProductData,
+            store_currency_symbol: '$',
+          };
+        }
       },
     });
   }
@@ -1214,7 +1609,24 @@ export class ProductDetails implements OnInit, OnDestroy {
     return /\.(mp4|webm|ogg)(\?|#|$)/i.test(url);
   }
 
+  muteProductVideo(video: HTMLVideoElement | null | undefined): void {
+    if (!video) return;
+    video.muted = true;
+    video.defaultMuted = true;
+    video.volume = 0;
+  }
+
   private getPreferredCartImage(): string {
+    const variant = this.getSelectedVariant();
+    const variantImages = Array.isArray(variant?.im_ProductImages)
+      ? variant.im_ProductImages
+      : [];
+    const primaryVariantImage =
+      variantImages.find((img: any) => img?.is_primary === 'T') || variantImages[0];
+    if (primaryVariantImage?.image_url) {
+      return primaryVariantImage.image_url;
+    }
+
     const media = this.product?.images || [];
     const firstImage = media.find((item: string) => !this.isVideoMedia(item));
     if (firstImage) return firstImage;
@@ -1239,53 +1651,86 @@ export class ProductDetails implements OnInit, OnDestroy {
   addToCart(event?: Event) {
     if (!this.product) return;
 
+    if (!this.areAllRequiredVariantsSelected()) {
+      this.openCartModal('add');
+      return;
+    }
+
     const productId = String(this.product.id ?? '');
     if (!productId) return;
 
-    const cartItem = {
-      id: productId,
-      name: this.product.name || 'Untitled Product',
-      price: Number(this.product.price) || 0,
-      originalPrice: Number(this.product.originalPrice) || 0,
-      image:
-        this.getPreferredCartImage(),
-      quantity: this.quantity > 0 ? this.quantity : 1,
-      inStock: this.product.inStock !== false,
-    };
+    const variant = this.getSelectedVariant();
+    const selectedAttributes: Record<string, string> = {};
+    this.variantGroups.forEach((g: any) => {
+      const valueId = this.selectedAttributes.get(g.attributeId);
+      if (valueId) selectedAttributes[g.attributeId] = valueId;
+    });
+    const variantId = this.cartService.resolveVariantId(variant, selectedAttributes);
+    const existing = this.cartService.findItem(productId, variantId);
 
-    const existingItems = this.getStoredCartItems();
-    const existingIndex = existingItems.findIndex(
-      (item: any) => String(item.id) === productId
-    );
-
-    if (existingIndex >= 0) {
-      existingItems[existingIndex].quantity =
-        (Number(existingItems[existingIndex].quantity) || 0) + cartItem.quantity;
-      existingItems[existingIndex].price = cartItem.price;
-      existingItems[existingIndex].originalPrice = cartItem.originalPrice;
-      existingItems[existingIndex].image = cartItem.image;
-      existingItems[existingIndex].inStock = cartItem.inStock;
-      existingItems[existingIndex].name = cartItem.name;
-    } else {
-      existingItems.push(cartItem);
+    // Same product + same variant already in cart → open modal with current qty.
+    if (existing) {
+      this.openCartModal('add');
+      return;
     }
 
-    localStorage.setItem(this.cartStorageKey, JSON.stringify(existingItems));
-    window.dispatchEvent(new Event('cart-updated'));
-    this.actionFeedback.feedback(event, 'cart', { image: this.getPreferredCartImage() });
+    this.persistSelectedVariantToCart(event);
+  }
+
+  private persistSelectedVariantToCart(event?: Event): void {
+    const productId = String(this.product.id ?? '');
+    if (!productId) return;
+
+    const variant = this.getSelectedVariant();
+    const labelParts: string[] = [];
+    const selectedAttributes: Record<string, string> = {};
+    this.variantGroups.forEach((g: any) => {
+      const valueId = this.selectedAttributes.get(g.attributeId);
+      if (valueId) {
+        selectedAttributes[g.attributeId] = valueId;
+        labelParts.push(`${g.label}: ${this.getValueDisplayLabel(valueId)}`);
+      }
+    });
+    const variantId = this.cartService.resolveVariantId(variant, selectedAttributes);
+
+    const image = this.getPreferredCartImage();
+    this.cartService.addItem(
+      {
+        id: productId,
+        slug: this.product?.slug || this.productSlug || undefined,
+        variantId,
+        variantLabel: labelParts.join(' · '),
+        name: this.product.name || 'Untitled Product',
+        price: Number(this.product.price) || 0,
+        originalPrice: Number(this.product.originalPrice) || 0,
+        image,
+        quantity: this.quantity > 0 ? this.quantity : 1,
+        inStock: this.product.inStock !== false,
+        store_id: this.currentStoreId || undefined,
+        store_name: this.shopProfile?.name,
+        shop_location: this.shopProfile?.location,
+        store_currency_code: this.apiProductData?.default_currency,
+        store_currency_symbol: this.priceCurrencySymbol,
+        selectedAttributes,
+      },
+      this.quantity > 0 ? this.quantity : 1
+    );
+
+    this.actionFeedback.feedback(event, 'cart', { image });
   }
 
   toggleFavorite(event?: Event) {
     if (!this.product) return;
-    const added = this.favoritesService.toggle(
+    const result = this.favoritesService.toggle(
       this.favoritesService.fromDetailsProduct(
         this.product,
         this.getPreferredCartImage(),
         this.currentStoreId
       )
     );
+    if (result === 'login_required') return;
     this.actionFeedback.feedback(event, 'favorite', {
-      added,
+      added: result,
       image: this.getPreferredCartImage(),
     });
   }
@@ -1294,21 +1739,8 @@ export class ProductDetails implements OnInit, OnDestroy {
     return this.favoritesService.isFavorite(this.product?.id);
   }
 
-  buyNow(event?: Event) {
-    this.addToCart(event);
-    this.router.navigate(['/cart']);
-  }
-
   private getStoredCartItems(): any[] {
-    const raw = localStorage.getItem(this.cartStorageKey);
-    if (!raw) return [];
-
-    try {
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    return this.cartService.getItems();
   }
 
   toggleShareMenu() {

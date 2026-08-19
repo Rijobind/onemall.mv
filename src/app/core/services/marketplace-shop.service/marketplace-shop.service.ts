@@ -7,6 +7,7 @@ import {
   extractShopFieldsFromApiProduct,
   formatShopLocation,
   normalizeId,
+  resolveCurrencySymbol,
   resolveStoreAddressRegion,
   resolveStoreIdFromProduct,
 } from '../../utils/marketplace-shop.util';
@@ -16,6 +17,8 @@ interface StoreCacheEntry {
   atoll: string;
   city: string;
   location: string;
+  default_currency: string;
+  currency_symbol: string;
 }
 
 @Injectable({
@@ -38,10 +41,21 @@ export class MarketplaceShopService {
       base.shop_atoll = base.shop_atoll || cached.atoll;
       base.shop_city = base.shop_city || cached.city;
     }
+    base.store_currency_code = cached?.default_currency || '';
+    base.store_currency_symbol = cached?.currency_symbol || '$';
     return base;
   }
 
-  enrichWithShopNames<T extends { store_id?: string; shop_atoll?: string; shop_city?: string; shop_location?: string }>(
+  enrichWithShopNames<
+    T extends {
+      store_id?: string;
+      shop_atoll?: string;
+      shop_city?: string;
+      shop_location?: string;
+      store_currency_code?: string;
+      store_currency_symbol?: string;
+    },
+  >(
     items: T[]
   ): Observable<T[]> {
     const storeIds = [
@@ -64,6 +78,10 @@ export class MarketplaceShopService {
             shop_atoll: atoll,
             shop_city: city,
             shop_location: formatShopLocation(atoll, city) || item.shop_location || cached?.location || '',
+            store_currency_code:
+              (item as any).store_currency_code || cached?.default_currency || '',
+            store_currency_symbol:
+              (item as any).store_currency_symbol || cached?.currency_symbol || '$',
           } as T;
         })
       )
@@ -111,6 +129,8 @@ export class MarketplaceShopService {
           atoll,
           city,
           location: formatShopLocation(atoll, city) || String(store?.store_location || '').trim(),
+          default_currency: String(store?.default_currency || '').trim().toUpperCase(),
+          currency_symbol: resolveCurrencySymbol(store?.default_currency),
         };
         this.cache.set(normalizedId, entry);
         return entry;
@@ -121,6 +141,8 @@ export class MarketplaceShopService {
           atoll: '',
           city: '',
           location: '',
+          default_currency: '',
+          currency_symbol: '$',
         };
         this.cache.set(normalizedId, entry);
         return of(entry);

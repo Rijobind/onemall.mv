@@ -1,0 +1,162 @@
+<app-header></app-header>
+
+<div class="add-address-page">
+  <div class="add-address-container">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a routerLink="/">Home</a>
+      <span class="crumb-sep">›</span>
+      <span class="crumb-current">Add address</span>
+    </nav>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h1>{{ required ? 'Add a delivery address' : 'Add address' }}</h1>
+        <p *ngIf="required" class="required-note">
+          Please add at least one address before you continue shopping.
+        </p>
+        <p *ngIf="!required" class="required-note muted">
+          Where should we deliver your orders?
+        </p>
+      </div>
+
+      <div *ngIf="errorMessage" class="alert alert-error" role="alert">
+        {{ errorMessage }}
+      </div>
+      <div *ngIf="successMessage" class="alert alert-success" role="status">
+        {{ successMessage }}
+      </div>
+
+      <form class="address-form" (ngSubmit)="submit()" novalidate>
+        <div class="field-row">
+          <label for="addressType">Address type</label>
+          <select id="addressType" name="addressType" [(ngModel)]="form.address_type">
+            <option *ngFor="let t of addressTypes" [value]="t.value">{{ t.label }}</option>
+          </select>
+        </div>
+
+        <div class="field-grid">
+          <div class="field-row">
+            <label for="contactName">Contact name</label>
+            <input
+              id="contactName"
+              name="contactName"
+              type="text"
+              [(ngModel)]="form.contact_name"
+              autocomplete="name"
+              placeholder="Full name"
+            />
+          </div>
+          <div class="field-row">
+            <label for="contactPhone">Contact phone</label>
+            <input
+              id="contactPhone"
+              name="contactPhone"
+              type="tel"
+              [(ngModel)]="form.contact_phone"
+              autocomplete="tel"
+              placeholder="+9607..."
+            />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label for="addressLine1">
+            Address line <span class="req">*</span>
+          </label>
+          <input
+            id="addressLine1"
+            name="addressLine1"
+            type="text"
+            [(ngModel)]="form.address_line1"
+            required
+            autocomplete="street-address"
+            placeholder="House / flat, street"
+          />
+        </div>
+
+        <div class="field-row">
+          <label for="landMark">Landmark</label>
+          <input
+            id="landMark"
+            name="landMark"
+            type="text"
+            [(ngModel)]="form.land_mark"
+            placeholder="Near mosque, shop, etc."
+          />
+        </div>
+
+        <div class="field-grid">
+          <div class="field-row">
+            <label for="city">
+              City / island <span class="req">*</span>
+            </label>
+            <input
+              id="city"
+              name="city"
+              type="text"
+              [(ngModel)]="form.city"
+              required
+              autocomplete="address-level2"
+              placeholder="Malé"
+            />
+          </div>
+          <div class="field-row">
+            <label for="stateRegion">Atoll / region</label>
+            <input
+              id="stateRegion"
+              name="stateRegion"
+              type="text"
+              [(ngModel)]="form.state_region"
+              autocomplete="address-level1"
+            />
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <div class="field-row">
+            <label for="postalCode">Postal code</label>
+            <input
+              id="postalCode"
+              name="postalCode"
+              type="text"
+              [(ngModel)]="form.postal_code"
+              autocomplete="postal-code"
+            />
+          </div>
+          <div class="field-row">
+            <label for="countryCode">Country code</label>
+            <input
+              id="countryCode"
+              name="countryCode"
+              type="text"
+              [(ngModel)]="form.country_code"
+              maxlength="2"
+              placeholder="MV"
+            />
+          </div>
+        </div>
+
+        <label class="check-row">
+          <input type="checkbox" name="isDefault" [(ngModel)]="form.is_default" />
+          <span>Set as default address</span>
+        </label>
+
+        <div class="actions">
+          <button type="submit" class="btn-primary" [disabled]="saving">
+            {{ saving ? 'Saving…' : 'Save address' }}
+          </button>
+          <a
+            *ngIf="!required"
+            routerLink="/customer-profile"
+            [queryParams]="{ section: 'profile' }"
+            class="btn-link"
+          >
+            Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<app-footer></app-footer>

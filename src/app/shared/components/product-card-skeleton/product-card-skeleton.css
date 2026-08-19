@@ -1,0 +1,30 @@
+:host {
+  display: block;
+}
+
+.product-card-skeleton-image {
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.product-card-skeleton-image img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.skeleton-pulse {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: product-skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes product-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

@@ -1,0 +1,121 @@
+<div
+  *ngIf="isOpen"
+  class="pim-root"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-labelledby]="'pim-title'"
+>
+  <div class="pim-backdrop" (click)="onBackdropClick()"></div>
+
+  <!-- Step: choose / remove -->
+  <div class="pim-sheet" *ngIf="step === 'menu'">
+    <div class="pim-sheet-handle" aria-hidden="true"></div>
+    <h2 id="pim-title" class="pim-title">Profile photo</h2>
+    <p class="pim-subtitle">Choose a square crop for your avatar, like WhatsApp or Instagram.</p>
+
+    <div class="pim-preview" aria-hidden="true">
+      <img *ngIf="previewUrl" [src]="previewUrl" alt="" />
+      <span *ngIf="!previewUrl">{{ initials }}</span>
+    </div>
+
+    <div class="pim-actions">
+      <button type="button" class="pim-action primary" [disabled]="uploading || removing" (click)="choosePhoto()">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        Choose photo
+      </button>
+
+      <button
+        *ngIf="hasImage"
+        type="button"
+        class="pim-action danger"
+        [disabled]="uploading || removing"
+        (click)="requestRemove()"
+      >
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+        {{ removing ? 'Removing…' : 'Remove photo' }}
+      </button>
+
+      <button type="button" class="pim-action ghost" [disabled]="uploading || removing" (click)="close()">
+        Cancel
+      </button>
+    </div>
+
+    <p class="pim-error" *ngIf="errorMessage">{{ errorMessage }}</p>
+    <p class="pim-hint">JPG, PNG or WebP · max 5MB</p>
+
+    <input
+      #fileInput
+      type="file"
+      accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+      hidden
+      (change)="onFileSelected($event)"
+    />
+  </div>
+
+  <!-- Step: square crop -->
+  <div class="pim-crop-panel" *ngIf="step === 'crop'">
+    <div class="pim-crop-top">
+      <button type="button" class="pim-icon-btn" [disabled]="uploading" (click)="backToMenu()" aria-label="Back">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <h2 class="pim-crop-title">Move and scale</h2>
+      <button
+        type="button"
+        class="pim-done-btn"
+        [disabled]="uploading"
+        (click)="confirmCrop()"
+      >
+        {{ uploading ? 'Saving…' : 'Done' }}
+      </button>
+    </div>
+
+    <div class="pim-crop-body">
+      <div
+        #stage
+        class="pim-stage"
+        [style.width.px]="cropSize"
+        [style.height.px]="cropSize"
+        (pointerdown)="onPointerDown($event)"
+        (pointermove)="onPointerMove($event)"
+        (pointerup)="onPointerUp($event)"
+        (pointercancel)="onPointerUp($event)"
+        (touchstart)="onTouchStart($event)"
+        (touchmove)="onTouchMove($event)"
+      >
+        <img
+          *ngIf="imageUrl"
+          class="pim-stage-img"
+          [src]="imageUrl"
+          alt=""
+          draggable="false"
+          [style.width.px]="displayWidth"
+          [style.height.px]="displayHeight"
+          [style.transform]="imageTransform"
+        />
+        <div class="pim-stage-frame" aria-hidden="true"></div>
+      </div>
+
+      <label class="pim-zoom">
+        <span>Zoom</span>
+        <input
+          type="range"
+          min="1"
+          max="3"
+          step="0.01"
+          [ngModel]="zoom"
+          [disabled]="uploading"
+          (ngModelChange)="onZoomInput($event)"
+        />
+      </label>
+
+      <p class="pim-crop-hint">Drag to position · pinch or zoom to scale · square only</p>
+      <p class="pim-error" *ngIf="errorMessage">{{ errorMessage }}</p>
+    </div>
+  </div>
+</div>
