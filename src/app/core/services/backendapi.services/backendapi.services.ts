@@ -177,6 +177,16 @@ export class BackendapiServices {
     return this.http.get(`${this.apiUrl}/Market_place/countries`);
   }
 
+  getMarketplaceHomeAds(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/Market_place/ads/home`);
+  }
+
+  getMarketplaceAdsBySlot(slot: string): Observable<any> {
+    return this.http.get(
+      `${this.apiUrl}/Market_place/ads/${encodeURIComponent(slot)}`
+    );
+  }
+
   saveCustomerCurrencyPreference(payload: {
     user_id: string;
     currency: string;
@@ -191,6 +201,12 @@ export class BackendapiServices {
 
   getstores(store_id: any): Observable<any> {
     return this.http.get(`${this.apiUrl}/store/get_sotore_deatils/${store_id}`);
+  }
+
+  getStoreByStoreId(storeId: string): Observable<any> {
+    return this.http.get(
+      `${this.apiUrl}/store/get_store_by_storeid/${encodeURIComponent(storeId)}`
+    );
   }
 
   registerCustomer(payload: {

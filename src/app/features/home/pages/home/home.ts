@@ -7,6 +7,10 @@ import { BackendapiServices } from '../../../../core/services/backendapi.service
 import { RegionService } from '../../../../core/services/region.service/region.service';
 import { MarketplaceShopService } from '../../../../core/services/marketplace-shop.service/marketplace-shop.service';
 import { CurrencyService } from '../../../../core/services/currency.service/currency.service';
+import {
+  MarketplaceAd,
+  MarketplaceAdsService,
+} from '../../../../core/services/marketplace-ads.service/marketplace-ads.service';
 import { ShopNameLink } from '../../../../shared/components/shop-name-link/shop-name-link';
 import { ProductCardSkeleton } from '../../../../shared/components/product-card-skeleton/product-card-skeleton';
 import { resolveStoreRegionFromProduct } from '../../../../core/utils/marketplace-shop.util';
@@ -42,6 +46,50 @@ export interface HomeProductCard {
   featured_item?: string;
   /** True when product came from the user's chosen location (not Male filler). */
   fromSelectedLocation?: boolean;
+  shop_link?: string;
+}
+
+interface HomeHeroAd {
+  image: string;
+  imageMobile?: string;
+  badge: string;
+  title: string;
+  subtitle: string;
+  cta: string;
+  discount?: string;
+  queryParams?: Record<string, string>;
+  shop_link?: string;
+  shop_id?: string;
+  raw?: MarketplaceAd | null;
+}
+
+interface HomeSideDealView {
+  image: string;
+  name: string;
+  shopName: string;
+  offer: string;
+  price: number;
+  currencySymbol: string;
+  shop_link?: string;
+  shop_id?: string;
+  raw?: MarketplaceAd | null;
+}
+
+interface HomeMidBannerView {
+  image: string;
+  shop_link?: string;
+  shop_id?: string;
+  raw?: MarketplaceAd | null;
+}
+
+interface HomeBrandPartner {
+  name: string;
+  subtitle?: string;
+  style?: 'light' | 'semibold' | 'bold';
+  logo?: string;
+  shop_link?: string;
+  shop_id?: string;
+  raw?: MarketplaceAd | null;
 }
 
 @Component({
@@ -70,7 +118,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   ];
   activeMobileSecondCategoryId: string = 'all';
   readonly mobileAllCategoryOption = { category_id: 'all', category_name: 'All' };
-  readonly brandPartners: Array<{ name: string; subtitle?: string; style?: 'light' | 'semibold' | 'bold' }> = [
+  brandPartners: HomeBrandPartner[] = [
     { name: 'Walmart', subtitle: 'eCommerce', style: 'bold' },
     { name: 'RODEM', subtitle: 'SMART SANITARY', style: 'semibold' },
     { name: 'fabric', style: 'light' },
@@ -81,7 +129,7 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     { name: 'Great Deals', subtitle: 'E-Commerce', style: 'semibold' },
   ];
   /** Duplicated for seamless brand marquee */
-  brandMarqueeItems: Array<{ name: string; subtitle?: string; style?: 'light' | 'semibold' | 'bold' }> = [];
+  brandMarqueeItems: HomeBrandPartner[] = [];
   private readonly categoryChipImages: Record<string, string> = {
     electronics: '/Categories1.jpg',
     phone: '/mobile.jpg',
@@ -104,20 +152,12 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     toy: '/Categories11.jpg',
     automotive: '/Categories12.jpg',
   };
-  heroAds: Array<{
-    image: string;
-    badge: string;
-    title: string;
-    subtitle: string;
-    cta: string;
-    discount?: string;
-    queryParams?: Record<string, string>;
-  }> = [
+  heroAds: HomeHeroAd[] = [
     {
       image: '/The_Path_of_The_Ferocious__Starter_Pack_-removebg-preview.png',
       badge: 'Home & Living',
-      title: 'Elevate Your Space',
-      subtitle: 'Premium furniture & decor — crafted for modern living',
+      title: 'Style That Stands Out: Fresh Clothes & More!',
+      subtitle: 'Style That Stands Out: Fresh Clothing & Accessories Accessories Accessories',
       cta: 'Shop Furniture',
       discount: '30% OFF',
       queryParams: { mode: 'browse', type: 'home' },
@@ -125,8 +165,8 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     {
       image: '/New_colour_drop__Series_1_Triple_Taupe_Suede___Instagram-removebg-preview.png',
       badge: 'Mega Sale',
-      title: 'Deals You’ll Love',
-      subtitle: 'Save big across electronics, fashion, and more',
+      title: 'Style That Stands Out: Fresh Clothes & More!',
+      subtitle: 'Style That Stands Out: Fresh Clothing & Accessories Accessories Accessories',
       cta: 'View All Deals',
       discount: 'UP TO 50%',
       queryParams: { mode: 'browse' },
@@ -134,8 +174,8 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     {
       image: '/iphone_18_pro_color-removebg-preview.png',
       badge: 'Electronics',
-      title: 'Next-Gen Tech',
-      subtitle: 'Phones, laptops & gadgets at unbeatable prices',
+      title: 'Style That Stands Out: Fresh Clothes & More!',
+      subtitle: 'Style That Stands Out: Fresh Clothing & Accessories',
       cta: 'Shop Electronics',
       discount: 'NEW IN',
       queryParams: { mode: 'browse', type: 'electronics' },
@@ -143,8 +183,8 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     {
       image: '/adidas_Sportswear_TIRO_SET_-_Tracksuit_-_dark_blue-removebg-preview.png',
       badge: 'Fashion',
-      title: 'Style That Stands Out',
-      subtitle: 'Fresh arrivals in clothing & accessories',
+      title: 'Style That Stands Out: Fresh Clothes & More!',
+      subtitle: 'Style That Stands Out: Fresh Clothing & Accessories',
       cta: 'Shop Fashion',
       discount: '25% OFF',
       queryParams: { mode: 'browse', type: 'fashion' },
@@ -152,8 +192,8 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     {
       image: '/Samsung_Galaxy_S26_Ultra-removebg-preview.png',
       badge: 'Electronics',
-      title: 'Next-Gen Tech',
-      subtitle: 'Phones, laptops & gadgets at unbeatable prices',
+      title: 'Style That Stands Out: Fresh Clothes & More!',
+      subtitle: 'Style That Stands Out: Fresh Clothing & Accessories',
       cta: 'Shop Electronics',
       discount: 'NEW IN',
       queryParams: { mode: 'browse', type: 'electronics' },
@@ -161,8 +201,8 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     {
       image: '/Ray-Ban_RB4165_Justin_Sunglasses_+_Vision_Group_Accessories_Bundle-removebg-preview.png',
       badge: 'Fashion',
-      title: 'Style That Stands Out',
-      subtitle: 'Fresh arrivals in clothing & accessories',
+      title: 'Style That Stands Out: Fresh Clothes & More!',
+      subtitle: 'Style That Stands Out: Fresh Clothing & Accessories',
       cta: 'Shop Fashion',
       discount: '25% OFF',
       queryParams: { mode: 'browse', type: 'fashion' },
@@ -216,6 +256,11 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
   recentlyViewed: HomeProductCard[] = [];
   isProductsLoading = true;
   readonly productSkeletonSlots = [1, 2, 3, 4, 5];
+  newArrivalAdCards: HomeProductCard[] = [];
+  sideDealAds: HomeSideDealView[] = [];
+  midBannerLeft: HomeMidBannerView | null = null;
+  midBannerRight: HomeMidBannerView | null = null;
+  private homeMidBannersFromApi = false;
 
   constructor(
     private router: Router,
@@ -223,19 +268,16 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     private regionService: RegionService,
     private shopService: MarketplaceShopService,
     private currencyService: CurrencyService,
+    private ads: MarketplaceAdsService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
     // Duplicate enough times so the strip always overflows and loops like categories.
-    this.brandMarqueeItems = [
-      ...this.brandPartners,
-      ...this.brandPartners,
-      ...this.brandPartners,
-      ...this.brandPartners,
-    ];
+    this.rebuildBrandMarquee();
     this.loadCategory();
     this.loadMarketplaceProducts();
+    this.loadHomeAds();
     this.startHeroImageRotation();
     if (typeof window !== 'undefined') {
       window.addEventListener('region-updated', this.regionUpdatedHandler);
@@ -266,6 +308,215 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+
+  get displayedNewArrivals(): HomeProductCard[] {
+    return this.newArrivalAdCards.length ? this.newArrivalAdCards : this.newArrivals;
+  }
+
+  get hasApiHeroAds(): boolean {
+    return this.heroAds.some((ad) => !!ad.raw);
+  }
+
+  get activeHeroAd(): HomeHeroAd | undefined {
+    return this.heroAds[this.activeHeroImageIndex];
+  }
+
+  get hasApiMidBanners(): boolean {
+    return this.homeMidBannersFromApi;
+  }
+
+  isBannerSideDeal(deal: HomeSideDealView): boolean {
+    // Full-bleed cover only for image-only banners (no linked product).
+    // Product side deals use object-contain so admin PNG cutouts display correctly.
+    return !!deal.raw && !deal.raw.product;
+  }
+
+  private rebuildBrandMarquee(): void {
+    this.brandMarqueeItems = [
+      ...this.brandPartners,
+      ...this.brandPartners,
+      ...this.brandPartners,
+      ...this.brandPartners,
+    ];
+  }
+
+  private loadHomeAds(): void {
+    this.ads.getHomeAds().subscribe((homeAds) => {
+      if (homeAds.home_hero.length) {
+        this.heroAds = homeAds.home_hero.map((ad) => this.mapHeroAd(ad));
+        this.activeHeroImageIndex = 0;
+        this.nextHeroImageIndex = Math.min(1, this.heroAds.length - 1);
+        this.isHeroImageTransitioning = false;
+        this.restartHeroImageRotation();
+      }
+
+      // Soft-fail: replace placeholders only when API responds (empty → hide)
+      this.sideDealAds = this.ads
+        .sortSideDeals(homeAds.home_side_deals)
+        .map((ad) => this.mapSideDeal(ad))
+        .filter((deal) => !!deal.image);
+
+      this.newArrivalAdCards = homeAds.home_new_arrival
+        .map((ad) => this.mapNewArrivalCard(ad))
+        .filter((card) => !!card.image);
+
+      this.homeMidBannersFromApi = true;
+      if (homeAds.home_mid_banner.length) {
+        const { left, right } = this.ads.splitMidBanners(homeAds.home_mid_banner);
+        this.midBannerLeft = left[0] ? this.mapMidBanner(left[0]) : null;
+        this.midBannerRight = right[0] ? this.mapMidBanner(right[0]) : null;
+      } else {
+        this.midBannerLeft = null;
+        this.midBannerRight = null;
+      }
+
+      if (homeAds.brand_partners.length) {
+        this.brandPartners = homeAds.brand_partners.map((ad) => this.mapBrandPartner(ad));
+        this.rebuildBrandMarquee();
+        setTimeout(() => this.syncBrandMarquee(), 0);
+      }
+
+      this.cdr.detectChanges();
+    });
+  }
+
+  private restartHeroImageRotation(): void {
+    if (this.heroImageIntervalId) {
+      clearInterval(this.heroImageIntervalId);
+      this.heroImageIntervalId = null;
+    }
+    this.startHeroImageRotation();
+  }
+
+  /**
+   * Home Hero admin fields → marketplace UI:
+   * Specify → offer badge, Shop Name → green eyebrow,
+   * Caption (title) → headline, Description → subtitle,
+   * Image → right-side product art.
+   */
+  private mapHeroAd(ad: MarketplaceAd): HomeHeroAd {
+    const offer = this.ads.offerText(ad);
+    const shopName = this.ads.shopName(ad);
+    const image = this.ads.desktopImage(ad) || ad.image;
+    const titleLooksLikeOffer =
+      !!ad.title &&
+      !!offer &&
+      ad.title.trim().toLowerCase() === offer.trim().toLowerCase();
+
+    // Caption is stored as `title` in the ads API (unless backend copied Specify into title).
+    const caption = titleLooksLikeOffer ? '' : String(ad.title || '').trim();
+    const description = String(ad.description || '').trim();
+
+    const headline = caption || description;
+    const subtitle =
+      caption && description && caption !== description ? description : '';
+
+    return {
+      image,
+      imageMobile: this.ads.mobileImage(ad, image),
+      badge: shopName,
+      title: headline,
+      subtitle,
+      cta: ad.button_text || (headline || shopName ? 'Visit shop' : ''),
+      discount: offer || undefined,
+      shop_link: ad.shop_link,
+      shop_id: ad.shop?.id || ad.shop_id,
+      raw: ad,
+    };
+  }
+
+  private mapSideDeal(ad: MarketplaceAd): HomeSideDealView {
+    // Prefer admin-uploaded creative; fall back to product thumbnail only if no ad image.
+    const adminImage = this.ads.desktopImage(ad) || ad.image;
+    return {
+      image: adminImage || ad.product?.thumbnail || '',
+      name: ad.product?.name || ad.title,
+      shopName: this.ads.shopName(ad),
+      offer: this.ads.offerText(ad),
+      price: ad.product?.price || 0,
+      currencySymbol: ad.product?.currency_symbol || '',
+      shop_link: ad.shop_link,
+      shop_id: ad.shop?.id || ad.shop_id,
+      raw: ad,
+    };
+  }
+
+  private mapNewArrivalCard(ad: MarketplaceAd): HomeProductCard {
+    return {
+      id: ad.product?.id || ad.id,
+      slug: ad.product?.slug,
+      name: ad.product?.name || ad.title || 'Product',
+      category: ad.product?.category || 'Products',
+      price: ad.product?.price || 0,
+      originalPrice: ad.product?.price || 0,
+      image: this.ads.productCardImage(ad),
+      rating: ad.product?.rating || 0,
+      store_id: ad.shop?.id || ad.shop_id,
+      store_name: this.ads.shopName(ad),
+      store_currency_symbol: ad.product?.currency_symbol || '$',
+      shop_link: ad.shop_link,
+      fromSelectedLocation: true,
+    };
+  }
+
+  private mapMidBanner(ad: MarketplaceAd): HomeMidBannerView {
+    return {
+      image: this.ads.desktopImage(ad) || ad.image,
+      shop_link: ad.shop_link,
+      shop_id: ad.shop?.id || ad.shop_id,
+      raw: ad,
+    };
+  }
+
+  private mapBrandPartner(ad: MarketplaceAd): HomeBrandPartner {
+    return {
+      name: this.ads.shopName(ad) || ad.title || 'Brand',
+      subtitle: ad.shop?.business_name || undefined,
+      style: 'bold',
+      logo: this.ads.brandLogo(ad),
+      shop_link: ad.shop_link,
+      shop_id: ad.shop?.id || ad.shop_id,
+      raw: ad,
+    };
+  }
+
+  onSideDealClick(deal: HomeSideDealView): void {
+    const product = deal.raw?.product;
+    if (product?.id || product?.slug) {
+      const storeId = deal.raw?.shop?.id || deal.shop_id || '';
+      if (storeId && typeof window !== 'undefined') {
+        localStorage.setItem('store_id', storeId);
+      }
+      const link = buildProductCommands({
+        id: product.id,
+        slug: product.slug,
+        store_id: storeId,
+      });
+      this.router.navigate(link.commands, { queryParams: link.queryParams });
+      return;
+    }
+
+    if (deal.raw) {
+      this.ads.openAd(deal.raw);
+      return;
+    }
+    this.onProductDetails();
+  }
+
+  onMidBannerClick(banner: HomeMidBannerView | null): void {
+    if (!banner) return;
+    if (banner.raw) {
+      this.ads.openShopLink(banner.raw);
+      return;
+    }
+    this.onProductDetails();
+  }
+
+  onBrandPartnerClick(brand: HomeBrandPartner): void {
+    if (brand.raw) {
+      this.ads.openShop(brand.raw);
+    }
+  }
 
   loadCategory() {
     this.api.getAllCategoryList().subscribe((res: any) => {
@@ -1031,6 +1282,21 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  getHeroBannerImageClasses(index: number): string {
+    const state = this.getHeroSlideState(index);
+    const base = 'hero-banner-img';
+    switch (state) {
+      case 'visible':
+        return `${base} is-visible z-[2]`;
+      case 'entering':
+        return `${base} is-entering z-[3]`;
+      case 'leaving':
+        return `${base} is-leaving z-[2]`;
+      default:
+        return `${base} is-hidden z-0`;
+    }
+  }
+
   getHeroProductWrapClasses(index: number): string {
     const state = this.getHeroSlideState(index);
     const base =
@@ -1115,8 +1381,27 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     this.beginHeroTransition(index);
   }
 
-  onHeroAdClick(ad?: (typeof this.heroAds)[number]) {
+  onHeroAdClick(ad?: HomeHeroAd) {
     const target = ad ?? this.heroAds[this.activeHeroImageIndex];
+
+    // Button click → shop_link (handles /shop/{id} and external URLs)
+    if (target?.raw) {
+      this.ads.openShopLink(target.raw);
+      return;
+    }
+
+    const link = String(target?.shop_link || '').trim();
+    if (link) {
+      this.ads.openLink(link);
+      return;
+    }
+
+    const storeId = String(target?.shop_id || '').trim();
+    if (storeId) {
+      this.shopService.navigateToShop(storeId);
+      return;
+    }
+
     this.router.navigate(['/product-list'], {
       queryParams: target?.queryParams ?? { mode: 'browse' },
     });
@@ -1158,8 +1443,8 @@ export class Home implements OnInit, AfterViewInit, OnDestroy {
     return `${index}-${item?.category_id ?? item?.category_name ?? index}`;
   }
 
-  trackBrandMarqueeItem(index: number, item: { name: string }): string {
-    return `${index}-${item.name}`;
+  trackBrandMarqueeItem(index: number, item: HomeBrandPartner): string {
+    return `${index}-${item.name}-${item.logo || ''}`;
   }
 
   getBrandNameClasses(style?: 'light' | 'semibold' | 'bold'): string {

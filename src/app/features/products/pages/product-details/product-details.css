@@ -338,6 +338,11 @@
   background: #f3f4f6;
 }
 
+.product-detail-promo-image-only .product-detail-promo-visual {
+  flex: 1 1 auto;
+  height: 100%;
+}
+
 .product-detail-promo-visual img {
   transition: transform 0.5s ease;
 }

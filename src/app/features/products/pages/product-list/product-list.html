@@ -272,9 +272,9 @@
             >
               <span
                 *ngIf="isFeaturedProduct(product)"
-                class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800"
+                class="absolute z-10 top-2 right-2 px-2 py-0.5 text-[9px] font-medium tracking-wide text-gray-500 uppercase rounded md:text-[10px] bg-white/80"
               >
-                AD
+                Sponsored
               </span>
               <div class="relative w-full h-40 overflow-hidden bg-gray-100">
                 <video
@@ -360,19 +360,24 @@
               </div>
             </button>
 
-            <div *ngIf="i === 3" class="col-span-2">
+            <div *ngIf="i === 3 && currentProductListAd" class="col-span-2">
               <button
                 type="button"
                 (click)="onProductListAdClick()"
-                class="product-list-ad product-list-ad-mobile w-full overflow-hidden rounded-xl border border-gray-200"
+                class="product-list-ad product-list-ad-mobile relative w-full overflow-hidden rounded-xl border border-gray-200"
                 [class.product-list-ad-fading]="productListAdFading"
                 aria-label="Advertisement"
               >
                 <img
-                  [src]="currentProductListAdImage"
+                  [src]="currentProductListAdMobile"
                   alt="Advertisement"
                   class="product-list-ad-media h-full w-full object-cover"
                 />
+                <span
+                  class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800"
+                >
+                  AD
+                </span>
               </button>
             </div>
             </ng-container>
@@ -389,9 +394,9 @@
             >
               <span
                 *ngIf="isFeaturedProduct(product)"
-                class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800"
+                class="absolute z-10 top-2 right-2 px-2 py-0.5 text-[9px] font-medium tracking-wide text-gray-500 uppercase rounded md:text-[10px] bg-white/80"
               >
-                AD
+                Sponsored
               </span>
               <!-- Product Image -->
               <div class="flex-shrink-0 w-full h-48 mx-auto sm:w-48 sm:mx-0">
@@ -535,20 +540,25 @@
       </div>
 
       <!-- Desktop advertisement sidebar -->
-      <aside *ngIf="!isLoading" class="hidden flex-shrink-0 w-56 xl:block">
+      <aside *ngIf="!isLoading && currentProductListAd" class="hidden flex-shrink-0 w-56 xl:block">
         <div class="sticky top-24">
           <button
             type="button"
             (click)="onProductListAdClick()"
-            class="product-list-ad product-list-ad-desktop w-full overflow-hidden rounded-xl border border-gray-200"
+            class="product-list-ad product-list-ad-desktop relative w-full overflow-hidden rounded-xl border border-gray-200"
             [class.product-list-ad-fading]="productListAdFading"
             aria-label="Advertisement"
           >
             <img
-              [src]="currentProductListAdImage"
+              [src]="currentProductListAdDesktop"
               alt="Advertisement"
               class="product-list-ad-media h-full w-full object-cover"
             />
+            <span
+              class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800"
+            >
+              AD
+            </span>
           </button>
         </div>
       </aside>

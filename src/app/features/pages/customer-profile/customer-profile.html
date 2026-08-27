@@ -601,31 +601,59 @@
       </main>
 
       <!-- Right advertisement rail -->
-      <aside class="profile-ads" aria-label="Promotions">
+      <aside class="profile-ads" aria-label="Promotions" *ngIf="hasProfileAds">
         <button
           type="button"
           class="profile-ad-card"
+          *ngIf="currentAd"
           [class.fading]="adFading"
+          [class.profile-ad-image-only]="isImageOnlyProfileAd"
           (click)="onAdClick()"
         >
           <div class="profile-ad-media">
-            <img [src]="currentAd.image" [alt]="currentAd.title" />
-            <span class="profile-ad-badge">{{ currentAd.discount }}</span>
+            <img
+              class="profile-ad-img-desktop"
+              [src]="currentAd.imageDesktop || currentAd.image"
+              [alt]="currentAd.title || 'Advertisement'"
+            />
+            <img
+              class="profile-ad-img-mobile"
+              [src]="currentAd.imageMobile || currentAd.image"
+              [alt]="currentAd.title || 'Advertisement'"
+            />
+            <span class="profile-ad-label">AD</span>
           </div>
-          <div class="profile-ad-body">
-            <h3>{{ currentAd.title }}</h3>
-            <p>{{ currentAd.description }}</p>
-            <span class="profile-ad-cta">{{ currentAd.buttonText }}</span>
+          <div class="profile-ad-body" *ngIf="!isImageOnlyProfileAd">
+            <p *ngIf="currentAd.shopName" class="profile-ad-shop">{{ currentAd.shopName }}</p>
+            <h3 *ngIf="currentAd.title">{{ currentAd.title }}</h3>
+            <p *ngIf="currentAd.description">{{ currentAd.description }}</p>
           </div>
         </button>
 
-        <div class="profile-ad-secondary">
-          <img src="/mobile4.jpg" alt="Special offers" />
-          <div>
-            <strong>Member deals</strong>
-            <p>Save more on your next quote request.</p>
+        <button
+          type="button"
+          class="profile-ad-secondary"
+          *ngIf="profileSecondaryAd"
+          [class.profile-ad-image-only]="isImageOnlySecondaryAd"
+          (click)="onSecondaryAdClick()"
+        >
+          <img
+            class="profile-ad-img-desktop"
+            [src]="profileSecondaryAd.imageDesktop || profileSecondaryAd.image"
+            [alt]="profileSecondaryAd.title || 'Advertisement'"
+          />
+          <img
+            class="profile-ad-img-mobile"
+            [src]="profileSecondaryAd.imageMobile || profileSecondaryAd.image"
+            [alt]="profileSecondaryAd.title || 'Advertisement'"
+          />
+          <span class="profile-ad-label">AD</span>
+          <div *ngIf="!isImageOnlySecondaryAd">
+            <p *ngIf="profileSecondaryAd.shopName" class="profile-ad-shop">{{ profileSecondaryAd.shopName }}</p>
+            <strong *ngIf="profileSecondaryAd.title">{{ profileSecondaryAd.title }}</strong>
+            <p *ngIf="profileSecondaryAd.description">{{ profileSecondaryAd.description }}</p>
           </div>
-        </div>
+        </button>
       </aside>
     </div>
 

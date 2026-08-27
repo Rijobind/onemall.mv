@@ -28,6 +28,10 @@ import {
   CurrencyService,
   MarketplaceCurrencyOption,
 } from '../../../core/services/currency.service/currency.service';
+import {
+  MarketplaceAd,
+  MarketplaceAdsService,
+} from '../../../core/services/marketplace-ads.service/marketplace-ads.service';
 import { filter, Subscription } from 'rxjs';
 
 type SearchSuggestionType = 'autocomplete' | 'category';
@@ -67,8 +71,9 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
   customer: AuthCustomer | null = null;
 
   /** Responsive global ads: desktop vs mobile (no rotation). */
-  readonly globalAdDesktop = '/global-desktop.png';
-  readonly globalAdMobile = '/global-mobile.png';
+  globalAdDesktop = '/global-desktop.png';
+  globalAdMobile = '/global-mobile.png';
+  globalAd: MarketplaceAd | null = null;
 
   categoryTree: any[] = [];
   ProductList: any[] = [];
@@ -100,10 +105,12 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
     private authService: AuthService,
     private currencyService: CurrencyService,
     private notificationService: NotificationService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private ads: MarketplaceAdsService
   ) {}
 
   ngOnInit() {
+    this.loadGlobalHeaderAd();
     this.loadCategory();
     this.loadRegions();
     this.loadCurrencies();
@@ -138,6 +145,22 @@ export class Header implements OnInit, OnDestroy, AfterViewInit {
         this.syncActiveMobileTabFromUrl();
         this.openSigninFromQueryParams();
       });
+  }
+
+  private loadGlobalHeaderAd(): void {
+    this.ads.getAdsBySlot('global_header').subscribe((ads) => {
+      const ad = ads[0] || null;
+      this.globalAd = ad;
+      if (ad) {
+        this.globalAdDesktop = this.ads.desktopImage(ad, this.globalAdDesktop);
+        this.globalAdMobile = this.ads.mobileImage(ad, this.globalAdMobile);
+      }
+      this.cdr.markForCheck();
+    });
+  }
+
+  onGlobalAdClick(event?: Event): void {
+    this.ads.openShopLink(this.globalAd, event);
   }
 
   get regionDisplayLabel(): string {

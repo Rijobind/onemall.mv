@@ -14,6 +14,10 @@ import { CartModel, CartModelMode } from '../../models/cart-model/cart-model';
 import { ProductCardSkeleton } from '../../../../shared/components/product-card-skeleton/product-card-skeleton';
 import { resolveVariantDisplayPrice } from '../../../../core/utils/marketplace-price.util';
 import { buildProductCommands } from '../../../../core/utils/product-url.util';
+import {
+  MarketplaceAd,
+  MarketplaceAdsService,
+} from '../../../../core/services/marketplace-ads.service/marketplace-ads.service';
 
 @Component({
   selector: 'app-product-list',
@@ -81,7 +85,7 @@ export class ProductList implements OnInit, OnDestroy {
     { label: 'Newest Arrivals', value: 'newest' },
   ];
 
-  productListAdImages = ['/mobile3.jpg', '/mobile4.jpg', '/mobile2.jpg', '/mobile.jpg'];
+  productListAds: MarketplaceAd[] = [];
   currentProductListAdIndex = 0;
   productListAdFading = false;
   private productListAdInterval: ReturnType<typeof setInterval> | null = null;
@@ -92,8 +96,22 @@ export class ProductList implements OnInit, OnDestroy {
     this.loadProducts(detail?.currency_code);
   };
 
-  get currentProductListAdImage(): string {
-    return this.productListAdImages[this.currentProductListAdIndex];
+  get currentProductListAd(): MarketplaceAd | null {
+    return this.productListAds[this.currentProductListAdIndex] || null;
+  }
+
+  get currentProductListAdDesktop(): string {
+    const ad = this.currentProductListAd;
+    return ad ? this.ads.desktopImage(ad) : '';
+  }
+
+  get currentProductListAdMobile(): string {
+    const ad = this.currentProductListAd;
+    return ad ? this.ads.mobileImage(ad) : '';
+  }
+
+  private get productListAdCount(): number {
+    return this.productListAds.length;
   }
 
   constructor(
@@ -105,6 +123,7 @@ export class ProductList implements OnInit, OnDestroy {
     private regionService: RegionService,
     private shopService: MarketplaceShopService,
     private currencyService: CurrencyService,
+    private ads: MarketplaceAdsService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -125,7 +144,7 @@ export class ProductList implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.startProductListAdRotation();
+    this.loadProductListAds();
     this.route.queryParams.subscribe((params) => {
       const categoryId = params['categoryId'] || params['category_id'];
       const requestedMode = String(params['mode'] || '').toLowerCase();
@@ -164,13 +183,23 @@ export class ProductList implements OnInit, OnDestroy {
     }
   }
 
+  private loadProductListAds(): void {
+    this.ads.getAdsBySlot('listing_banner').subscribe((ads) => {
+      this.productListAds = ads;
+      this.currentProductListAdIndex = 0;
+      this.startProductListAdRotation();
+      this.cdr.detectChanges();
+    });
+  }
+
   private startProductListAdRotation(): void {
     this.stopProductListAdRotation();
+    if (this.productListAdCount <= 1) return;
     this.productListAdInterval = setInterval(() => {
       this.productListAdFading = true;
       this.productListAdFadeTimer = setTimeout(() => {
         this.currentProductListAdIndex =
-          (this.currentProductListAdIndex + 1) % this.productListAdImages.length;
+          (this.currentProductListAdIndex + 1) % this.productListAdCount;
         this.productListAdFading = false;
       }, 550);
     }, 5200);
@@ -188,7 +217,10 @@ export class ProductList implements OnInit, OnDestroy {
   }
 
   onProductListAdClick(): void {
-    this.router.navigate(['/']);
+    const ad = this.currentProductListAd;
+    if (ad) {
+      this.ads.openShopLink(ad);
+    }
   }
 
   private normalizeId(value: any): string {

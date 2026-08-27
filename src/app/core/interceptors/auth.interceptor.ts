@@ -5,9 +5,14 @@ import { AuthService } from '../services/auth.service/auth.service';
 
 const AUTH_URL_RE =
   /\/Market_place\/(register_customer|request_otp|verify_otp|refresh_customer_token)(\?|$)/i;
+const PUBLIC_ADS_RE = /\/Market_place\/ads(\/|$|\?)/i;
 
 function isAuthEndpoint(url: string): boolean {
   return AUTH_URL_RE.test(url);
+}
+
+function isPublicAdsEndpoint(url: string): boolean {
+  return PUBLIC_ADS_RE.test(url);
 }
 
 /**
@@ -19,7 +24,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   // Only attach customer Bearer to Market_place APIs (never Wasabi / external uploads).
   const isMarketplaceApi = /\/Market_place\//i.test(req.url);
-  const skipAuth = !isMarketplaceApi || isAuthEndpoint(req.url);
+  const skipAuth =
+    !isMarketplaceApi || isAuthEndpoint(req.url) || isPublicAdsEndpoint(req.url);
   const alreadyRetried = req.headers.has('X-Auth-Retry');
 
   const token = auth.getAccessToken();

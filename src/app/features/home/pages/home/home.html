@@ -289,11 +289,17 @@
         </div>
       </aside>
       <div class="flex-1">
-        <div class="grid grid-cols-1 gap-2 md:gap-6 lg:grid-cols-3">
+        <div
+          class="grid grid-cols-1 gap-2 md:gap-6"
+          [class.lg:grid-cols-3]="sideDealAds.length > 0"
+        >
           <div
-            class="lg:col-span-2 relative rounded-2xl overflow-hidden h-[200px] md:h-[543px] group bg-[#f4f5f7] border border-gray-200 shadow-sm"
+            class="relative rounded-2xl overflow-hidden h-[200px] md:h-[543px] group bg-white border border-gray-200 shadow-sm"
+            [class.lg:col-span-2]="sideDealAds.length > 0"
+            [class.cursor-pointer]="hasApiHeroAds"
+            (click)="hasApiHeroAds && onHeroAdClick()"
           >
-            <!-- Product images: slide in from the right -->
+            <!-- Older layout: product image on the right (object-contain) + copy on the left -->
             <div
               *ngFor="let ad of heroAds; let i = index"
               data-hero-slide
@@ -303,7 +309,7 @@
             >
               <img
                 [src]="ad.image"
-                [alt]="ad.title"
+                [alt]="ad.title || 'Advertisement'"
                 class="object-contain max-h-[90%] max-w-full drop-shadow-2xl"
               />
             </div>
@@ -321,26 +327,35 @@
                 {{ ad.discount }}
               </span>
               <p
+                *ngIf="ad.badge"
                 class="hero-copy-item mb-0.5 text-[8px] font-semibold tracking-[0.18em] text-green-600 uppercase md:mb-2 md:text-xs md:tracking-[0.2em]"
                 style="--d: 70ms"
               >
                 {{ ad.badge }}
               </p>
               <h2
-                class="hero-copy-item mb-1 text-sm font-bold leading-tight text-gray-900 sm:text-base md:mb-3 md:text-4xl lg:text-5xl"
+                *ngIf="ad.title"
+                class="mb-1 font-bold leading-tight text-gray-900 hero-copy-item"
+                [ngClass]="
+                  ad.title.length > 48
+                    ? 'text-sm sm:text-base md:mb-3 md:text-2xl lg:text-3xl'
+                    : 'text-sm sm:text-base md:mb-3 md:text-4xl lg:text-3xl xl:text-5xl'
+                "
                 style="--d: 130ms"
               >
                 {{ ad.title }}
               </h2>
               <p
-                class="hero-copy-item mb-2 text-[9px] leading-snug text-gray-500 line-clamp-2 md:mb-6 md:text-base md:leading-relaxed md:max-w-md md:line-clamp-none"
+                *ngIf="ad.subtitle"
+                class="hero-copy-item mb-2 text-[9px] leading-snug text-gray-500 line-clamp-3 md:mb-6 md:text-sm md:leading-relaxed md:max-w-md md:line-clamp-4"
                 style="--d: 190ms"
               >
                 {{ ad.subtitle }}
               </p>
               <button
+                *ngIf="ad.cta"
                 type="button"
-                (click)="onHeroAdClick(ad)"
+                (click)="onHeroAdClick(ad); $event.stopPropagation()"
                 class="hero-copy-item inline-flex items-center self-start gap-1.5 px-3 py-1.5 text-[10px] font-semibold text-white rounded-lg md:gap-2 md:px-6 md:py-3 md:text-sm bg-green-600 hover:bg-green-700 hover:shadow-lg"
                 style="--d: 250ms"
               >
@@ -372,7 +387,7 @@
               <button
                 *ngFor="let ad of heroAds; let i = index"
                 type="button"
-                (click)="goToHeroSlide(i)"
+                (click)="$event.stopPropagation(); goToHeroSlide(i)"
                 class="h-1.5 rounded-full transition-all duration-300 md:h-2"
                 [class.w-6]="activeHeroImageIndex === i"
                 [class.md:w-8]="activeHeroImageIndex === i"
@@ -384,71 +399,67 @@
               ></button>
             </div>
 
-            <!-- Sponsored label -->
+            <!-- Ad label -->
             <span
-              class="absolute top-3 right-3 z-20 px-2 py-0.5 text-[9px] font-medium tracking-wide text-gray-500 uppercase rounded md:top-4 md:right-4 md:text-[10px] bg-white/80"
+              class="absolute top-3 right-3 z-20 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800 md:top-4 md:right-4"
             >
-              Sponsored
+              AD
             </span>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 md:flex md:flex-col md:gap-6">
+          <div
+            *ngIf="sideDealAds.length"
+            class="grid grid-cols-2 gap-2 md:flex md:flex-col md:gap-6"
+          >
             <div
-              (click)="onProductDetails()"
+              *ngFor="let deal of sideDealAds"
+              (click)="onSideDealClick(deal)"
               class="relative h-[170px] md:h-[260px] rounded-xl md:rounded-2xl overflow-hidden cursor-pointer bg-[#f4f5f7] border border-gray-200 shadow-sm group"
             >
               <img
-                src="/Samsung_Galaxy_S26_Ultra-removebg-preview.png"
-                alt="Featured product"
-                class="absolute inset-0 object-contain w-full h-[78%] p-3 mx-auto mt-2 md:h-[80%] md:p-5 md:mt-3 drop-shadow-xl transition-transform duration-700 ease-out group-hover:scale-105"
+                [src]="deal.image"
+                [alt]="deal.name || 'Advertisement'"
+                class="absolute inset-0 w-full mx-auto drop-shadow-xl transition-transform duration-700 ease-out group-hover:scale-105"
+                [ngClass]="
+                  isBannerSideDeal(deal)
+                    ? 'object-cover h-full p-0 mt-0'
+                    : 'object-contain h-[78%] p-3 mt-2 md:h-[80%] md:p-5 md:mt-3'
+                "
               />
               <span
+                *ngIf="deal.offer"
                 class="absolute z-10 px-2 py-0.5 text-[9px] font-bold tracking-wide text-white uppercase rounded-full top-2 left-2 md:top-3 md:left-3 md:px-2.5 md:py-1 md:text-[11px] bg-green-600"
               >
-                17% OFF
+                {{ deal.offer }}
+              </span>
+              <span
+                class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800 md:top-3 md:right-3"
+              >
+                AD
               </span>
               <div
+                *ngIf="deal.name || deal.shopName || deal.price"
                 class="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-2 px-2.5 py-2 md:px-4 md:py-3 bg-gradient-to-t from-white via-white/85 to-transparent"
               >
                 <div class="min-w-0">
-                  <p class="text-[8px] font-semibold tracking-wider text-green-600 uppercase md:text-[11px]">
-                    CATCH BIG DEALS
+                  <p
+                    *ngIf="deal.shopName"
+                    class="text-[8px] font-semibold tracking-wider text-green-600 uppercase md:text-[11px]"
+                  >
+                    {{ deal.shopName }}
                   </p>
-                  <h3 class="text-xs font-bold leading-tight text-gray-900 truncate md:text-base">
-                    ON THE CAMERAS
+                  <h3
+                    *ngIf="deal.name"
+                    class="text-xs font-bold leading-tight text-gray-900 truncate md:text-base"
+                  >
+                    {{ deal.name }}
                   </h3>
-                </div>
-                <span
-                  class="flex-shrink-0 text-[9px] font-semibold text-green-600 cursor-pointer md:text-sm"
-                >
-                  Shop now
-                </span>
-              </div>
-            </div>
-            <div
-              (click)="onProductDetails()"
-              class="relative h-[170px] md:h-[260px] rounded-xl md:rounded-2xl overflow-hidden cursor-pointer bg-[#f4f5f7] border border-gray-200 shadow-sm group"
-            >
-              <img
-                src="/New_colour_drop__Series_1_Triple_Taupe_Suede___Instagram-removebg-preview.png"
-                alt="Featured product"
-                class="absolute inset-0 object-contain w-full h-[78%] p-3 mx-auto mt-2 md:h-[80%] md:p-5 md:mt-3 drop-shadow-xl transition-transform duration-700 ease-out group-hover:scale-105"
-              />
-              <span
-                class="absolute z-10 px-2 py-0.5 text-[9px] font-bold tracking-wide text-white uppercase rounded-full top-2 left-2 md:top-3 md:left-3 md:px-2.5 md:py-1 md:text-[11px] bg-green-600"
-              >
-                10% OFF
-              </span>
-              <div
-                class="absolute inset-x-0 bottom-0 z-10 flex items-end justify-between gap-2 px-2.5 py-2 md:px-4 md:py-3 bg-gradient-to-t from-white via-white/85 to-transparent"
-              >
-                <div class="min-w-0">
-                  <p class="text-[8px] font-semibold tracking-wider text-green-600 uppercase md:text-[11px]">
-                    CATCH BIG DEALS
+                  <p
+                    *ngIf="deal.price"
+                    class="mt-0.5 text-[9px] font-semibold text-gray-900 md:text-sm"
+                  >
+                    {{ deal.currencySymbol }}{{ deal.price.toLocaleString() }}
                   </p>
-                  <h3 class="text-xs font-bold leading-tight text-gray-900 truncate md:text-base">
-                    ON THE CAMERAS
-                  </h3>
                 </div>
                 <span
                   class="flex-shrink-0 text-[9px] font-semibold text-green-600 cursor-pointer md:text-sm"
@@ -583,7 +594,7 @@
         style="scroll-behavior: smooth"
       >
         <div
-          *ngFor="let product of newArrivals"
+          *ngFor="let product of displayedNewArrivals"
           (click)="onProductClick(product)"
           class="flex-none w-40 overflow-hidden transition-all duration-300 bg-white border border-gray-200 rounded-lg cursor-pointer min-w-40 max-w-40 group md:rounded-xl hover:shadow-xl md:w-auto md:min-w-0 md:max-w-none"
         >
@@ -637,7 +648,7 @@
 
       <div *ngIf="!isProductsLoading" class="hidden gap-6 md:grid md:grid-cols-5">
         <div
-          *ngFor="let product of newArrivals | slice: 0 : 5"
+          *ngFor="let product of displayedNewArrivals | slice: 0 : 5"
           (click)="onProductClick(product)"
           class="overflow-hidden transition-all duration-300 bg-white border border-gray-200 rounded-lg cursor-pointer group md:rounded-xl hover:shadow-xl"
         >
@@ -719,6 +730,11 @@
                 class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
                 loading="lazy"
               />
+              <span
+                class="absolute z-10 top-2 right-2 px-2 py-0.5 text-[9px] font-medium tracking-wide text-gray-500 uppercase rounded md:text-[10px] bg-white/80"
+              >
+                Sponsored
+              </span>
             </div>
             <div class="flex flex-col gap-1 p-2 md:gap-1.5 md:p-4">
               <div class="flex items-center justify-between gap-2">
@@ -771,6 +787,11 @@
                 class="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
                 loading="lazy"
               />
+              <span
+                class="absolute z-10 top-2 right-2 px-2 py-0.5 text-[9px] font-medium tracking-wide text-gray-500 uppercase rounded md:text-[10px] bg-white/80"
+              >
+                Sponsored
+              </span>
             </div>
             <div class="flex flex-col gap-1 p-2 md:gap-1.5 md:p-4">
               <div class="flex items-center justify-between gap-2">
@@ -808,23 +829,42 @@
     </div>
   </div>
 </section>
-<section class="py-5 bg-white md:py-8">
+<section class="py-5 bg-white md:py-8" *ngIf="midBannerLeft || midBannerRight">
   <div class="container px-4 mx-auto sm:px-5 lg:px-6">
     <div class="grid grid-cols-1 gap-4 md:gap-6 sm:grid-cols-2">
-      <div class="relative h-[150px] md:h-[200px] rounded-xl md:rounded-2xl overflow-hidden group">
+      <div
+        *ngIf="midBannerLeft"
+        (click)="onMidBannerClick(midBannerLeft)"
+        class="relative h-[150px] md:h-[200px] rounded-xl md:rounded-2xl overflow-hidden group"
+        [class.cursor-pointer]="!!midBannerLeft.raw || !!midBannerLeft.shop_link"
+      >
         <img
-          src="/shoe.jpg"
+          [src]="midBannerLeft.image"
           alt="Banner"
           class="absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-in-out group-hover:scale-105"
         />
+        <span
+          class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800 md:top-3 md:right-3"
+        >
+          AD
+        </span>
       </div>
-      <div class="relative hidden h-[150px] overflow-hidden rounded-xl group md:block md:h-[200px] md:rounded-2xl">
+      <div
+        *ngIf="midBannerRight"
+        (click)="onMidBannerClick(midBannerRight)"
+        class="relative hidden h-[150px] overflow-hidden rounded-xl group md:block md:h-[200px] md:rounded-2xl"
+        [class.cursor-pointer]="!!midBannerRight.raw || !!midBannerRight.shop_link"
+      >
         <img
-          src="/shoe2.jpg"
+          [src]="midBannerRight.image"
           alt="Banner"
           class="absolute inset-0 w-full h-full object-cover transition-transform duration-[2500ms] ease-in-out group-hover:scale-105"
         />
-
+        <span
+          class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800 md:top-3 md:right-3"
+        >
+          AD
+        </span>
       </div>
     </div>
   </div>
@@ -1038,9 +1078,18 @@
       >
         <div
           *ngFor="let brand of brandMarqueeItems; trackBy: trackBrandMarqueeItem"
-          class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] flex-shrink-0 pointer-events-none md:h-24 md:px-8 md:py-4 md:min-w-[160px]"
+          class="flex flex-col items-center justify-center h-16 px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition-all duration-300 min-w-[120px] flex-shrink-0 md:h-24 md:px-8 md:py-4 md:min-w-[160px]"
+          [class.pointer-events-none]="!brand.raw && !brand.shop_link"
+          [class.cursor-pointer]="!!brand.raw || !!brand.shop_link"
+          (click)="onBrandPartnerClick(brand)"
         >
-          <span [class]="getBrandNameClasses(brand.style)">{{ brand.name }}</span>
+          <img
+            *ngIf="brand.logo"
+            [src]="brand.logo"
+            [alt]="brand.name"
+            class="object-contain h-8 max-w-[88px] md:h-12 md:max-w-[120px]"
+          />
+          <span *ngIf="!brand.logo" [class]="getBrandNameClasses(brand.style)">{{ brand.name }}</span>
           <span
             *ngIf="brand.subtitle"
             class="mt-0.5 text-[10px] text-gray-500 md:mt-1 md:text-xs"

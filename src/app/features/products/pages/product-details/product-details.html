@@ -317,7 +317,7 @@
 
       </div>
       <!-- Center: Title, Details, Variants -->
-      <div class="min-w-0 overflow-hidden lg:col-span-1">
+      <div class="min-w-0 lg:col-span-1">
         <div class="lg:flex lg:items-start lg:gap-6">
           <div class="relative flex-1 min-w-0 min-h-[400px] lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
           <button
@@ -827,35 +827,30 @@
           </div>
 
           <!-- Mobile advertisement: after Description -->
-          <div class="mt-6 lg:hidden">
+          <div class="mt-6 lg:hidden" *ngIf="currentProductDetailAd">
             <button
               type="button"
               (click)="onProductDetailAdClick()"
               class="product-detail-promo product-detail-promo-mobile w-full text-left group"
+              [class.product-detail-promo-image-only]="isImageOnlyProductDetailAd"
               [class.product-detail-ad-fading]="productDetailAdFading"
             >
               <div class="product-detail-promo-visual">
                 <img
-                  [src]="currentProductDetailAd.image"
-                  [alt]="currentProductDetailAd.title"
+                  [src]="currentProductDetailAd.imageMobile || currentProductDetailAd.image"
+                  [alt]="currentProductDetailAd.title || 'Advertisement'"
                   class="product-detail-ad-media h-full w-full object-cover"
                 />
-                <span class="product-detail-promo-badge">{{ currentProductDetailAd.discount }}</span>
+                <span class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800">AD</span>
               </div>
-              <div class="product-detail-promo-body product-detail-ad-media">
-                <p class="product-detail-promo-eyebrow">Special offer</p>
-                <h3 class="product-detail-promo-title">{{ currentProductDetailAd.title }}</h3>
-                <p class="product-detail-promo-desc">{{ currentProductDetailAd.description }}</p>
-                <span class="product-detail-promo-cta">
-                  {{ currentProductDetailAd.buttonText }}
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </span>
+              <div *ngIf="!isImageOnlyProductDetailAd" class="product-detail-promo-body product-detail-ad-media">
+                <p *ngIf="currentProductDetailAd.shopName" class="product-detail-promo-eyebrow">{{ currentProductDetailAd.shopName }}</p>
+                <h3 *ngIf="currentProductDetailAd.title" class="product-detail-promo-title">{{ currentProductDetailAd.title }}</h3>
+                <p *ngIf="currentProductDetailAd.description" class="product-detail-promo-desc">{{ currentProductDetailAd.description }}</p>
               </div>
             </button>
 
-            <div class="product-detail-promo-dots">
+            <div class="product-detail-promo-dots" *ngIf="productDetailAds.length > 1">
               <span
                 *ngFor="let ad of productDetailAds; let i = index"
                 class="product-detail-promo-dot"
@@ -866,36 +861,31 @@
           </div>
 
           <!-- Desktop advertisement sidebar -->
-          <aside class="hidden flex-shrink-0 w-48 xl:w-56 lg:block">
+          <aside class="hidden flex-shrink-0 w-48 xl:w-56 lg:block" *ngIf="currentProductDetailAd">
             <div class="sticky top-24">
               <button
                 type="button"
                 (click)="onProductDetailAdClick()"
                 class="product-detail-promo product-detail-promo-desktop w-full text-left group"
+                [class.product-detail-promo-image-only]="isImageOnlyProductDetailAd"
                 [class.product-detail-ad-fading]="productDetailAdFading"
               >
                 <div class="product-detail-promo-visual">
                   <img
-                    [src]="currentProductDetailAd.image"
-                    [alt]="currentProductDetailAd.title"
+                    [src]="currentProductDetailAd.imageDesktop || currentProductDetailAd.image"
+                    [alt]="currentProductDetailAd.title || 'Advertisement'"
                     class="product-detail-ad-media h-full w-full object-cover"
                   />
-                  <span class="product-detail-promo-badge">{{ currentProductDetailAd.discount }}</span>
+                  <span class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800">AD</span>
                 </div>
-                <div class="product-detail-promo-body product-detail-ad-media">
-                  <p class="product-detail-promo-eyebrow">Special offer</p>
-                  <h3 class="product-detail-promo-title">{{ currentProductDetailAd.title }}</h3>
-                  <p class="product-detail-promo-desc">{{ currentProductDetailAd.description }}</p>
-                  <span class="product-detail-promo-cta">
-                    {{ currentProductDetailAd.buttonText }}
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                    </svg>
-                  </span>
+                <div *ngIf="!isImageOnlyProductDetailAd" class="product-detail-promo-body product-detail-ad-media">
+                  <p *ngIf="currentProductDetailAd.shopName" class="product-detail-promo-eyebrow">{{ currentProductDetailAd.shopName }}</p>
+                  <h3 *ngIf="currentProductDetailAd.title" class="product-detail-promo-title">{{ currentProductDetailAd.title }}</h3>
+                  <p *ngIf="currentProductDetailAd.description" class="product-detail-promo-desc">{{ currentProductDetailAd.description }}</p>
                 </div>
               </button>
 
-              <div class="product-detail-promo-dots">
+              <div class="product-detail-promo-dots" *ngIf="productDetailAds.length > 1">
                 <span
                   *ngFor="let ad of productDetailAds; let i = index"
                   class="product-detail-promo-dot"

@@ -19,6 +19,10 @@ import { buildProductCommands } from '../../../core/utils/product-url.util';
 import {MarketplaceCity,MarketplaceRegion,RegionSelection,RegionService,} from '../../../core/services/region.service/region.service';
 import {CurrencyService,MarketplaceCurrencyOption,} from '../../../core/services/currency.service/currency.service';
 import {FollowedStore,FollowService,} from '../../../core/services/follow.service/follow.service';
+import {
+  MarketplaceAd,
+  MarketplaceAdsService,
+} from '../../../core/services/marketplace-ads.service/marketplace-ads.service';
 
 export type ProfileSection =
   | 'orders'
@@ -135,41 +139,30 @@ export class CustomerProfile implements OnInit, OnDestroy {
   confirmLabel = 'Yes, delete';
   private pendingConfirmAction: (() => void) | null = null;
 
-  /** Right-rail ads */
-  profileAds = [
-    {
-      image: '/mobile3.jpg',
-      title: 'CYBER MONDAY SALE',
-      description: "Don't miss out on amazing deals!",
-      discount: '75% OFF',
-      buttonText: 'Shop Now',
-    },
-    {
-      image: '/mobile4.jpg',
-      title: 'SUMMER COLLECTION',
-      description: 'New arrivals with exclusive discounts!',
-      discount: '50% OFF',
-      buttonText: 'Explore Now',
-    },
-    {
-      image: '/mobile2.jpg',
-      title: 'FLASH SALE',
-      description: "Limited time offers — shop before they're gone!",
-      discount: '60% OFF',
-      buttonText: 'Shop Now',
-    },
-    {
-      image: '/mobile.jpg',
-      title: 'WEEKEND SPECIAL',
-      description: 'Extra savings on selected items this weekend!',
-      discount: '40% OFF',
-      buttonText: 'Shop Now',
-    },
-  ];
+  /** Right-rail ads (shared pool: profile_product_details) */
+  profileAds: Array<{
+    image: string;
+    imageDesktop?: string;
+    imageMobile?: string;
+    shopName: string;
+    title: string;
+    description: string;
+    raw?: MarketplaceAd | null;
+  }> = [];
   currentAdIndex = 0;
   adFading = false;
   private adInterval: ReturnType<typeof setInterval> | null = null;
   private adFadeTimer: ReturnType<typeof setTimeout> | null = null;
+  profileSecondaryAd: {
+    image: string;
+    imageDesktop?: string;
+    imageMobile?: string;
+    shopName: string;
+    title: string;
+    description: string;
+    shop_link: string;
+    raw: MarketplaceAd | null;
+  } | null = null;
 
   editForm: CustomerAddressPayload = {
     address_type: 'HOME',
@@ -215,11 +208,12 @@ export class CustomerProfile implements OnInit, OnDestroy {
     private followService: FollowService,
     private router: Router,
     private route: ActivatedRoute,
+    private ads: MarketplaceAdsService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
-    this.startAdRotation();
+    this.loadProfileAds();
 
     this.authSub = this.auth.customer$.subscribe((customer) => {
       this.customer = customer;
@@ -344,7 +338,21 @@ export class CustomerProfile implements OnInit, OnDestroy {
   }
 
   get currentAd() {
-    return this.profileAds[this.currentAdIndex];
+    return this.profileAds[this.currentAdIndex] || null;
+  }
+
+  get hasProfileAds(): boolean {
+    return this.profileAds.length > 0 || !!this.profileSecondaryAd;
+  }
+
+  get isImageOnlyProfileAd(): boolean {
+    const ad = this.currentAd;
+    return !!ad && !ad.shopName && !ad.title && !ad.description;
+  }
+
+  get isImageOnlySecondaryAd(): boolean {
+    const ad = this.profileSecondaryAd;
+    return !!ad && !ad.shopName && !ad.title && !ad.description;
   }
 
   logout(): void {
@@ -457,11 +465,65 @@ export class CustomerProfile implements OnInit, OnDestroy {
   }
 
   onAdClick(): void {
-    this.router.navigate(['/product-list']);
+    const ad = this.currentAd;
+    if (ad?.raw) {
+      this.ads.openShopLink(ad.raw);
+    }
+  }
+
+  onSecondaryAdClick(): void {
+    if (this.profileSecondaryAd?.raw) {
+      this.ads.openShopLink(this.profileSecondaryAd.raw);
+      return;
+    }
+    if (this.profileSecondaryAd?.shop_link) {
+      this.ads.openLink(this.profileSecondaryAd.shop_link);
+    }
+  }
+
+  private loadProfileAds(): void {
+    this.ads.getAdsBySlot('profile_product_details').subscribe({
+      next: (ads) => {
+        const mapped = ads
+          .map((ad) => this.mapProfileAd(ad))
+          .filter((ad) => !!ad.imageDesktop || !!ad.imageMobile || !!ad.image);
+
+        this.profileAds = mapped;
+        this.profileSecondaryAd =
+          mapped.length > 1
+            ? {
+                ...mapped[1],
+                shop_link: mapped[1].raw?.shop_link || '',
+              }
+            : null;
+
+        this.currentAdIndex = 0;
+        this.startAdRotation();
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.profileAds = [];
+        this.profileSecondaryAd = null;
+      },
+    });
+  }
+
+  private mapProfileAd(ad: MarketplaceAd) {
+    const image = this.ads.desktopImage(ad) || this.ads.mobileImage(ad);
+    return {
+      image,
+      imageDesktop: this.ads.desktopImage(ad, image),
+      imageMobile: this.ads.mobileImage(ad, image),
+      shopName: this.ads.shopName(ad),
+      title: ad.title,
+      description: ad.description,
+      raw: ad,
+    };
   }
 
   private startAdRotation(): void {
     this.stopAdRotation();
+    if (this.profileAds.length <= 1) return;
     this.adInterval = setInterval(() => {
       this.adFading = true;
       this.adFadeTimer = setTimeout(() => {

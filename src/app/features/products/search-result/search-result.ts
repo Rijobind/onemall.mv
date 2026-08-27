@@ -14,6 +14,10 @@ import { CartModel, CartModelMode } from '../models/cart-model/cart-model';
 import { ProductCardSkeleton } from '../../../shared/components/product-card-skeleton/product-card-skeleton';
 import { resolveVariantDisplayPrice } from '../../../core/utils/marketplace-price.util';
 import { buildProductCommands } from '../../../core/utils/product-url.util';
+import {
+  MarketplaceAd,
+  MarketplaceAdsService,
+} from '../../../core/services/marketplace-ads.service/marketplace-ads.service';
 
 @Component({
   selector: 'app-search-result',
@@ -59,7 +63,7 @@ export class SearchResult implements OnInit, OnDestroy {
     { label: 'Newest Arrivals', value: 'newest' },
   ];
 
-  searchResultAdImages = ['/mobile3.jpg', '/mobile4.jpg', '/mobile2.jpg', '/mobile.jpg'];
+  searchResultAds: MarketplaceAd[] = [];
   currentSearchResultAdIndex = 0;
   searchResultAdFading = false;
   private searchResultAdInterval: ReturnType<typeof setInterval> | null = null;
@@ -70,8 +74,22 @@ export class SearchResult implements OnInit, OnDestroy {
     this.loadProducts(detail?.currency_code);
   };
 
-  get currentSearchResultAdImage(): string {
-    return this.searchResultAdImages[this.currentSearchResultAdIndex];
+  get currentSearchResultAd(): MarketplaceAd | null {
+    return this.searchResultAds[this.currentSearchResultAdIndex] || null;
+  }
+
+  get currentSearchResultAdDesktop(): string {
+    const ad = this.currentSearchResultAd;
+    return ad ? this.ads.desktopImage(ad) : '';
+  }
+
+  get currentSearchResultAdMobile(): string {
+    const ad = this.currentSearchResultAd;
+    return ad ? this.ads.mobileImage(ad) : '';
+  }
+
+  private get searchResultAdCount(): number {
+    return this.searchResultAds.length;
   }
 
   constructor(
@@ -83,6 +101,7 @@ export class SearchResult implements OnInit, OnDestroy {
     private regionService: RegionService,
     private shopService: MarketplaceShopService,
     private currencyService: CurrencyService,
+    private ads: MarketplaceAdsService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -103,7 +122,7 @@ export class SearchResult implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.startSearchResultAdRotation();
+    this.loadSearchResultAds();
     this.loadProducts();
     if (typeof window !== 'undefined') {
       window.addEventListener('region-updated', this.regionUpdatedHandler);
@@ -123,13 +142,23 @@ export class SearchResult implements OnInit, OnDestroy {
     }
   }
 
+  private loadSearchResultAds(): void {
+    this.ads.getAdsBySlot('listing_banner').subscribe((ads) => {
+      this.searchResultAds = ads;
+      this.currentSearchResultAdIndex = 0;
+      this.startSearchResultAdRotation();
+      this.cdr.detectChanges();
+    });
+  }
+
   private startSearchResultAdRotation(): void {
     this.stopSearchResultAdRotation();
+    if (this.searchResultAdCount <= 1) return;
     this.searchResultAdInterval = setInterval(() => {
       this.searchResultAdFading = true;
       this.searchResultAdFadeTimer = setTimeout(() => {
         this.currentSearchResultAdIndex =
-          (this.currentSearchResultAdIndex + 1) % this.searchResultAdImages.length;
+          (this.currentSearchResultAdIndex + 1) % this.searchResultAdCount;
         this.searchResultAdFading = false;
       }, 550);
     }, 5200);
@@ -147,7 +176,10 @@ export class SearchResult implements OnInit, OnDestroy {
   }
 
   onSearchResultAdClick(): void {
-    this.router.navigate(['/product-list']);
+    const ad = this.currentSearchResultAd;
+    if (ad) {
+      this.ads.openShopLink(ad);
+    }
   }
 
   private loadProducts(currencyOverride?: string): void {

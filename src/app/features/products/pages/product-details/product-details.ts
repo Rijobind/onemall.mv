@@ -31,6 +31,20 @@ import {
 import { extractApiData, isApiSuccess } from '../../../../core/utils/api-response.util';
 import { CartModel, CartModelMode } from '../../models/cart-model/cart-model';
 import { FollowService } from '../../../../core/services/follow.service/follow.service';
+import {
+  MarketplaceAd,
+  MarketplaceAdsService,
+} from '../../../../core/services/marketplace-ads.service/marketplace-ads.service';
+
+interface ProductDetailAdView {
+  image: string;
+  imageDesktop: string;
+  imageMobile: string;
+  shopName: string;
+  title: string;
+  description: string;
+  raw: MarketplaceAd | null;
+}
 
 @Component({
   selector: 'app-product-details',
@@ -137,36 +151,7 @@ export class ProductDetails implements OnInit, OnDestroy {
   activeTab: string = 'description';
   isLoading: boolean = true;
 
-  productDetailAds = [
-    {
-      image: '/mobile3.jpg',
-      title: 'CYBER MONDAY SALE',
-      description: "Don't miss out on amazing deals!",
-      discount: '75% OFF',
-      buttonText: 'Shop Now',
-    },
-    {
-      image: '/mobile4.jpg',
-      title: 'SUMMER COLLECTION',
-      description: 'New arrivals with exclusive discounts!',
-      discount: '50% OFF',
-      buttonText: 'Explore Now',
-    },
-    {
-      image: '/mobile2.jpg',
-      title: 'FLASH SALE',
-      description: "Limited time offers — shop before they're gone!",
-      discount: '60% OFF',
-      buttonText: 'Shop Now',
-    },
-    {
-      image: '/mobile.jpg',
-      title: 'WEEKEND SPECIAL',
-      description: 'Extra savings on selected items this weekend!',
-      discount: '40% OFF',
-      buttonText: 'Shop Now',
-    },
-  ];
+  productDetailAds: ProductDetailAdView[] = [];
   currentProductDetailAdIndex = 0;
   productDetailAdFading = false;
   private productDetailAdInterval: ReturnType<typeof setInterval> | null = null;
@@ -183,6 +168,11 @@ export class ProductDetails implements OnInit, OnDestroy {
     return this.productDetailAds[this.currentProductDetailAdIndex];
   }
 
+  get isImageOnlyProductDetailAd(): boolean {
+    const ad = this.currentProductDetailAd;
+    return !!ad && !ad.shopName && !ad.title && !ad.description;
+  }
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -195,11 +185,12 @@ export class ProductDetails implements OnInit, OnDestroy {
     private currencyService: CurrencyService,
     private followService: FollowService,
     private title: Title,
+    private ads: MarketplaceAdsService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
-    this.startProductDetailAdRotation();
+    this.loadProductDetailAds();
     if (typeof window !== 'undefined') {
       window.addEventListener('region-updated', this.regionUpdatedHandler);
       window.addEventListener('currency-updated', this.currencyUpdatedHandler);
@@ -271,8 +262,33 @@ export class ProductDetails implements OnInit, OnDestroy {
     }
   }
 
+  private loadProductDetailAds(): void {
+    this.ads.getAdsBySlot('profile_product_details').subscribe((ads) => {
+      this.productDetailAds = ads
+        .map((ad) => this.mapProductDetailAd(ad))
+        .filter((ad) => !!ad.imageDesktop || !!ad.imageMobile || !!ad.image);
+      this.currentProductDetailAdIndex = 0;
+      this.startProductDetailAdRotation();
+      this.cdr.detectChanges();
+    });
+  }
+
+  private mapProductDetailAd(ad: MarketplaceAd): ProductDetailAdView {
+    const image = this.ads.desktopImage(ad) || this.ads.mobileImage(ad);
+    return {
+      image,
+      imageDesktop: this.ads.desktopImage(ad, image),
+      imageMobile: this.ads.mobileImage(ad, image),
+      shopName: this.ads.shopName(ad),
+      title: ad.title,
+      description: ad.description,
+      raw: ad,
+    };
+  }
+
   private startProductDetailAdRotation(): void {
     this.stopProductDetailAdRotation();
+    if (this.productDetailAds.length <= 1) return;
     this.productDetailAdInterval = setInterval(() => {
       this.productDetailAdFading = true;
       this.productDetailAdFadeTimer = setTimeout(() => {
@@ -1367,7 +1383,10 @@ export class ProductDetails implements OnInit, OnDestroy {
   }
 
   onProductDetailAdClick(): void {
-    this.router.navigate(['/product-list']);
+    const ad = this.currentProductDetailAd;
+    if (ad?.raw) {
+      this.ads.openShopLink(ad.raw);
+    }
   }
 
   private resolveStoreIdFromRoute(params: any): string {

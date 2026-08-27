@@ -91,9 +91,9 @@
             >
               <span
                 *ngIf="isFeaturedProduct(product)"
-                class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800"
+                class="absolute z-10 top-2 right-2 px-2 py-0.5 text-[9px] font-medium tracking-wide text-gray-500 uppercase rounded md:text-[10px] bg-white/80"
               >
-                AD
+                Sponsored
               </span>
               <div class="flex-shrink-0 w-full h-48 mx-auto sm:w-48 sm:mx-0">
                 <div class="relative w-full h-full overflow-hidden bg-gray-100 rounded-lg">
@@ -202,20 +202,25 @@
           </div>
 
           <!-- Desktop advertisement sidebar -->
-          <aside class="hidden flex-shrink-0 w-56 lg:block">
+          <aside class="hidden flex-shrink-0 w-56 lg:block" *ngIf="currentSearchResultAd">
             <div class="sticky top-24">
               <button
                 type="button"
                 (click)="onSearchResultAdClick()"
-                class="search-result-ad search-result-ad-desktop w-full overflow-hidden rounded-xl border border-gray-200"
+                class="search-result-ad search-result-ad-desktop relative w-full overflow-hidden rounded-xl border border-gray-200"
                 [class.search-result-ad-fading]="searchResultAdFading"
                 aria-label="Advertisement"
               >
                 <img
-                  [src]="currentSearchResultAdImage"
+                  [src]="currentSearchResultAdDesktop"
                   alt="Advertisement"
                   class="search-result-ad-media h-full w-full object-cover"
                 />
+                <span
+                  class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800"
+                >
+                  AD
+                </span>
               </button>
             </div>
           </aside>
@@ -318,9 +323,9 @@
         >
           <span
             *ngIf="isFeaturedProduct(product)"
-            class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800"
+            class="absolute z-10 top-2 right-2 px-2 py-0.5 text-[9px] font-medium tracking-wide text-gray-500 uppercase rounded md:text-[10px] bg-white/80"
           >
-            AD
+            Sponsored
           </span>
           <div class="relative w-full h-40 overflow-hidden bg-gray-100">
             <img
@@ -390,19 +395,24 @@
           </div>
         </button>
 
-        <div *ngIf="i === 3" class="col-span-2">
+        <div *ngIf="i === 3 && currentSearchResultAd" class="col-span-2">
           <button
             type="button"
             (click)="onSearchResultAdClick()"
-            class="search-result-ad search-result-ad-mobile w-full overflow-hidden rounded-xl border border-gray-200"
+            class="search-result-ad search-result-ad-mobile relative w-full overflow-hidden rounded-xl border border-gray-200"
             [class.search-result-ad-fading]="searchResultAdFading"
             aria-label="Advertisement"
           >
             <img
-              [src]="currentSearchResultAdImage"
+              [src]="currentSearchResultAdMobile"
               alt="Advertisement"
               class="search-result-ad-media h-full w-full object-cover"
             />
+            <span
+              class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800"
+            >
+              AD
+            </span>
           </button>
         </div>
         </ng-container>

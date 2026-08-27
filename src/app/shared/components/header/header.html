@@ -1,19 +1,37 @@
 <!-- Global Advertisement Banner (desktop + mobile) -->
-<div class="hidden w-full overflow-hidden leading-none bg-white md:block">
-  <div class="container mx-auto">
+<div
+  class="hidden w-full overflow-hidden leading-none bg-white md:block"
+  [class.cursor-pointer]="!!globalAd"
+  (click)="onGlobalAdClick($event)"
+>
+  <div class="relative container mx-auto">
     <img
       [src]="globalAdDesktop"
       alt="Advertisement"
       class="block w-full h-auto"
     />
+    <span
+      class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800"
+    >
+      AD
+    </span>
   </div>
 </div>
-<div class="w-full overflow-hidden leading-none bg-white md:hidden">
+<div
+  class="relative w-full overflow-hidden leading-none bg-white md:hidden"
+  [class.cursor-pointer]="!!globalAd"
+  (click)="onGlobalAdClick($event)"
+>
   <img
     [src]="globalAdMobile"
     alt="Advertisement"
     class="block w-full h-auto"
   />
+  <span
+    class="absolute z-10 top-2 right-2 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase bg-gray-800"
+  >
+    AD
+  </span>
 </div>
 
 <!-- Top Info Bar -->
